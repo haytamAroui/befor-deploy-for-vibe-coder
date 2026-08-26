@@ -125,7 +125,8 @@ Policies are human-reviewable YAML files under `rules/`. A policy explicitly sel
 
 | Profile | Use it when | Main behavior |
 |---|---|---|
-| `rules/default-policy.yaml` | Local development and the initial CI gate. | Runs the validated native controls. It is the recommended starting profile. |
+| `rules/default-policy.yaml` | Local development and baseline assessment. | Runs the validated native controls. It is the recommended starting profile. |
+| `rules/strict-ci-policy.yaml` | Protected-branch CI. | Runs the native pre-deployment controls with every configured control required and fail-closed error behavior. |
 | `rules/external-adapters-policy.yaml` | A team has installed and calibrated the pinned Gitleaks and Semgrep binaries. | Replaces the bootstrap secret/SAST controls with required external adapters while retaining native FastAPI, configuration, CI, and dependency controls. |
 | `rules/strict-policy.yaml` | Release-evidence experimentation. | Includes the SBOM presence control. It remains separate until SBOM generation and provenance verification are automated. |
 
@@ -212,7 +213,7 @@ If either required binary is missing, times out, produces invalid JSON, or repor
 
 ## Continuous integration
 
-The repository contains a hardened example workflow at `.github/workflows/ci.yml`. It uses read-only default permissions, a pinned Python setup action, a full-SHA-pinned uv setup action, `uv sync --frozen --all-extras`, linting, tests, a default-policy self-scan, and redacted report artifact retention.
+The repository contains a hardened example workflow at `.github/workflows/ci.yml`. It uses read-only default permissions, a pinned Python setup action, a full-SHA-pinned uv setup action, `uv sync --frozen --all-extras`, linting, tests, a **strict-CI-policy** self-scan, and redacted report artifact retention.
 
 To adopt the same pattern in another repository, vendor or package Before Deploy through your approved release process, then use a protected-branch job that runs the CLI and preserves the exit code. The gate must run in CI; local hooks provide convenience but can be bypassed.
 

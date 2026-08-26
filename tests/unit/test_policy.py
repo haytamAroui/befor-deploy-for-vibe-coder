@@ -121,3 +121,50 @@ def test_expired_waiver_does_not_change_decision():
     )
 
     assert decision.outcome == GateOutcome.BLOCK
+
+
+def test_unconfigured_finding_rule_is_a_policy_error():
+    unknown = Finding(
+        rule_id="SEC-UNKNOWN-001",
+        rule_version="1",
+        title="unknown rule",
+        message="unexpected finding",
+        remediation="configure the rule",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        fingerprint="unknown-finding-1",
+    )
+
+    findings, decision = evaluate(
+        manifest=_manifest(),
+        executions=(_execution(),),
+        findings=(unknown,),
+        waivers=(),
+        profile=_profile(),
+    )
+
+    assert findings[0].disposition == Disposition.WARN
+    assert decision.outcome == GateOutcome.ERROR
+    assert decision.error_control_ids == ("UNCONFIGURED_RULE:SEC-UNKNOWN-001",)
+    assert "UNCONFIGURED_FINDING:SEC-UNKNOWN-001" in decision.reason_codes
+
+
+def test_strict_profile_fails_on_nonrequired_control_error():
+    strict_profile = PolicyProfile(
+        schema_version=1,
+        name="strict",
+        controls={"SEC-TEST-001": ControlPolicy(required=False, disposition=Disposition.BLOCK)},
+        public_fastapi_routes=frozenset(),
+        allow_nonrequired_control_errors=False,
+    )
+
+    _, decision = evaluate(
+        manifest=_manifest(),
+        executions=(_execution(ExecutionStatus.ERROR),),
+        findings=(),
+        waivers=(),
+        profile=strict_profile,
+    )
+
+    assert decision.outcome == GateOutcome.ERROR
+    assert decision.error_control_ids == ("SEC-TEST-001",)

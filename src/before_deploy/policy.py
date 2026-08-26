@@ -131,11 +131,13 @@ def evaluate(
     advisory: set[str] = set()
 
     for finding in findings:
-        control_policy = profile.controls.get(
-            finding.rule_id,
-            ControlPolicy(required=False, disposition=Disposition.WARN),
-        )
-        configured = finding.with_disposition(control_policy.disposition)
+        control_policy = profile.controls.get(finding.rule_id)
+        if control_policy is None:
+            errors.add(f"UNCONFIGURED_RULE:{finding.rule_id}")
+            reason_codes.add(f"UNCONFIGURED_FINDING:{finding.rule_id}")
+            configured = finding.with_disposition(Disposition.WARN)
+        else:
+            configured = finding.with_disposition(control_policy.disposition)
         matching_waiver = next(
             (
                 waiver
