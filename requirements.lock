@@ -1,0 +1,5 @@
+# Bootstrap lockfile for the deterministic kernel.
+# Regenerate through the approved dependency-update workflow as dependencies evolve.
+PyYAML==6.0.3
+pytest==8.4.2
+ruff==0.16.4

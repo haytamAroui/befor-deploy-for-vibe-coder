@@ -1,0 +1,124 @@
+"""Command-line interface for deterministic pre-deployment scans."""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+from before_deploy.controls import native_controls
+from before_deploy.models import GateOutcome
+from before_deploy.orchestrator import ScanOrchestrator, configured_controls
+from before_deploy.policy import load_policy
+from before_deploy.reports import render_json, render_markdown, render_sarif
+
+EXIT_CODES = {
+    GateOutcome.PASS: 0,
+    GateOutcome.NOT_EVALUATED: 0,
+    GateOutcome.BLOCK: 10,
+    GateOutcome.WAIVER_REQUIRED: 11,
+    GateOutcome.ERROR: 20,
+}
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Create the stable CLI argument interface."""
+    parser = argparse.ArgumentParser(
+        prog="before-deploy",
+        description="Run deterministic pre-deployment security controls.",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    scan = subparsers.add_parser("scan", help="scan a repository and apply a policy profile")
+    scan.add_argument("repository", type=Path, help="repository directory to scan")
+    scan.add_argument(
+        "--policy",
+        type=Path,
+        default=Path("rules/default-policy.yaml"),
+        help="policy YAML file (default: rules/default-policy.yaml)",
+    )
+    scan.add_argument("--waivers", type=Path, help="optional narrowly scoped waiver YAML file")
+    scan.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("reports"),
+        help="directory for report.json, report.md, and report.sarif",
+    )
+    scan.add_argument(
+        "--max-file-bytes",
+        type=int,
+        default=1_000_000,
+        help="maximum included file size in bytes (default: 1000000)",
+    )
+    scan.add_argument(
+        "--format",
+        choices=("terminal", "json", "markdown", "sarif"),
+        default="terminal",
+        help="format printed to stdout; all report files are still written",
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Execute the CLI and return a CI-friendly exit status."""
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.command == "scan":
+        return _scan(args)
+    parser.error(f"Unsupported command: {args.command}")
+    return 20
+
+
+def _scan(args: argparse.Namespace) -> int:
+    try:
+        profile = load_policy(args.policy)
+        controls = configured_controls(profile, native_controls())
+        result = ScanOrchestrator(controls).scan(
+            args.repository,
+            args.policy,
+            waiver_path=args.waivers,
+            max_file_bytes=args.max_file_bytes,
+        )
+        output_dir = args.output_dir.resolve()
+        output_dir.mkdir(parents=True, exist_ok=True)
+        reports = {
+            "json": render_json(result),
+            "markdown": render_markdown(result),
+            "sarif": render_sarif(result),
+        }
+        (output_dir / "report.json").write_text(reports["json"], encoding="utf-8")
+        (output_dir / "report.md").write_text(reports["markdown"], encoding="utf-8")
+        (output_dir / "report.sarif").write_text(reports["sarif"], encoding="utf-8")
+
+        if args.format == "terminal":
+            _print_terminal_summary(result, output_dir)
+        elif args.format == "json":
+            print(reports["json"], end="")
+        elif args.format == "markdown":
+            print(reports["markdown"], end="")
+        else:
+            print(reports["sarif"], end="")
+        return EXIT_CODES[result.decision.outcome]
+    except (OSError, ValueError) as error:
+        print(f"before-deploy: ERROR: {error}", file=sys.stderr)
+        return EXIT_CODES[GateOutcome.ERROR]
+
+
+def _print_terminal_summary(result, output_dir: Path) -> None:
+    outcome = result.decision.outcome.value
+    print(f"Before Deploy: {outcome}")
+    print(f"Scan ID: {result.manifest.scan_id}")
+    print(f"Repository digest: {result.manifest.repository_digest}")
+    print(
+        "Findings: "
+        f"block={len(result.decision.blocking_fingerprints)}, "
+        f"waiver_required={len(result.decision.waiver_required_fingerprints)}, "
+        f"advisory={len(result.decision.advisory_fingerprints)}, "
+        f"waived={len(result.decision.waived_fingerprints)}"
+    )
+    if result.decision.error_control_ids:
+        print("Control errors: " + ", ".join(result.decision.error_control_ids))
+    print(f"Reports: {output_dir / 'report.json'}, {output_dir / 'report.md'}, {output_dir / 'report.sarif'}")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

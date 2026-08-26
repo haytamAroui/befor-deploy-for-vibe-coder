@@ -1,0 +1,28 @@
+schema_version: 1
+profile: default
+allow_nonrequired_control_errors: true
+public_fastapi_routes:
+  - path: /healthz
+    methods: [GET]
+controls:
+  SEC-SECRET-001:
+    required: true
+    disposition: BLOCK
+  SEC-SAST-001:
+    required: true
+    disposition: BLOCK
+  SEC-API-001:
+    required: true
+    disposition: BLOCK
+  SEC-CONFIG-001:
+    required: true
+    disposition: BLOCK
+  SEC-CONFIG-002:
+    required: true
+    disposition: BLOCK
+  SEC-CICD-001:
+    required: false
+    disposition: BLOCK
+  SEC-DEP-001:
+    required: true
+    disposition: BLOCK

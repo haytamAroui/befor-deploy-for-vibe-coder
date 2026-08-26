@@ -47,4 +47,4 @@ The project follows least privilege, isolated execution, explicit policy, fail-c
 
 ## Status
 
-The repository is initialized. The next commit will scaffold the deterministic kernel and its first test fixtures.
+The first deterministic-kernel milestone is implemented and validated against secure and intentionally vulnerable FastAPI/Next.js fixtures. The next increment replaces bootstrap detectors with mature external-tool adapters, adds dependency-vulnerability scanning and release provenance verification, then introduces tightly bounded AI assistance.
