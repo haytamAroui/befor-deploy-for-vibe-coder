@@ -23,7 +23,7 @@ external_tools:
 dependency_audit:
   input: uv_lock
 provenance:
-  artifact_path: dist/before-deploy.tar.gz
+  artifact_path: dist/before-deploy-0.1.0.tar.gz
   bundle_path: attestations/before-deploy.intoto.jsonl
   repository: haytamAroui/befor-deploy-for-vibe-coder
   signer_workflow: haytamAroui/befor-deploy-for-vibe-coder/.github/workflows/release.yml

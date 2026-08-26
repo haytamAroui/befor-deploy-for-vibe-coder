@@ -222,7 +222,7 @@ uv run before-deploy scan /path/to/release-candidate \\
   --output-dir /tmp/before-deploy-release-evidence
 ```
 
-The profile audits a locked Python dependency set, requires a CycloneDX SBOM, and verifies the local artifact against the expected GitHub repository and signer-workflow identity. Missing tools, a missing lock/SBOM/artifact/bundle, an unverifiable attestation, or malformed evidence returns `ERROR` with exit code `20`; this is expected fail-closed behavior. The detailed contract and threat boundary are in [`docs/DEPENDENCY_PROVENANCE_MILESTONE.md`](docs/DEPENDENCY_PROVENANCE_MILESTONE.md).
+The profile audits a locked Python dependency set, requires a CycloneDX SBOM, and verifies the local artifact against the expected GitHub repository and signer-workflow identity. Missing tools, a missing lock/SBOM/artifact/bundle, an unverifiable attestation, or malformed evidence returns `ERROR` with exit code `20`; this is expected fail-closed behavior. The detailed contract and threat boundary are in [`docs/DEPENDENCY_PROVENANCE_MILESTONE.md`](docs/DEPENDENCY_PROVENANCE_MILESTONE.md); the practical calibration, artifact-preparation, and conditional-attestation procedures are in [`docs/RELEASE_OPERATIONS.md`](docs/RELEASE_OPERATIONS.md).
 
 ## Continuous integration
 
