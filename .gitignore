@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node.js
+node_modules/
+.next/
+dist/
+coverage/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Sentinel local outputs
+.sentinel/
+reports/
+artifacts/
+*.sarif
+*.cdx.json
+
+# Operating system and editor files
+.DS_Store
+.vscode/
+.idea/
