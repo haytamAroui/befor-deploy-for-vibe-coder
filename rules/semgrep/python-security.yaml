@@ -1,0 +1,13 @@
+rules:
+  - id: before-deploy.python.sql-string-interpolation
+    languages: [python]
+    severity: ERROR
+    message: Do not build SQL statements through string interpolation before execute().
+    metadata:
+      control: SEC-SAST-SEMGREP-001
+      category: security
+    patterns:
+      - pattern-either:
+          - pattern: $CURSOR.execute(f"...{$VALUE}...")
+          - pattern: $CURSOR.execute("...".format(...))
+          - pattern: $CURSOR.execute("..." % ...)

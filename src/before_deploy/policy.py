@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -30,6 +30,16 @@ class ControlPolicy:
 
 
 @dataclass(frozen=True)
+class ExternalToolPolicy:
+    """Bounded policy settings for a named external scanner."""
+
+    executable: str
+    version: str
+    timeout_seconds: int
+    max_report_bytes: int
+
+
+@dataclass(frozen=True)
 class PolicyProfile:
     """Validated, reviewable policy data loaded from YAML."""
 
@@ -37,6 +47,7 @@ class PolicyProfile:
     name: str
     controls: Mapping[str, ControlPolicy]
     public_fastapi_routes: frozenset[tuple[str, str]]
+    tools: Mapping[str, ExternalToolPolicy] = field(default_factory=dict)
     allow_nonrequired_control_errors: bool = False
 
 
@@ -74,6 +85,7 @@ def load_policy(path: Path) -> PolicyProfile:
         controls[control_id] = ControlPolicy(required=required, disposition=disposition)
 
     routes = _parse_public_routes(raw.get("public_fastapi_routes", []))
+    tools = _parse_external_tools(raw.get("external_tools", {}))
     allow_errors = raw.get("allow_nonrequired_control_errors", False)
     if not isinstance(allow_errors, bool):
         raise ValueError("allow_nonrequired_control_errors must be boolean")
@@ -83,6 +95,7 @@ def load_policy(path: Path) -> PolicyProfile:
         name=name.strip(),
         controls=controls,
         public_fastapi_routes=routes,
+        tools=tools,
         allow_nonrequired_control_errors=allow_errors,
     )
 
@@ -173,6 +186,36 @@ def evaluate(
         error_control_ids=tuple(sorted(errors)),
     )
     return tuple(evaluated_findings), decision
+
+
+def _parse_external_tools(raw_tools: Any) -> Mapping[str, ExternalToolPolicy]:
+    if raw_tools is None:
+        return {}
+    if not isinstance(raw_tools, dict):
+        raise ValueError("external_tools must be a mapping")
+    tools: dict[str, ExternalToolPolicy] = {}
+    for name, raw_tool in raw_tools.items():
+        if not isinstance(name, str) or not isinstance(raw_tool, dict):
+            raise ValueError("Each external tool must have a string name and mapping configuration")
+        executable = raw_tool.get("executable")
+        version = raw_tool.get("version")
+        timeout_seconds = raw_tool.get("timeout_seconds", 60)
+        max_report_bytes = raw_tool.get("max_report_bytes", 5_000_000)
+        if not isinstance(executable, str) or not executable.strip():
+            raise ValueError(f"External tool {name} requires a non-empty executable")
+        if not isinstance(version, str) or not version.strip():
+            raise ValueError(f"External tool {name} requires a non-empty version")
+        if not isinstance(timeout_seconds, int) or timeout_seconds <= 0:
+            raise ValueError(f"External tool {name} timeout_seconds must be a positive integer")
+        if not isinstance(max_report_bytes, int) or max_report_bytes <= 0:
+            raise ValueError(f"External tool {name} max_report_bytes must be a positive integer")
+        tools[name] = ExternalToolPolicy(
+            executable=executable,
+            version=version,
+            timeout_seconds=timeout_seconds,
+            max_report_bytes=max_report_bytes,
+        )
+    return tools
 
 
 def _parse_public_routes(raw_routes: Any) -> frozenset[tuple[str, str]]:

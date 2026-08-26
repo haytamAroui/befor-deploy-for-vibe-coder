@@ -109,6 +109,7 @@ class ControlExecution:
     control_version: str
     applicable: bool = True
     message: str | None = None
+    metadata: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

@@ -7,6 +7,9 @@ import sys
 from pathlib import Path
 
 from before_deploy.controls import native_controls
+from before_deploy.controls.external import ExternalToolConfig
+from before_deploy.controls.gitleaks import GitleaksControl
+from before_deploy.controls.semgrep import SemgrepControl
 from before_deploy.models import GateOutcome
 from before_deploy.orchestrator import ScanOrchestrator, configured_controls
 from before_deploy.policy import load_policy
@@ -68,10 +71,44 @@ def main(argv: list[str] | None = None) -> int:
     return 20
 
 
+def _controls_for_profile(profile, policy_path: Path):
+    controls = list(native_controls())
+    if "SEC-SECRET-GITLEAKS-001" in profile.controls:
+        settings = profile.tools.get("gitleaks")
+        if settings is None:
+            raise ValueError("Policy enables Gitleaks but does not configure external_tools.gitleaks")
+        controls.append(
+            GitleaksControl(
+                ExternalToolConfig(
+                    executable=settings.executable,
+                    tool_version=settings.version,
+                    timeout_seconds=settings.timeout_seconds,
+                    max_report_bytes=settings.max_report_bytes,
+                )
+            )
+        )
+    if "SEC-SAST-SEMGREP-001" in profile.controls:
+        settings = profile.tools.get("semgrep")
+        if settings is None:
+            raise ValueError("Policy enables Semgrep but does not configure external_tools.semgrep")
+        controls.append(
+            SemgrepControl(
+                ExternalToolConfig(
+                    executable=settings.executable,
+                    tool_version=settings.version,
+                    timeout_seconds=settings.timeout_seconds,
+                    max_report_bytes=settings.max_report_bytes,
+                ),
+                rule_directory=policy_path.parent / "semgrep",
+            )
+        )
+    return tuple(controls)
+
+
 def _scan(args: argparse.Namespace) -> int:
     try:
         profile = load_policy(args.policy)
-        controls = configured_controls(profile, native_controls())
+        controls = configured_controls(profile, _controls_for_profile(profile, args.policy))
         result = ScanOrchestrator(controls).scan(
             args.repository,
             args.policy,

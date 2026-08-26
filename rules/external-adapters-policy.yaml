@@ -1,0 +1,39 @@
+schema_version: 1
+profile: external-adapters
+allow_nonrequired_control_errors: false
+public_fastapi_routes:
+  - path: /healthz
+    methods: [GET]
+external_tools:
+  gitleaks:
+    executable: gitleaks
+    version: "8.30.1"
+    timeout_seconds: 60
+    max_report_bytes: 5000000
+  semgrep:
+    executable: semgrep
+    version: "1.175.0"
+    timeout_seconds: 90
+    max_report_bytes: 5000000
+controls:
+  SEC-SECRET-GITLEAKS-001:
+    required: true
+    disposition: BLOCK
+  SEC-SAST-SEMGREP-001:
+    required: true
+    disposition: BLOCK
+  SEC-API-001:
+    required: true
+    disposition: BLOCK
+  SEC-CONFIG-001:
+    required: true
+    disposition: BLOCK
+  SEC-CONFIG-002:
+    required: true
+    disposition: BLOCK
+  SEC-CICD-001:
+    required: true
+    disposition: BLOCK
+  SEC-DEP-001:
+    required: true
+    disposition: BLOCK
