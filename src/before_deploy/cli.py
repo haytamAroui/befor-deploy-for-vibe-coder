@@ -7,8 +7,10 @@ import sys
 from pathlib import Path
 
 from before_deploy.controls import native_controls
+from before_deploy.controls.dependency_audit import DependencyAuditControl
 from before_deploy.controls.external import ExternalToolConfig
 from before_deploy.controls.gitleaks import GitleaksControl
+from before_deploy.controls.provenance import ProvenanceControl
 from before_deploy.controls.semgrep import SemgrepControl
 from before_deploy.models import GateOutcome
 from before_deploy.orchestrator import ScanOrchestrator, configured_controls
@@ -85,6 +87,54 @@ def _controls_for_profile(profile, policy_path: Path):
                     timeout_seconds=settings.timeout_seconds,
                     max_report_bytes=settings.max_report_bytes,
                 )
+            )
+        )
+    if "SEC-DEP-VULN-001" in profile.controls:
+        settings = profile.tools.get("pip_audit")
+        if settings is None or profile.dependency_audit is None:
+            raise ValueError(
+                "Policy enables dependency auditing but lacks external_tools.pip_audit or dependency_audit"
+            )
+        uv_settings = profile.tools.get("uv")
+        if profile.dependency_audit.input_kind == "uv_lock" and uv_settings is None:
+            raise ValueError("Policy uses uv_lock dependency audit but does not configure external_tools.uv")
+        uv_config = (
+            ExternalToolConfig(
+                executable=uv_settings.executable,
+                tool_version=uv_settings.version,
+                timeout_seconds=uv_settings.timeout_seconds,
+                max_report_bytes=uv_settings.max_report_bytes,
+            )
+            if uv_settings is not None
+            else None
+        )
+        controls.append(
+            DependencyAuditControl(
+                ExternalToolConfig(
+                    executable=settings.executable,
+                    tool_version=settings.version,
+                    timeout_seconds=settings.timeout_seconds,
+                    max_report_bytes=settings.max_report_bytes,
+                ),
+                audit_policy=profile.dependency_audit,
+                uv_config=uv_config,
+            )
+        )
+    if "SEC-PROVENANCE-001" in profile.controls:
+        settings = profile.tools.get("gh")
+        if settings is None or profile.provenance is None:
+            raise ValueError(
+                "Policy enables provenance verification but lacks external_tools.gh or provenance"
+            )
+        controls.append(
+            ProvenanceControl(
+                ExternalToolConfig(
+                    executable=settings.executable,
+                    tool_version=settings.version,
+                    timeout_seconds=settings.timeout_seconds,
+                    max_report_bytes=settings.max_report_bytes,
+                ),
+                provenance_policy=profile.provenance,
             )
         )
     if "SEC-SAST-SEMGREP-001" in profile.controls:

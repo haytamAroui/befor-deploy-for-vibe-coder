@@ -1,0 +1,60 @@
+schema_version: 1
+profile: release-evidence
+allow_nonrequired_control_errors: false
+public_fastapi_routes:
+  - path: /healthz
+    methods: [GET]
+external_tools:
+  pip_audit:
+    executable: pip-audit
+    version: "2.10.1"
+    timeout_seconds: 120
+    max_report_bytes: 5000000
+  uv:
+    executable: uv
+    version: "0.12.1"
+    timeout_seconds: 60
+    max_report_bytes: 5000000
+  gh:
+    executable: gh
+    version: "2.97.0"
+    timeout_seconds: 60
+    max_report_bytes: 5000000
+dependency_audit:
+  input: uv_lock
+provenance:
+  artifact_path: dist/before-deploy.tar.gz
+  bundle_path: attestations/before-deploy.intoto.jsonl
+  repository: haytamAroui/befor-deploy-for-vibe-coder
+  signer_workflow: haytamAroui/befor-deploy-for-vibe-coder/.github/workflows/release.yml
+controls:
+  SEC-SECRET-001:
+    required: true
+    disposition: BLOCK
+  SEC-SAST-001:
+    required: true
+    disposition: BLOCK
+  SEC-API-001:
+    required: true
+    disposition: BLOCK
+  SEC-CONFIG-001:
+    required: true
+    disposition: BLOCK
+  SEC-CONFIG-002:
+    required: true
+    disposition: BLOCK
+  SEC-CICD-001:
+    required: true
+    disposition: BLOCK
+  SEC-DEP-001:
+    required: true
+    disposition: BLOCK
+  SEC-DEP-VULN-001:
+    required: true
+    disposition: BLOCK
+  SEC-RELEASE-001:
+    required: true
+    disposition: BLOCK
+  SEC-PROVENANCE-001:
+    required: true
+    disposition: BLOCK

@@ -47,7 +47,14 @@ class ExternalToolRun:
 class ExternalToolRunner:
     """Invoke an allowlisted executable without shell expansion or inherited secrets."""
 
-    def run(self, *, config: ExternalToolConfig, arguments: tuple[str, ...], cwd: Path) -> ExternalToolRun:
+    def run(
+        self,
+        *,
+        config: ExternalToolConfig,
+        arguments: tuple[str, ...],
+        cwd: Path,
+        stdout_path: Path | None = None,
+    ) -> ExternalToolRun:
         """Run a tool with a minimal environment and a bounded wall-clock timeout."""
         executable = _resolve_executable(config.executable)
         if executable is None:
@@ -68,16 +75,30 @@ class ExternalToolRunner:
         with tempfile.TemporaryDirectory(prefix="before-deploy-tool-home-") as tool_home:
             environment = _minimal_environment(Path(tool_home))
             try:
-                completed = subprocess.run(
-                    [executable, *arguments],
-                    cwd=cwd,
-                    env=environment,
-                    stdin=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    check=False,
-                    timeout=config.timeout_seconds,
-                )
+                if stdout_path is None:
+                    completed = subprocess.run(
+                        [executable, *arguments],
+                        cwd=cwd,
+                        env=environment,
+                        stdin=subprocess.DEVNULL,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        check=False,
+                        timeout=config.timeout_seconds,
+                    )
+                else:
+                    stdout_path.parent.mkdir(parents=True, exist_ok=True)
+                    with stdout_path.open("wb") as stdout_file:
+                        completed = subprocess.run(
+                            [executable, *arguments],
+                            cwd=cwd,
+                            env=environment,
+                            stdin=subprocess.DEVNULL,
+                            stdout=stdout_file,
+                            stderr=subprocess.DEVNULL,
+                            check=False,
+                            timeout=config.timeout_seconds,
+                        )
             except subprocess.TimeoutExpired:
                 return ExternalToolRun(
                     executable=executable,

@@ -21,7 +21,7 @@ The current release is a local and CI-ready Python CLI. It supports self-contain
 
 Before Deploy is **not** a compliance-certification service, a penetration-test replacement, a guarantee that a deployed system is secure, or an autonomous deployment tool. A green result means that the selected controls completed against the declared repository scope; it does not prove absence of vulnerabilities, operational misconfiguration, or regulatory compliance.
 
-The tool does not yet perform dependency-CVE analysis, runtime cloud verification, build provenance verification, or automatic remediation. Those are planned follow-on capabilities.
+The tool now provides a **foundation** for Python dependency vulnerability evidence and offline GitHub artifact-attestation verification through a separate release profile. It does not yet install/calibrate those external tools in project CI, scan non-Python package ecosystems, verify runtime cloud configuration, generate artifacts/attestations, or perform automatic remediation.
 
 ## Quick start
 
@@ -128,7 +128,8 @@ Policies are human-reviewable YAML files under `rules/`. A policy explicitly sel
 | `rules/default-policy.yaml` | Local development and baseline assessment. | Runs the validated native controls. It is the recommended starting profile. |
 | `rules/strict-ci-policy.yaml` | Protected-branch CI. | Runs the native pre-deployment controls with every configured control required and fail-closed error behavior. |
 | `rules/external-adapters-policy.yaml` | A team has installed and calibrated the pinned Gitleaks and Semgrep binaries. | Replaces the bootstrap secret/SAST controls with required external adapters while retaining native FastAPI, configuration, CI, and dependency controls. |
-| `rules/strict-policy.yaml` | Release-evidence experimentation. | Includes the SBOM presence control. It remains separate until SBOM generation and provenance verification are automated. |
+| `rules/strict-policy.yaml` | Release-evidence experimentation. | Includes the SBOM presence control. It remains separate for teams that are not yet supplying signed artifacts. |
+| `rules/release-evidence-policy.yaml` | A release candidate with exported Python dependencies, an SBOM, a local artifact, and a downloaded GitHub attestation bundle. | Requires core controls plus pip-audit vulnerability evidence, SBOM presence, and offline signed-attestation verification. |
 
 A minimal policy has this shape:
 
@@ -211,6 +212,18 @@ If either required binary is missing, times out, produces invalid JSON, or repor
 
 > Treat external scanner rules and configuration as security-sensitive source code. Review changes through pull requests, pin tool versions, and test rule changes against the secure and vulnerable fixtures before enabling them on protected branches.
 
+## Release-evidence verification
+
+The `release-evidence-policy.yaml` profile is intentionally **not** a general development scan. It is for a release-candidate directory that contains the declared artifact and a downloaded GitHub attestation bundle. It also requires the explicitly versioned `uv`, `pip-audit`, and `gh` executables on `PATH`.
+
+```bash
+uv run before-deploy scan /path/to/release-candidate \\
+  --policy rules/release-evidence-policy.yaml \\
+  --output-dir /tmp/before-deploy-release-evidence
+```
+
+The profile audits a locked Python dependency set, requires a CycloneDX SBOM, and verifies the local artifact against the expected GitHub repository and signer-workflow identity. Missing tools, a missing lock/SBOM/artifact/bundle, an unverifiable attestation, or malformed evidence returns `ERROR` with exit code `20`; this is expected fail-closed behavior. The detailed contract and threat boundary are in [`docs/DEPENDENCY_PROVENANCE_MILESTONE.md`](docs/DEPENDENCY_PROVENANCE_MILESTONE.md).
+
 ## Continuous integration
 
 The repository contains a hardened example workflow at `.github/workflows/ci.yml`. It uses read-only default permissions, a pinned Python setup action, a full-SHA-pinned uv setup action, `uv sync --frozen --all-extras`, linting, tests, a **strict-CI-policy** self-scan, and redacted report artifact retention.
@@ -249,9 +262,11 @@ Pin every third-party action to a verified full commit SHA. Do not use `pull_req
 | `SEC-DEP-001` | Enabled | Supported Python/Node manifest and lockfile presence; not vulnerability analysis yet. |
 | `SEC-SECRET-GITLEAKS-001` | External profile | Gitleaks directory-scan findings, normalized without the raw secret. |
 | `SEC-SAST-SEMGREP-001` | External profile | Checked-in local Semgrep rule findings, normalized without source excerpts. |
-| `SEC-RELEASE-001` | Strict profile | Presence and basic parseability of a CycloneDX JSON SBOM; not provenance validation. |
+| `SEC-DEP-VULN-001` | Release-evidence profile | pip-audit JSON evidence against a declared Python lock/requirements input; it detects known advisories, not exploitability or non-Python packages. |
+| `SEC-RELEASE-001` | Strict and release-evidence profiles | Presence and basic parseability of a CycloneDX JSON SBOM; not provenance validation. |
+| `SEC-PROVENANCE-001` | Release-evidence profile | Offline `gh attestation verify` bundle verification with expected repository and signer workflow; it does not claim a generic SLSA level. |
 
-Read the detailed control boundary and false-positive process in [`docs/CONTROL_CATALOG.md`](docs/CONTROL_CATALOG.md). The adapter trust boundary, failure semantics, and calibration requirements are in [`docs/EXTERNAL_ADAPTERS_MILESTONE.md`](docs/EXTERNAL_ADAPTERS_MILESTONE.md).
+Read the detailed control boundary and false-positive process in [`docs/CONTROL_CATALOG.md`](docs/CONTROL_CATALOG.md). The adapter trust boundary, failure semantics, and calibration requirements are in [`docs/EXTERNAL_ADAPTERS_MILESTONE.md`](docs/EXTERNAL_ADAPTERS_MILESTONE.md); the dependency and provenance evidence contract is in [`docs/DEPENDENCY_PROVENANCE_MILESTONE.md`](docs/DEPENDENCY_PROVENANCE_MILESTONE.md).
 
 ## Repository structure
 
@@ -286,6 +301,6 @@ The project follows least privilege, isolated execution, explicit policy, fail-c
 
 ## Status and next steps
 
-The deterministic kernel and isolated Gitleaks/Semgrep adapter foundation are implemented and tested. The next engineering milestone is to install and calibrate the pinned scanner binaries in CI, add dependency-vulnerability scanning and artifact provenance verification, and only then add tightly bounded AI assistance.
+The deterministic kernel, isolated Gitleaks/Semgrep adapters, and dependency/provenance evidence foundation are implemented and tested. The next engineering milestone is to install and calibrate the pinned external tools in CI, generate and retain a release artifact plus signed attestation bundle, extend audit coverage beyond Python, and only then add tightly bounded AI assistance.
 
 For the design rationale and phased roadmap, see [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) and [`docs/DEEP_ANALYSIS_AND_BUILD_BLUEPRINT.md`](docs/DEEP_ANALYSIS_AND_BUILD_BLUEPRINT.md).

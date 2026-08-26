@@ -40,6 +40,24 @@ class ExternalToolPolicy:
 
 
 @dataclass(frozen=True)
+class DependencyAuditPolicy:
+    """The declared, non-ambiguous dependency evidence source for pip-audit."""
+
+    input_kind: str
+    requirements_path: str | None = None
+
+
+@dataclass(frozen=True)
+class ProvenancePolicy:
+    """Expected identity and local evidence paths for artifact-attestation verification."""
+
+    artifact_path: str
+    bundle_path: str
+    repository: str
+    signer_workflow: str
+
+
+@dataclass(frozen=True)
 class PolicyProfile:
     """Validated, reviewable policy data loaded from YAML."""
 
@@ -48,6 +66,8 @@ class PolicyProfile:
     controls: Mapping[str, ControlPolicy]
     public_fastapi_routes: frozenset[tuple[str, str]]
     tools: Mapping[str, ExternalToolPolicy] = field(default_factory=dict)
+    dependency_audit: DependencyAuditPolicy | None = None
+    provenance: ProvenancePolicy | None = None
     allow_nonrequired_control_errors: bool = False
 
 
@@ -86,6 +106,8 @@ def load_policy(path: Path) -> PolicyProfile:
 
     routes = _parse_public_routes(raw.get("public_fastapi_routes", []))
     tools = _parse_external_tools(raw.get("external_tools", {}))
+    dependency_audit = _parse_dependency_audit(raw.get("dependency_audit"))
+    provenance = _parse_provenance(raw.get("provenance"))
     allow_errors = raw.get("allow_nonrequired_control_errors", False)
     if not isinstance(allow_errors, bool):
         raise ValueError("allow_nonrequired_control_errors must be boolean")
@@ -96,6 +118,8 @@ def load_policy(path: Path) -> PolicyProfile:
         controls=controls,
         public_fastapi_routes=routes,
         tools=tools,
+        dependency_audit=dependency_audit,
+        provenance=provenance,
         allow_nonrequired_control_errors=allow_errors,
     )
 
@@ -188,6 +212,54 @@ def evaluate(
         error_control_ids=tuple(sorted(errors)),
     )
     return tuple(evaluated_findings), decision
+
+
+def _parse_dependency_audit(raw_dependency_audit: Any) -> DependencyAuditPolicy | None:
+    if raw_dependency_audit is None:
+        return None
+    if not isinstance(raw_dependency_audit, dict):
+        raise ValueError("dependency_audit must be a mapping")
+    input_kind = raw_dependency_audit.get("input")
+    requirements_path = raw_dependency_audit.get("requirements_path")
+    if input_kind not in {"uv_lock", "requirements"}:
+        raise ValueError("dependency_audit.input must be either 'uv_lock' or 'requirements'")
+    if input_kind == "requirements":
+        if not isinstance(requirements_path, str) or not requirements_path.strip():
+            raise ValueError("dependency_audit.requirements_path is required for requirements input")
+        candidate = Path(requirements_path)
+        if candidate.is_absolute() or ".." in candidate.parts:
+            raise ValueError("dependency_audit.requirements_path must be a repository-relative path")
+        return DependencyAuditPolicy(input_kind=input_kind, requirements_path=requirements_path)
+    if requirements_path is not None:
+        raise ValueError("dependency_audit.requirements_path is only valid for requirements input")
+    return DependencyAuditPolicy(input_kind=input_kind)
+
+
+def _parse_provenance(raw_provenance: Any) -> ProvenancePolicy | None:
+    if raw_provenance is None:
+        return None
+    if not isinstance(raw_provenance, dict):
+        raise ValueError("provenance must be a mapping")
+    artifact_path = raw_provenance.get("artifact_path")
+    bundle_path = raw_provenance.get("bundle_path")
+    repository = raw_provenance.get("repository")
+    signer_workflow = raw_provenance.get("signer_workflow")
+    for field_name, value in (("artifact_path", artifact_path), ("bundle_path", bundle_path)):
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"provenance.{field_name} must be a non-empty string")
+        candidate = Path(value)
+        if candidate.is_absolute() or ".." in candidate.parts:
+            raise ValueError(f"provenance.{field_name} must be a repository-relative path")
+    if not isinstance(repository, str) or repository.count("/") != 1 or not all(repository.split("/")):
+        raise ValueError("provenance.repository must have the owner/repository form")
+    if not isinstance(signer_workflow, str) or not signer_workflow.strip():
+        raise ValueError("provenance.signer_workflow must be a non-empty string")
+    return ProvenancePolicy(
+        artifact_path=artifact_path,
+        bundle_path=bundle_path,
+        repository=repository,
+        signer_workflow=signer_workflow,
+    )
 
 
 def _parse_external_tools(raw_tools: Any) -> Mapping[str, ExternalToolPolicy]:
