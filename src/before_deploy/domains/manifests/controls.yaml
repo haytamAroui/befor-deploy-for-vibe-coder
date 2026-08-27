@@ -106,6 +106,18 @@ controls:
       - Vulnerability analysis, integrity validation, and unsupported package ecosystems are not covered.
     references:
       - REF-OWASP-CICD
+  - id: CONTROL-SUPPLY-PHP-LARAVEL-COMPOSER-LOCK-001
+    version: "0.1.0"
+    title: Laravel root Composer lockfile presence check
+    capability_id: control.native.php-laravel-composer-lock
+    implementation_id: SEC-PHP-LARAVEL-COMPOSER-LOCK-001
+    security_domains:
+      - DOMAIN-SUPPLY-CHAIN-001
+    detection_scope: Root composer.json JSON require object containing the exact laravel/framework key plus root artisan file, checked only for root composer.lock presence.
+    exclusions:
+      - Composer values and constraints, require-dev, transitive dependencies, repositories, signatures, hashes, vulnerabilities, nested projects, monorepos, symlinks, PHP extensions, Laravel configuration, runtime behavior, and target command execution are not covered.
+      - composer.lock presence is evidence only; its contents, integrity, freshness, dependency resolution, and relationship to composer.json are not inspected.
+    references: []
   - id: CONTROL-SUPPLY-PIP-AUDIT-001
     version: "0.1.0"
     title: pip-audit Python dependency adapter

@@ -20,10 +20,10 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.11.0"
+    assert catalog.catalog_version == "0.12.0"
     assert catalog.catalog_digest == second.catalog_digest
     assert len(catalog.domains) == 30
-    assert len(catalog.controls) == 23
+    assert len(catalog.controls) == 24
     assert catalog.domains["DOMAIN-SSRF-001"].title == "Server-side request forgery"
     assert {
         control.capability_id for control in catalog.controls.values()
@@ -60,6 +60,13 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert fastapi_contract.control_id == "CONTROL-API-FASTAPI-001"
     assert fastapi_contract.version == "0.3.0"
     assert fastapi_contract.security_domain_ids == ("DOMAIN-API-SECURITY-001",)
+    php_laravel_contract = catalog.control_for_implementation(
+        "SEC-PHP-LARAVEL-COMPOSER-LOCK-001"
+    )
+    assert php_laravel_contract is not None
+    assert php_laravel_contract.control_id == "CONTROL-SUPPLY-PHP-LARAVEL-COMPOSER-LOCK-001"
+    assert php_laravel_contract.version == "0.1.0"
+    assert php_laravel_contract.security_domain_ids == ("DOMAIN-SUPPLY-CHAIN-001",)
     trivy_contract = catalog.control_for_implementation("SEC-TRIVY-CONFIG-001")
     assert trivy_contract is not None
     assert trivy_contract.control_id == "CONTROL-CONTAINER-IAC-TRIVY-CONFIG-001"

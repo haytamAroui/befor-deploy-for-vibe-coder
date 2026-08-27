@@ -1,0 +1,14 @@
+schema_version: 1
+profile: php-laravel-composer-lock
+allow_nonrequired_control_errors: true
+public_fastapi_routes: []
+controls:
+  SEC-SECRET-001:
+    required: true
+    disposition: BLOCK
+  SEC-PHP-LARAVEL-COMPOSER-LOCK-001:
+    required: true
+    disposition: BLOCK
+  SEC-CICD-001:
+    required: false
+    disposition: BLOCK

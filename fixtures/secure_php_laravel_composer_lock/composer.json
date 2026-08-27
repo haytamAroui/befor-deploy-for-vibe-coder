@@ -1,0 +1,6 @@
+{
+  "require": {
+    "laravel/framework": "^12.0"
+  },
+  "source_only_note": "do-not-report-secure-composer-value"
+}

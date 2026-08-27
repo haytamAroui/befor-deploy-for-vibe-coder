@@ -9,12 +9,21 @@ from before_deploy.reports import render_json, render_markdown, render_sarif
 ROOT = Path(__file__).resolve().parents[2]
 POLICY_PATH = ROOT / "rules" / "default-policy.yaml"
 SQL_SINGLE_ALIAS_POLICY_PATH = ROOT / "rules" / "python-sql-single-alias-policy.yaml"
+PHP_LARAVEL_COMPOSER_LOCK_POLICY_PATH = ROOT / "rules" / "php-laravel-composer-lock-policy.yaml"
 
 
 def _scan(fixture_name: str):
     profile = load_policy(POLICY_PATH)
     controls = configured_controls(profile, native_controls())
     return ScanOrchestrator(controls).scan(ROOT / "fixtures" / fixture_name, POLICY_PATH)
+
+
+def _scan_php_laravel_composer_lock(fixture_name: str):
+    profile = load_policy(PHP_LARAVEL_COMPOSER_LOCK_POLICY_PATH)
+    controls = configured_controls(profile, native_controls())
+    return ScanOrchestrator(controls).scan(
+        ROOT / "fixtures" / fixture_name, PHP_LARAVEL_COMPOSER_LOCK_POLICY_PATH
+    )
 
 
 def test_vulnerable_fixture_blocks_for_expected_controls():
@@ -80,6 +89,76 @@ def test_fastapi_dynamic_router_prefix_emits_review_metadata_without_a_finding_o
         assert "api_prefix" not in report
         assert "/api/v1" not in report
         assert "create_account" not in report
+
+
+def test_php_laravel_composer_lock_policy_blocks_only_on_the_bounded_missing_lockfile():
+    result = _scan_php_laravel_composer_lock("vulnerable_php_laravel_composer_lock")
+
+    assert result.decision.outcome == GateOutcome.BLOCK
+    assert {finding.rule_id for finding in result.findings} == {
+        "SEC-PHP-LARAVEL-COMPOSER-LOCK-001"
+    }
+    assert result.project_profile is not None
+    assert result.project_profile.languages == ("PHP",)
+    assert result.project_profile.frameworks == ("Laravel",)
+    execution = next(
+        item
+        for item in result.executions
+        if item.control_id == "SEC-PHP-LARAVEL-COMPOSER-LOCK-001"
+    )
+    assert execution.status.value == "COMPLETED"
+    assert result.security_analysis_plan is not None
+    contract = next(
+        item
+        for item in result.security_analysis_plan.control_contract_selections
+        if item.implementation_id == "SEC-PHP-LARAVEL-COMPOSER-LOCK-001"
+    )
+    assert contract.control_id == "CONTROL-SUPPLY-PHP-LARAVEL-COMPOSER-LOCK-001"
+    assert contract.security_domain_ids == ("DOMAIN-SUPPLY-CHAIN-001",)
+    for report in (render_json(result), render_markdown(result), render_sarif(result)):
+        assert "SEC-PHP-LARAVEL-COMPOSER-LOCK-001" in report
+        assert "^12.0" not in report
+        assert "do-not-report-composer-value" not in report
+
+
+def test_php_laravel_composer_lock_policy_handles_secure_incomplete_and_invalid_fixtures():
+    secure = _scan_php_laravel_composer_lock("secure_php_laravel_composer_lock")
+    incomplete = _scan_php_laravel_composer_lock("php_laravel_composer_lock_without_artisan")
+    malformed = _scan_php_laravel_composer_lock("php_laravel_composer_lock_malformed_manifest")
+
+    assert secure.decision.outcome == GateOutcome.PASS
+    assert not secure.findings
+    assert incomplete.decision.outcome == GateOutcome.PASS
+    incomplete_execution = next(
+        item
+        for item in incomplete.executions
+        if item.control_id == "SEC-PHP-LARAVEL-COMPOSER-LOCK-001"
+    )
+    assert incomplete_execution.status.value == "NOT_APPLICABLE"
+    assert malformed.decision.outcome == GateOutcome.ERROR
+    assert not malformed.findings
+    malformed_execution = next(
+        item
+        for item in malformed.executions
+        if item.control_id == "SEC-PHP-LARAVEL-COMPOSER-LOCK-001"
+    )
+    assert malformed_execution.status.value == "ERROR"
+    assert malformed_execution.metadata == {"error_kind": "COMPOSER_MANIFEST_INVALID"}
+    for report in (render_json(malformed), render_markdown(malformed), render_sarif(malformed)):
+        assert "unterminated-value" not in report
+
+
+def test_default_policy_does_not_implicitly_select_php_laravel_composer_lock_control():
+    result = _scan("vulnerable_php_laravel_composer_lock")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert "SEC-PHP-LARAVEL-COMPOSER-LOCK-001" not in {
+        item.control_id for item in result.executions
+    }
+    assert result.security_analysis_plan is not None
+    assert "SEC-PHP-LARAVEL-COMPOSER-LOCK-001" not in {
+        item.implementation_id for item in result.security_analysis_plan.control_contract_selections
+    }
 
 
 def test_local_python_sql_flow_fixture_blocks_only_on_the_bounded_assignment_pattern():

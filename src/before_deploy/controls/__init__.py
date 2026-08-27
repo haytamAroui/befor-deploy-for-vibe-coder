@@ -11,6 +11,7 @@ from before_deploy.controls.github_actions import GitHubActionsSecurityControl
 from before_deploy.controls.go import GoModuleIntegrityControl, GoTLSVerificationControl
 from before_deploy.controls.go_vulnerabilities import GoVulnerabilitySnapshotControl
 from before_deploy.controls.injection import SqlInjectionControl, SqlInjectionSingleLocalAliasControl
+from before_deploy.controls.php_laravel import LaravelComposerLockfileControl
 from before_deploy.controls.nextjs import (
     NextInlineServerActionLocalGuardControl,
     NextPublicEnvironmentControl,
@@ -38,6 +39,7 @@ def native_controls() -> tuple[Control, ...]:
         NextInlineServerActionLocalGuardControl(),
         GitHubActionsSecurityControl(),
         DependencyLockfileControl(),
+        LaravelComposerLockfileControl(),
         GoModuleIntegrityControl(),
         GoTLSVerificationControl(),
         CycloneDxSbomControl(),
@@ -53,6 +55,7 @@ __all__ = [
     "DependencyLockfileControl",
     "FastApiRouteAuthenticationControl",
     "GitHubActionsSecurityControl",
+    "LaravelComposerLockfileControl",
     "GoModuleIntegrityControl",
     "GoTLSVerificationControl",
     "GoVulnerabilitySnapshotControl",

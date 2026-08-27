@@ -51,6 +51,34 @@ def test_detects_multiple_unsupported_languages_with_distinct_gaps():
     )
 
 
+def test_detects_laravel_php_with_its_explicitly_limited_coverage_gap():
+    profile = detect_project_profile(collect_inventory(FIXTURES / "secure_php_laravel_composer_lock"))
+
+    assert profile.languages == ("PHP",)
+    assert profile.frameworks == ("Laravel",)
+    assert profile.package_managers == ("composer",)
+    assert profile.signals["manifest:composer.json"] == "1"
+    assert profile.signals["framework:Laravel"] == "1"
+    assert profile.coverage_gaps == (
+        "Laravel coverage is limited to an opt-in root composer.lock presence check for one direct "
+        "laravel/framework plus artisan application shape; Composer values, lock contents, integrity, "
+        "vulnerabilities, runtime configuration, and PHP execution are not analyzed.",
+    )
+
+
+def test_generic_php_retains_an_explicit_language_specific_coverage_gap(tmp_path: Path):
+    (tmp_path / "composer.json").write_text(
+        '{"require": {"vendor/other": "^1.0"}}', encoding="utf-8"
+    )
+    (tmp_path / "app.php").write_text("<?php\n", encoding="utf-8")
+
+    profile = detect_project_profile(collect_inventory(tmp_path))
+
+    assert profile.languages == ("PHP",)
+    assert profile.frameworks == ()
+    assert profile.coverage_gaps == ("No language-specific controls are currently installed for PHP.",)
+
+
 def test_python_only_control_is_explicitly_not_applicable_to_go_profile():
     profile = ProjectProfile(
         languages=("Go",),

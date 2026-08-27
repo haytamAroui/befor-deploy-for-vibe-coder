@@ -69,6 +69,7 @@ Each work item below is a **single incremental milestone**. A milestone may not 
 | Deterministic policy, exact waivers, reports, CI baseline | Implemented | No compliance certification, deployment power, or automatic remediation. |
 | Repository/profile/requirements evidence, planning, catalogs, coverage | Implemented | Diagnostic only; requirement evidence is not proof of implementation. |
 | Python/FastAPI controls | Implemented as bounded static checks and metadata-only dynamic-route review | No semantic authorization proof, whole-program data flow, effective-path derivation, runtime configuration, or exhaustive API security. |
+| PHP/Laravel Composer lockfile control | Implemented as one opt-in static root-file-presence form | No generic PHP coverage, Composer/lock integrity, value/constraint, vulnerability, dependency-resolution, configuration, or runtime assurance. |
 | Next.js controls | Implemented as bounded static checks | Middleware/proxy is structural metadata only; local guard markers are not authorization proof. |
 | Go controls and offline advisory snapshot | Implemented within a narrow boundary | No live advisory database, reachability, indirect dependency resolution, or broad Go assurance. |
 | Existing external adapters | Implemented and opt-in | They are not standard protected-branch gates without an explicit policy choice and calibration. |
@@ -122,25 +123,31 @@ Canonical planning and registry documentation now reflects the registered, opt-i
 
 **Delivered boundary:** direct literal prefixes retain existing static-route behavior. The control does not resolve expressions or imports; infer aliases, factories, branch/loop/try/with/match assignments, annotations, multi-target/reassignment semantics, `include_router`, `mount`, nested routers, runtime registration, decorator aliases, effective paths, or FastAPI runtime behavior. Unit and default-policy integration fixtures cover the dynamic direct form, literal form, alias exclusion, zero findings, `PASS`, and redacted JSON/Markdown/SARIF reports.
 
-### Milestone 6 — One additional language ecosystem, selected by evidence quality
+### Milestone 6 — Completed PHP/Laravel Composer lockfile increment
 
-Start one non-Python/non-JavaScript ecosystem only when a high-confidence bounded control can be specified without execution. The preferred order is determined by the availability of safe static evidence, not language popularity:
+`SEC-PHP-LARAVEL-COMPOSER-LOCK-001` now covers exactly one static application form: a root `composer.json` JSON object whose direct `require` object has the exact `laravel/framework` key, plus a root `artisan` file. Under its dedicated opt-in policy only, a missing root `composer.lock` creates a normalized supply-chain finding. Composer documents that `composer.lock` records exact resolved dependencies and recommends committing it for applications; Laravel documents Composer as an application prerequisite.[6] [7]
 
-1. **PHP/Laravel**: a narrowly scoped configured Semgrep rule pack or exact Composer lock/manifests evidence, if a packaged ruleset can be reviewed without remote registry use.
-2. **Rust**: one `Cargo.toml`/`Cargo.lock` integrity or static source pattern control without invoking Cargo.
-3. **Java/Kotlin or C#**: one manifest/configuration or static source control with a precise parser boundary.
+**Delivered boundary:** the finding does not expose dependency values or manifest content. Presence of a root lockfile alone satisfies the check; its content, integrity, freshness, dependency resolution, relationship to the manifest, vulnerabilities, repositories, signatures, hashes, `require-dev`, nested projects, PHP extensions, Laravel configuration, and runtime behavior remain excluded. The control never executes PHP, Composer, Artisan, scripts, builds, installations, updates, resolvers, or network operations. Secure, vulnerable, incomplete, malformed-manifest, default-policy-isolation, redaction, package, and catalog-contract tests accompany the control.
+
+### Milestone 7 — One additional language ecosystem, selected by evidence quality
+
+Start one non-Python/non-JavaScript/non-PHP ecosystem only when a high-confidence bounded control can be specified without execution. The preferred order is determined by the availability of safe static evidence, not language popularity:
+
+1. **Rust**: one `Cargo.toml`/`Cargo.lock` integrity or static source pattern control without invoking Cargo.
+2. **Java/Kotlin or C#**: one manifest/configuration or static source control with a precise parser boundary.
+3. **Ruby**: one `Gemfile`/`Gemfile.lock` evidence control with a strict root-form and policy-selection boundary.
 
 CodeQL is not a prerequisite and remains deferred while its build model conflicts with target-code and dependency-execution boundaries.
 
 **Acceptance:** one language, one control family, one contract, one policy activation path, one fixture matrix. Do not mark the language generically “supported.”
 
-### Milestone 7 — Ecosystem-specific dependency evidence
+### Milestone 8 — Ecosystem-specific dependency evidence
 
 Add dependency capabilities one ecosystem at a time, each with a declared input, offline/packaged advisory evidence if vulnerabilities are evaluated, and no resolver invocation. Potential paths include Node lockfile integrity, Rust lock evidence, Composer lock evidence, or JVM lock/manifest presence. Each remains inside `DOMAIN-SUPPLY-CHAIN-001` but receives a unique contract and explicit limitations.
 
 **Acceptance:** exact supported input formats; deterministic ordering; lock/manifests and advisory boundaries clearly distinguished; no registry request, installation, build, or source-reachability assertion.
 
-### Milestone 8 — Infrastructure expansion, one artifact family at a time
+### Milestone 9 — Infrastructure expansion, one artifact family at a time
 
 The existing Trivy adapter must not silently broaden. Any new artifact family requires a new adapter contract or a carefully versioned expansion with distinct fixtures and calibration.
 
@@ -154,19 +161,19 @@ The existing Trivy adapter must not silently broaden. Any new artifact family re
 
 **Acceptance:** no modification to existing Trivy Dockerfile/Terraform policy until the new family has its own calibrated data contract and explicit policy selection.
 
-### Milestone 9 — Deterministic requirements-evidence expansion
+### Milestone 10 — Deterministic requirements-evidence expansion
 
 Extend requirements signals one bounded phrase family at a time: authorization, webhooks, external URL fetching, file parsing, database usage, messaging, cloud integration, administration, multi-tenancy, AI/ML, or financial transactions. Store only a versioned signal ID, category, path, and first line — never arbitrary prose or an LLM interpretation.
 
 **Acceptance:** false-positive corpus; non-implementation examples; explicit `DECLARED_REVIEW_REQUIRED` output; proof that requirements signals cannot select a scanner, create a finding, or alter the release decision.
 
-### Milestone 10 — Control-level and domain-level coverage refinement
+### Milestone 11 — Control-level and domain-level coverage refinement
 
 Continue coverage visibility using the existing semantic states. A domain may become `PARTIAL` when several implemented scoped contracts cover distinct sub-surfaces, but reports must state the individual contract boundaries. Do not introduce a global score or conflate the absence of an implementation with a secure result.
 
 **Acceptance:** coverage changes are fully diagnostic; tests demonstrate no change to policy outcomes merely from catalog/coverage metadata; all report formats explain state and exclusions.
 
-### Milestone 11 — Optional external/runtime evidence, separate architecture
+### Milestone 12 — Optional external/runtime evidence, separate architecture
 
 Only after repository-only work is mature, design optional external evidence for cloud, Kubernetes, identity, API endpoint, container registry, artifact registry, or deployment manifest state. This is a new trust model, not an extension of a local repository scanner.
 
@@ -174,7 +181,7 @@ Only after repository-only work is mature, design optional external evidence for
 
 **Non-goal:** the repository scanner must never gain unrestricted cloud access, deployment authority, or a claim that static source mirrors deployed state.
 
-### Milestone 12 — Read-only advisory AI
+### Milestone 13 — Read-only advisory AI
 
 Only after the preceding contracts, reports, redaction, and policy behavior are stable, a future advisory AI may receive normalized redacted JSON/Markdown/SARIF output and answer explanation-oriented questions. It may prioritize human review and suggest remediation for human approval.
 
@@ -219,3 +226,5 @@ No individual control is complete unless it has a stable implementation ID, capa
 [3]: https://github.com/haytamAroui/befor-deploy-for-vibe-coder/blob/master/docs/TRIVY_CONFIG_ADAPTER.md "Before Deploy — Isolated Trivy Configuration Adapter"
 [4]: https://trivy.dev/docs/latest/advanced/air-gap/ "Trivy — Connectivity and Network Considerations"
 [5]: https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-for-compiled-languages "GitHub Docs — CodeQL for compiled languages"
+[6]: https://getcomposer.org/doc/01-basic-usage.md "Composer — Basic usage"
+[7]: https://laravel.com/docs/12.x/installation "Laravel — Installation"

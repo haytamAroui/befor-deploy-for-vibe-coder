@@ -34,10 +34,10 @@ A profile signal is evidence of repository makeup, not a claim that an applicati
 | Rust | `.rs`, `Cargo.toml` | Cross-language secrets and CI checks; coverage gap reports absence of Rust-specific SAST/dependency-vulnerability adapter. |
 | Java / Kotlin | `.java`, `.kt`, `pom.xml`, `build.gradle*` | Cross-language secrets and CI checks; coverage gap reports absence of JVM-specific adapters. |
 | Ruby | `.rb`, `Gemfile` | Cross-language secrets and CI checks; coverage gap reports absence of Ruby-specific adapters. |
-| PHP | `.php`, `composer.json` | Cross-language secrets and CI checks; coverage gap reports absence of PHP-specific adapters. |
+| PHP | `.php`, `composer.json` | Cross-language secrets and CI checks. When the fixed `laravel` marker is observed, the separate opt-in Laravel Composer lockfile capability is compatible; generic PHP remains an explicit coverage gap. |
 | C# | `.cs`, `*.csproj` | Cross-language secrets and CI checks; coverage gap reports absence of .NET-specific adapters. |
 
-Framework signals include FastAPI, Django, Flask, Next.js, Express, NestJS, Spring, Rails, Laravel, and ASP.NET Core. FastAPI has static mutating-route dependency declarations plus non-decision dynamic-route review metadata for dynamic paths/methods and one direct non-literal `APIRouter(prefix=...)` form; it does not resolve the prefix or infer an effective path. Next.js has narrow direct public-environment, session-cookie, static credentialed-CORS, and Server Action local-guard-marker controls. Other detected frameworks remain visible coverage gaps unless a dedicated control is stated.
+Framework signals include FastAPI, Django, Flask, Next.js, Express, NestJS, Spring, Rails, Laravel, and ASP.NET Core. FastAPI has static mutating-route dependency declarations plus non-decision dynamic-route review metadata for dynamic paths/methods and one direct non-literal `APIRouter(prefix=...)` form; it does not resolve the prefix or infer an effective path. Laravel has one opt-in root Composer lockfile-presence control for a direct `laravel/framework` plus `artisan` static form only; it does not parse lock content or run the PHP ecosystem. Next.js has narrow direct public-environment, session-cookie, static credentialed-CORS, and Server Action local-guard-marker controls. Other detected frameworks remain visible coverage gaps unless a dedicated control is stated.
 
 ## 4. Versioned capability catalog
 
@@ -52,6 +52,7 @@ The code maintains a fixed capability catalog. Each entry maps one control ident
 | Gosec adapter | Applicable only to a detected root Go module and only when an explicit external policy configures a preinstalled binary. |
 | Python direct/local SQL, separately opt-in one-alias SQL, production configuration, and pip-audit | Applicable only to detected Python repositories; each SQL contract has a separate bounded scope. |
 | FastAPI route auth and dynamic review | Applicable only when FastAPI is detected. Static mutation routes may create ordinary findings; dynamic path/method structures and the direct top-level non-literal `APIRouter(prefix=...)` form used by that same router name create execution metadata only. No prefix value or effective path is derived. |
+| Laravel Composer lockfile | Applicable only when PHP and Laravel are detected, and only selected by the dedicated policy. The control requires one root JSON `composer.json` direct `require` object with exact `laravel/framework` key plus root `artisan`, then checks only root `composer.lock` presence. |
 | Local Semgrep adapter | Applicable only to detected Python because the initial checked-in rule pack is Python-only. |
 | Next.js public-env, session-cookie, static CORS, module-level Server Action, and named-inline Server Action checks | Applicable only when Next.js is detected; each control has a separate direct/static lexical scope. |
 | SBOM presence | Applicable to release profiles that declare the control, regardless of language. |
@@ -71,6 +72,7 @@ A future read-only advisory agent may consume only the normalized project profil
 | Scenario | Required behavior |
 |---|---|
 | FastAPI/Python repository | Detect Python and FastAPI; run selected Python/FastAPI-compatible controls, expose the separate opt-in one-alias SQL control, and report no Python coverage gap. |
+| PHP/Laravel repository | Detect PHP and Laravel from bounded manifest/source markers; select the Composer lockfile control only through its dedicated policy and retain the explicit limits on values, lock contents, dependency integrity, vulnerabilities, and runtime behavior. |
 | Next.js repository | Detect TypeScript/JavaScript and Next.js; run compatible cross-language controls, narrow static controls, and separately selected module-level and named-inline Server Action local-guard-marker checks; report deferred proxy/middleware, arrow-action, semantic authorization, and data-boundary coverage. |
 | Go repository | Detect Go and root-module evidence; run selected module/TLS controls, expose the separately opt-in offline snapshot control, and report Gosec-backed injection, SSRF, and path-traversal coverage as `NOT_SELECTED` until an explicit adapter policy selects it. |
 | Rust/Java mixed repository | Detect each language deterministically; retain generic checks; record language-specific coverage gaps. |

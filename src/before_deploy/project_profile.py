@@ -175,13 +175,21 @@ def _bounded_marker_text(root_files: dict[str, Path]) -> str:
 
 def _coverage_gaps(languages: set[str], frameworks: set[str]) -> tuple[str, ...]:
     gaps: list[str] = []
-    for language in sorted(languages - {"Go", "JavaScript", "Python", "TypeScript"}):
+    for language in sorted(languages - {"Go", "JavaScript", "PHP", "Python", "TypeScript"}):
         gaps.append(f"No language-specific controls are currently installed for {language}.")
+    if "PHP" in languages and "Laravel" not in frameworks:
+        gaps.append("No language-specific controls are currently installed for PHP.")
     if "Go" in languages:
         gaps.append(
             "Go coverage is limited to root-module checksum presence, direct tls.Config InsecureSkipVerify literals, "
             "one exact offline dependency-vulnerability snapshot, and an opt-in isolated Gosec adapter; deep "
             "framework, dataflow, live-database, and runtime analysis are not installed."
+        )
+    if "Laravel" in frameworks:
+        gaps.append(
+            "Laravel coverage is limited to an opt-in root composer.lock presence check for one direct "
+            "laravel/framework plus artisan application shape; Composer values, lock contents, integrity, "
+            "vulnerabilities, runtime configuration, and PHP execution are not analyzed."
         )
     if "Next.js" in frameworks:
         gaps.append(
@@ -193,7 +201,7 @@ def _coverage_gaps(languages: set[str], frameworks: set[str]) -> tuple[str, ...]
         gaps.append(
             "No language-specific JavaScript/TypeScript controls are installed without a detected Next.js framework."
         )
-    for framework in sorted(frameworks - {"FastAPI", "Next.js", "GitHub Actions"}):
+    for framework in sorted(frameworks - {"FastAPI", "Laravel", "Next.js", "GitHub Actions"}):
         gaps.append(f"{framework} is detected, but no framework-specific controls are currently installed.")
     if not languages:
         gaps.append("No supported language signal was detected; only generic controls can provide coverage.")
