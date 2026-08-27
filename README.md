@@ -1,6 +1,6 @@
 # Before Deploy for Vibe Coder
 
-**Before Deploy for Vibe Coder** is a deterministic pre-deployment security gate for FastAPI and Next.js repositories. It collects bounded repository evidence, runs explicit controls, normalizes the results, applies a versioned policy, and emits redacted reports for developers and CI systems.
+**Before Deploy for Vibe Coder** is a deterministic pre-deployment security gate for multi-language repositories. It profiles bounded repository evidence, selects compatible controls, normalizes results, applies a versioned policy, and emits redacted reports for developers and CI systems.
 
 > **The deterministic policy engine is the only release authority.** AI assistance is intentionally outside the gate: it may later explain a redacted finding or propose a patch, but it may not approve a release, change policy, access secrets, execute commands, or merge code.
 
@@ -10,12 +10,13 @@ The current release is a local and CI-ready Python CLI with deterministic adapti
 
 | Area | Current capability |
 |---|---|
-| **Repository evidence** | Deterministic inventory, repository digest, policy digest, Git revision when available, and scan limitations. |
-| **Native controls** | High-confidence secret patterns, selected SQL interpolation, FastAPI mutating-route authentication declarations, debug settings, unsafe credentialed CORS, GitHub Actions hardening, dependency lockfile presence, and a release SBOM check. |
-| **External adapters** | Optional Gitleaks directory scan and Semgrep local-rule scan, with bounded execution and redacted normalization. |
-| **Policy** | Versioned YAML profiles, explicit block/waiver/warn dispositions, and tightly scoped expiry-bound waivers. |
-| **Reports** | Terminal summary, normalized JSON, Markdown review report, and SARIF 2.1.0-compatible output. |
-| **CI behavior** | Machine-readable exit codes and a least-privilege GitHub Actions workflow using a frozen `uv` environment. |
+| **Repository evidence** | Deterministic inventory, repository digest, policy digest, Git revision when available, and explicit scope limitations. |
+| **Adaptive profiling** | Local detection of supported languages, frameworks, manifests, and lockfiles; compatible controls run while incompatible configured controls are recorded as `NOT_APPLICABLE`. |
+| **Native controls** | High-confidence secret patterns, selected Python SQL interpolation, FastAPI mutating-route authentication declarations, Python debug/CORS patterns, GitHub Actions hardening, dependency lockfile presence, and a release SBOM check. |
+| **External adapters** | Optional Gitleaks directory scan, Python Semgrep local-rule scan, Python dependency-vulnerability evidence, and offline provenance verification, each with bounded execution and redacted normalization. |
+| **Policy** | Versioned YAML profiles, explicit block/waiver/warn dispositions, tightly scoped expiry-bound waivers, and fail-closed control errors. |
+| **Reports** | Versioned JSON, Markdown, and SARIF 2.1.0 writers containing normalized findings, control health, adaptive profile, and visible coverage gaps. |
+| **CI behavior** | Machine-readable exit codes, a least-privilege frozen-`uv` CI gate, and a manual pinned external-scanner calibration workflow. |
 
 ## What it does not do
 
@@ -67,7 +68,7 @@ A successful run prints `Before Deploy: PASS` and writes the reports below. The 
 From the **Before Deploy** repository root, point the CLI at the repository you want to evaluate. The policy lives in this repository and may reference its local Semgrep rule pack, so keep the policy path explicit.
 
 ```bash
-TARGET_REPOSITORY="/absolute/path/to/my-fastapi-service"
+TARGET_REPOSITORY="/absolute/path/to/my-service"
 
 uv run before-deploy scan "$TARGET_REPOSITORY" \
   --policy rules/default-policy.yaml \
@@ -124,13 +125,13 @@ uv run before-deploy scan fixtures/secure_fastapi_nextjs \
 
 ## Reports and evidence
 
-Every completed CLI scan writes three redacted artifacts to `--output-dir`.
+Every completed CLI scan writes three redacted artifacts to `--output-dir`. The report writers are part of the versioned package source and have been verified from a fresh repository checkout.
 
 | File | Intended use | Contents |
 |---|---|---|
-| `report.json` | Automation and future control-plane integrations. | Full normalized scan result, manifest, control executions, policy decision, findings, and waivers. |
-| `report.md` | Pull-request and release review. | Gate rationale, execution status, grouped findings, remediation guidance, waiver list, and limitations. |
-| `report.sarif` | Code-scanning integrations. | SARIF 2.1.0-compatible rule and location information. |
+| `report.json` | Automation and future control-plane integrations. | Full normalized scan result, manifest, adaptive project profile, control executions, policy decision, findings, and waivers. |
+| `report.md` | Pull-request and release review. | Gate rationale, adaptive technology profile, explicit coverage gaps, execution status, grouped findings, remediation guidance, waiver list, and limitations. |
+| `report.sarif` | Code-scanning integrations. | SARIF 2.1.0-compatible rule and location information plus a redacted adaptive-profile property. |
 
 The scan manifest binds reports to the repository digest, policy digest, policy name, scan timestamps, bounded file count, and relevant Git revision. Before Deploy deliberately does **not** print raw secret values in its own normalized reports. If a secret detector reports a potential credential, rotate it through the relevant issuer and inspect access logs according to your incident procedure.
 
@@ -232,8 +233,8 @@ If either required binary is missing, times out, produces invalid JSON, or repor
 The `release-evidence-policy.yaml` profile is intentionally **not** a general development scan. It is for a release-candidate directory that contains the declared artifact and a downloaded GitHub attestation bundle. It also requires the explicitly versioned `uv`, `pip-audit`, and `gh` executables on `PATH`.
 
 ```bash
-uv run before-deploy scan /path/to/release-candidate \\
-  --policy rules/release-evidence-policy.yaml \\
+uv run before-deploy scan /path/to/release-candidate \
+  --policy rules/release-evidence-policy.yaml \
   --output-dir /tmp/before-deploy-release-evidence
 ```
 
@@ -286,12 +287,13 @@ Read the detailed control boundary and false-positive process in [`docs/CONTROL_
 ## Repository structure
 
 ```text
-src/before_deploy/       # Deterministic kernel, native controls, and external adapters
-tests/                   # Unit, integration, and fake-tool isolation tests
+src/before_deploy/       # Deterministic kernel, adaptive profiler, controls, adapters, and report writers
+tests/                   # Unit, integration, fake-tool isolation, and profile-detection tests
 rules/                   # Versioned policy profiles and local Semgrep rules
-docs/                    # Architecture, control catalog, and implementation contracts
-fixtures/                # Intentionally secure and vulnerable FastAPI/Next.js repositories
-.github/workflows/       # Hardened project CI
+docs/                    # Architecture, capability contracts, release procedures, and control catalog
+fixtures/                # Secure/vulnerable FastAPI/Next.js plus Go, Next.js, and mixed-language profile fixtures
+.github/workflows/       # Hardened CI and manual external-scanner calibration
+scripts/                 # Deterministic release-artifact and SBOM preparation
 uv.lock                  # Reproducible development dependency lock
 ```
 
@@ -301,7 +303,7 @@ Run the same checks used by repository CI:
 
 ```bash
 uv sync --frozen --all-extras
-uv run ruff check src tests
+uv run ruff check src tests scripts
 uv run pytest
 uv run before-deploy scan . \
   --policy rules/default-policy.yaml \
@@ -316,6 +318,6 @@ The project follows least privilege, isolated execution, explicit policy, fail-c
 
 ## Status and next steps
 
-The deterministic kernel, isolated Gitleaks/Semgrep adapters, and dependency/provenance evidence foundation are implemented and tested. The next engineering milestone is to install and calibrate the pinned external tools in CI, generate and retain a release artifact plus signed attestation bundle, extend audit coverage beyond Python, and only then add tightly bounded AI assistance.
+The deterministic kernel, adaptive project profiler, versioned report writers, isolated external adapters, dependency/provenance evidence foundation, manual scanner calibration workflow, and release-evidence preparation script are implemented and tested. A clean GitHub checkout has been verified to install, self-scan under the strict CI policy, produce all report formats, and pass the test suite. The next engineering priorities are language-specific controls for Next.js and other ecosystems, broader dependency-vulnerability coverage, confirmed private-repository attestation eligibility, and only then tightly bounded read-only AI assistance.
 
 For the design rationale and phased roadmap, see [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) and [`docs/DEEP_ANALYSIS_AND_BUILD_BLUEPRINT.md`](docs/DEEP_ANALYSIS_AND_BUILD_BLUEPRINT.md).
