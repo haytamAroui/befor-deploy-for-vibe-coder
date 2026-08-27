@@ -68,7 +68,7 @@ Each work item below is a **single incremental milestone**. A milestone may not 
 |---|---|---|
 | Deterministic policy, exact waivers, reports, CI baseline | Implemented | No compliance certification, deployment power, or automatic remediation. |
 | Repository/profile/requirements evidence, planning, catalogs, coverage | Implemented | Diagnostic only; requirement evidence is not proof of implementation. |
-| Python/FastAPI controls | Implemented as bounded static checks | No semantic authorization proof, whole-program data flow, runtime configuration, or exhaustive API security. |
+| Python/FastAPI controls | Implemented as bounded static checks and metadata-only dynamic-route review | No semantic authorization proof, whole-program data flow, effective-path derivation, runtime configuration, or exhaustive API security. |
 | Next.js controls | Implemented as bounded static checks | Middleware/proxy is structural metadata only; local guard markers are not authorization proof. |
 | Go controls and offline advisory snapshot | Implemented within a narrow boundary | No live advisory database, reachability, indirect dependency resolution, or broad Go assurance. |
 | Existing external adapters | Implemented and opt-in | They are not standard protected-branch gates without an explicit policy choice and calibration. |
@@ -116,7 +116,13 @@ Canonical planning and registry documentation now reflects the registered, opt-i
 
 **Delivered boundary:** alias chains, branches, loops, `try`/`with`/`match` blocks, calls, imports, object attributes, subscripts, tuples, annotations, closures, globals, nonlocals, wrapped sinks, ORM behavior, parameter binding semantics, reachability, and runtime flow remain excluded. The next precision candidate must be a different one of these forms and receive its own separate contract.
 
-### Milestone 5 — One additional language ecosystem, selected by evidence quality
+### Milestone 5 — Completed FastAPI dynamic-router-prefix review
+
+`SEC-API-001` v0.3.0 adds exactly one metadata-only route-review shape: a direct module-top-level simple-name assignment to `APIRouter(prefix=...)` where the prefix is not a literal slash-prefixed string, followed by a direct supported route decorator on that same name. It creates a deterministic `DYNAMIC_ROUTER_PREFIX` execution-metadata location with `REVIEW_REQUIRED`, not a finding, fingerprint, waiver target, coverage state, policy input, or release effect.
+
+**Delivered boundary:** direct literal prefixes retain existing static-route behavior. The control does not resolve expressions or imports; infer aliases, factories, branch/loop/try/with/match assignments, annotations, multi-target/reassignment semantics, `include_router`, `mount`, nested routers, runtime registration, decorator aliases, effective paths, or FastAPI runtime behavior. Unit and default-policy integration fixtures cover the dynamic direct form, literal form, alias exclusion, zero findings, `PASS`, and redacted JSON/Markdown/SARIF reports.
+
+### Milestone 6 — One additional language ecosystem, selected by evidence quality
 
 Start one non-Python/non-JavaScript ecosystem only when a high-confidence bounded control can be specified without execution. The preferred order is determined by the availability of safe static evidence, not language popularity:
 
@@ -128,13 +134,13 @@ CodeQL is not a prerequisite and remains deferred while its build model conflict
 
 **Acceptance:** one language, one control family, one contract, one policy activation path, one fixture matrix. Do not mark the language generically “supported.”
 
-### Milestone 6 — Ecosystem-specific dependency evidence
+### Milestone 7 — Ecosystem-specific dependency evidence
 
 Add dependency capabilities one ecosystem at a time, each with a declared input, offline/packaged advisory evidence if vulnerabilities are evaluated, and no resolver invocation. Potential paths include Node lockfile integrity, Rust lock evidence, Composer lock evidence, or JVM lock/manifest presence. Each remains inside `DOMAIN-SUPPLY-CHAIN-001` but receives a unique contract and explicit limitations.
 
 **Acceptance:** exact supported input formats; deterministic ordering; lock/manifests and advisory boundaries clearly distinguished; no registry request, installation, build, or source-reachability assertion.
 
-### Milestone 7 — Infrastructure expansion, one artifact family at a time
+### Milestone 8 — Infrastructure expansion, one artifact family at a time
 
 The existing Trivy adapter must not silently broaden. Any new artifact family requires a new adapter contract or a carefully versioned expansion with distinct fixtures and calibration.
 
@@ -148,19 +154,19 @@ The existing Trivy adapter must not silently broaden. Any new artifact family re
 
 **Acceptance:** no modification to existing Trivy Dockerfile/Terraform policy until the new family has its own calibrated data contract and explicit policy selection.
 
-### Milestone 8 — Deterministic requirements-evidence expansion
+### Milestone 9 — Deterministic requirements-evidence expansion
 
 Extend requirements signals one bounded phrase family at a time: authorization, webhooks, external URL fetching, file parsing, database usage, messaging, cloud integration, administration, multi-tenancy, AI/ML, or financial transactions. Store only a versioned signal ID, category, path, and first line — never arbitrary prose or an LLM interpretation.
 
 **Acceptance:** false-positive corpus; non-implementation examples; explicit `DECLARED_REVIEW_REQUIRED` output; proof that requirements signals cannot select a scanner, create a finding, or alter the release decision.
 
-### Milestone 9 — Control-level and domain-level coverage refinement
+### Milestone 10 — Control-level and domain-level coverage refinement
 
 Continue coverage visibility using the existing semantic states. A domain may become `PARTIAL` when several implemented scoped contracts cover distinct sub-surfaces, but reports must state the individual contract boundaries. Do not introduce a global score or conflate the absence of an implementation with a secure result.
 
 **Acceptance:** coverage changes are fully diagnostic; tests demonstrate no change to policy outcomes merely from catalog/coverage metadata; all report formats explain state and exclusions.
 
-### Milestone 10 — Optional external/runtime evidence, separate architecture
+### Milestone 11 — Optional external/runtime evidence, separate architecture
 
 Only after repository-only work is mature, design optional external evidence for cloud, Kubernetes, identity, API endpoint, container registry, artifact registry, or deployment manifest state. This is a new trust model, not an extension of a local repository scanner.
 
@@ -168,7 +174,7 @@ Only after repository-only work is mature, design optional external evidence for
 
 **Non-goal:** the repository scanner must never gain unrestricted cloud access, deployment authority, or a claim that static source mirrors deployed state.
 
-### Milestone 11 — Read-only advisory AI
+### Milestone 12 — Read-only advisory AI
 
 Only after the preceding contracts, reports, redaction, and policy behavior are stable, a future advisory AI may receive normalized redacted JSON/Markdown/SARIF output and answer explanation-oriented questions. It may prioritize human review and suggest remediation for human approval.
 

@@ -53,6 +53,35 @@ def test_fastapi_dynamic_routes_emit_review_state_without_a_finding_or_gate_chan
     assert "dynamic_route_review_locations=app.py:8:DYNAMIC_PATH,app.py:13:DYNAMIC_METHODS" in markdown_report
 
 
+def test_fastapi_dynamic_router_prefix_emits_review_metadata_without_a_finding_or_gate_change():
+    result = _scan("fastapi_dynamic_router_prefix_review")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert not result.findings
+    assert result.waivers == ()
+    assert not result.decision.blocking_fingerprints
+    assert not result.decision.waiver_required_fingerprints
+    assert not any("DYNAMIC_ROUTER_PREFIX" in code for code in result.decision.reason_codes)
+    assert result.coverage_audit is not None
+    assert not any(
+        "DYNAMIC_ROUTER_PREFIX" in assessment.rationale
+        for assessment in result.coverage_audit.assessments
+    )
+    execution = next(item for item in result.executions if item.control_id == "SEC-API-001")
+    assert execution.control_version == "0.3.0"
+    assert execution.metadata == {
+        "dynamic_route_review_status": "REVIEW_REQUIRED",
+        "dynamic_route_review_count": "1",
+        "dynamic_route_review_locations": "app.py:7:DYNAMIC_ROUTER_PREFIX",
+    }
+    for report in (render_json(result), render_markdown(result), render_sarif(result)):
+        assert "DYNAMIC_ROUTER_PREFIX" in report
+        assert "REVIEW_REQUIRED" in report
+        assert "api_prefix" not in report
+        assert "/api/v1" not in report
+        assert "create_account" not in report
+
+
 def test_local_python_sql_flow_fixture_blocks_only_on_the_bounded_assignment_pattern():
     result = _scan("vulnerable_python_local_sql_flow")
 

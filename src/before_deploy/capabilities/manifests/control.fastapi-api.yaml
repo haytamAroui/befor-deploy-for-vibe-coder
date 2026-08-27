@@ -1,6 +1,6 @@
 schema_version: 1
 id: control.native.fastapi-api
-version: "0.2.0"
+version: "0.3.0"
 implementation_id: SEC-API-001
 kind: CONTROL
 title: FastAPI static mutating-route declaration and dynamic-route review check
@@ -12,5 +12,5 @@ security_domains:
   - "Framework: FastAPI"
 exclusions:
   - Declared dependencies do not prove effective authorization.
-  - Dynamic route paths or api_route methods produce a structural review state only; they are not security findings and do not alter the policy decision.
-  - Route path values, computed methods, runtime route registration, decorator aliases, and authorization semantics are not inferred.
+  - Dynamic route paths, api_route methods, and direct top-level APIRouter prefix expressions produce a structural review state only; they are not security findings and do not alter the policy decision.
+  - Route path values, computed methods, APIRouter aliases/factories/registrations, prefix values, runtime route registration, decorator aliases, and authorization semantics are not inferred.

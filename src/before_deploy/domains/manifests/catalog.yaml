@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.10.0"
+catalog_version: "0.11.0"
 references:
   REF-NIST-SSDF-DRAFT-1-2:
     title: NIST SSDF Version 1.2 initial public draft announcement

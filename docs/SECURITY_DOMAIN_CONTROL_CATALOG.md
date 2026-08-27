@@ -1,6 +1,6 @@
 # Security Domain + Control Catalog
 
-**Version:** 0.10.0
+**Version:** 0.11.0
 **Authority:** Informational only; it is not a policy profile, a scanner, a compliance assessment, or a release authority.
 
 ## Purpose and authority boundary
@@ -83,7 +83,7 @@ The catalog maps **only the twenty-three reviewed capability implementations alr
 | `CONTROL-INJECTION-PYTHON-001` | `control.native.python-sast` / `SEC-SAST-001` | Injection | Python AST direct SQL interpolation plus one local straight-line simple-name assignment into a standalone execute/executemany call; no branch, alias, import, object-state, or interprocedural analysis. |
 | `CONTROL-INJECTION-PYTHON-SQL-SINGLE-ALIAS-001` | `control.native.python-sql-single-local-alias` / `SEC-SAST-SQL-ALIAS-001` | Injection | Separate opt-in one name-to-name alias from an already unsafe local SQL query to a standalone `execute`/`executemany` sink; alias chains, branches, calls, attributes, annotations, and wrapped sinks are excluded. |
 | `CONTROL-INJECTION-SEMGREP-001` | `adapter.semgrep-python-local` / `SEC-SAST-SEMGREP-001` | Injection | Explicit external policy configuration only. |
-| `CONTROL-API-FASTAPI-001` | `control.native.fastapi-api` / `SEC-API-001` | API security | Supported static FastAPI mutating routes plus structural `REVIEW_REQUIRED` metadata for dynamic paths or `api_route` methods; the metadata is neither a finding nor a gate input. |
+| `CONTROL-API-FASTAPI-001` | `control.native.fastapi-api` / `SEC-API-001` | API security | Supported static FastAPI mutating routes plus structural `REVIEW_REQUIRED` metadata for dynamic paths, `api_route` methods, or a direct module-top-level non-literal `APIRouter(prefix=...)` shape used by that same router name. Prefix values and effective paths are not derived; the metadata is neither a finding nor a gate input. |
 | `CONTROL-CONFIG-PYTHON-DEBUG-001` | `control.native.python-debug-config` / `SEC-CONFIG-001` | Production configuration | Supported static Python/configuration sources. |
 | `CONTROL-CORS-PYTHON-001` | `control.native.python-cors` / `SEC-CONFIG-002` | CORS | Supported static Python/configuration sources. |
 | `CONTROL-CICD-GITHUB-ACTIONS-001` | `control.native.github-actions` / `SEC-CICD-001` | CI/CD security | Visible GitHub Actions workflows only. |

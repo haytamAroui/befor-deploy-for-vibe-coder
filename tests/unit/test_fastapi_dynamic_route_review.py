@@ -86,3 +86,119 @@ def test_fastapi_control_is_not_applicable_without_fastapi_or_route_decorators(t
 
     assert result.execution.status.value == "NOT_APPLICABLE"
     assert not result.execution.metadata
+
+
+def test_fastapi_dynamic_direct_router_prefix_is_review_metadata_not_a_finding(tmp_path: Path):
+    result = _run(
+        tmp_path,
+        "from fastapi import APIRouter\n"
+        "api_prefix = '/api'\n"
+        "router = APIRouter(prefix=api_prefix)\n"
+        "@router.post('/accounts')\n"
+        "def create_account():\n"
+        "    return {}\n",
+    )
+
+    assert result.execution.status.value == "COMPLETED"
+    assert result.execution.metadata == {
+        "dynamic_route_review_status": "REVIEW_REQUIRED",
+        "dynamic_route_review_count": "1",
+        "dynamic_route_review_locations": "routes.py:4:DYNAMIC_ROUTER_PREFIX",
+    }
+    assert not result.findings
+
+
+def test_fastapi_literal_router_prefix_retains_existing_static_route_behavior(tmp_path: Path):
+    result = _run(
+        tmp_path,
+        "from fastapi import APIRouter\n"
+        "router = APIRouter(prefix='/api')\n"
+        "@router.post('/accounts')\n"
+        "def create_account():\n"
+        "    return {}\n",
+    )
+
+    assert result.execution.metadata == {
+        "dynamic_route_review_status": "NOT_REQUIRED",
+        "dynamic_route_review_count": "0",
+    }
+    assert len(result.findings) == 1
+    assert result.findings[0].evidence == {"route_path": "/accounts", "method": "POST"}
+
+
+def test_fastapi_router_alias_is_not_a_dynamic_prefix_review_match(tmp_path: Path):
+    result = _run(
+        tmp_path,
+        "from fastapi import APIRouter\n"
+        "api_prefix = '/api'\n"
+        "router = APIRouter(prefix=api_prefix)\n"
+        "route_alias = router\n"
+        "@route_alias.post('/accounts')\n"
+        "def create_account():\n"
+        "    return {}\n",
+    )
+
+    assert result.execution.metadata == {
+        "dynamic_route_review_status": "NOT_REQUIRED",
+        "dynamic_route_review_count": "0",
+    }
+    assert len(result.findings) == 1
+
+
+def test_fastapi_dynamic_router_prefix_exclusions_do_not_emit_prefix_review_metadata(
+    tmp_path: Path,
+):
+    excluded_sources = (
+        "from fastapi import APIRouter\n"
+        "api_prefix = '/api'\n"
+        "if True:\n"
+        "    router = APIRouter(prefix=api_prefix)\n"
+        "@router.post('/accounts')\n"
+        "def create_account():\n"
+        "    return {}\n",
+        "from fastapi import APIRouter as Router\n"
+        "api_prefix = '/api'\n"
+        "router = Router(prefix=api_prefix)\n"
+        "@router.post('/accounts')\n"
+        "def create_account():\n"
+        "    return {}\n",
+        "import fastapi\n"
+        "api_prefix = '/api'\n"
+        "router = fastapi.APIRouter(prefix=api_prefix)\n"
+        "@router.post('/accounts')\n"
+        "def create_account():\n"
+        "    return {}\n",
+        "from fastapi import APIRouter\n"
+        "api_prefix = '/api'\n"
+        "def make_router():\n"
+        "    return APIRouter(prefix=api_prefix)\n"
+        "router = make_router()\n"
+        "@router.post('/accounts')\n"
+        "def create_account():\n"
+        "    return {}\n",
+        "from fastapi import APIRouter, FastAPI\n"
+        "api_prefix = '/api'\n"
+        "router = APIRouter()\n"
+        "app = FastAPI()\n"
+        "app.include_router(router, prefix=api_prefix)\n"
+        "@router.post('/accounts')\n"
+        "def create_account():\n"
+        "    return {}\n",
+        "from fastapi import APIRouter\n"
+        "api_prefix = '/api'\n"
+        "router = APIRouter(prefix=api_prefix)\n"
+        "post = router.post\n"
+        "@post('/accounts')\n"
+        "def create_account():\n"
+        "    return {}\n",
+    )
+
+    for index, source in enumerate(excluded_sources):
+        case_directory = tmp_path / str(index)
+        case_directory.mkdir()
+        result = _run(case_directory, source)
+
+        assert result.execution.metadata == {
+            "dynamic_route_review_status": "NOT_REQUIRED",
+            "dynamic_route_review_count": "0",
+        }

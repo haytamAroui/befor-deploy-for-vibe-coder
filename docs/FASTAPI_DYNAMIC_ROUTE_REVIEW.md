@@ -1,6 +1,6 @@
 # FastAPI Dynamic Route Review Boundary
 
-**Status:** Implemented as a structural review state in `SEC-API-001` version `0.2.0`. The state is deliberately not a finding, waiver target, policy rule, coverage score, or release decision. It identifies only FastAPI route-decorator shapes that the static authentication-declaration check does not interpret.
+**Status:** Implemented as a structural review state in `SEC-API-001` version `0.3.0`. The state is deliberately not a finding, waiver target, policy rule, coverage score, or release decision. It identifies only FastAPI route-decorator shapes, including one direct dynamic `APIRouter` prefix shape, that the static authentication-declaration check does not interpret.
 
 ## Purpose
 
@@ -16,6 +16,7 @@ When a recognized FastAPI path-operation decorator cannot be analyzed by the sta
 |---|---|---|
 | `DYNAMIC_PATH` | The first argument of a recognized `get`, `post`, `put`, `patch`, `delete`, or `api_route` decorator is not a literal slash-prefixed string. | The decorator is not considered an authenticated or unauthenticated route. One review location is recorded. |
 | `DYNAMIC_METHODS` | `api_route` has no `methods` declaration, or its `methods` value is not a literal list, tuple, or set containing only string constants. | The decorator is not considered a static route-method pair. One review location is recorded. |
+| `DYNAMIC_ROUTER_PREFIX` | A direct module-top-level simple-name assignment has an `APIRouter(prefix=...)` call whose prefix is not a literal string beginning with `/`, and a direct route decorator uses that same name. | The decorated route is not considered an authenticated or unauthenticated static route because its effective path is not derived. One review location is recorded. |
 | `NOT_REQUIRED` | No supported dynamic-route shape was observed. | The static control may still have findings or no findings. This is not a statement that the route surface is complete or secure. |
 
 The metadata contains only a state, a deduplicated count, and at most fifty deterministic `path:line:reason` references. Additional references are counted and marked as truncated. The route expression, computed path value, computed method value, source excerpt, dependency contents, request data, and credentials are not retained.
@@ -26,17 +27,17 @@ The state appears under the normalized `metadata` of the completed `SEC-API-001`
 
 | Report situation | Gate result | Security findings | Review metadata |
 |---|---|---|---|
-| Dynamic FastAPI decorator only | Unchanged by the review state | None from the dynamic structure alone | `REVIEW_REQUIRED` |
+| Dynamic FastAPI decorator or direct dynamic `APIRouter` prefix only | Unchanged by the review state | None from the dynamic structure alone | `REVIEW_REQUIRED` |
 | Static mutating decorator without a visible dependency | Determined normally by policy | Existing `SEC-API-001` finding | `NOT_REQUIRED` if no dynamic decorator also exists |
 | Static declared dependency | Determined normally by policy | No finding from the bounded declaration pattern | `NOT_REQUIRED` if no dynamic decorator also exists |
 
 ## Explicit exclusions
 
-The control does not resolve variables, imports, aliases, `include_router`, custom decorator factories, dynamic router registration, `add_api_route`, router prefixes, method computation, middleware, global dependencies, application startup behavior, or runtime OpenAPI. It does not prove whether a visible `Depends` or `Security` call authenticates a user, enforces a role, checks object-level authorization, or is applied to the final registered route. A static route with no finding is not a guarantee of API security.
+The control does not resolve prefix variables or string expressions, imports, aliases, `include_router`, router factories, branch/loop/try/with/match assignment, annotated/multi-target/reassignment semantics, custom decorator factories, dynamic router registration, `add_api_route`, `mount`, nested routers, method computation, middleware, global dependencies, application startup behavior, or runtime OpenAPI. It does not derive effective paths, infer runtime registration, or prove whether a visible `Depends` or `Security` call authenticates a user, enforces a role, checks object-level authorization, or is applied to the final registered route. A static route with no finding is not a guarantee of API security.
 
 ## Fixture matrix
 
-The regression set contains a dynamic path, a dynamic `api_route` methods list, an `api_route` without `methods`, a static unguarded mutation route, and a non-FastAPI source file. The integration fixture combines dynamic path and method states with a static health route and verifies that the scan passes, produces no FastAPI finding, and renders the review metadata in all three report formats.
+The regression set contains a dynamic path, a dynamic `api_route` methods list, an `api_route` without `methods`, a static unguarded mutation route, a direct dynamic `APIRouter` prefix route, a literal-prefix static route, an alias exclusion, and a non-FastAPI source file. The dynamic-prefix integration fixture verifies that the default policy passes, produces no finding, records only `DYNAMIC_ROUTER_PREFIX`, renders the metadata in JSON, Markdown, and SARIF, and does not expose the source prefix variable name.
 
 ## References
 

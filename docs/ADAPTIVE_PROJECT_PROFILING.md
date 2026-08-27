@@ -37,7 +37,7 @@ A profile signal is evidence of repository makeup, not a claim that an applicati
 | PHP | `.php`, `composer.json` | Cross-language secrets and CI checks; coverage gap reports absence of PHP-specific adapters. |
 | C# | `.cs`, `*.csproj` | Cross-language secrets and CI checks; coverage gap reports absence of .NET-specific adapters. |
 
-Framework signals include FastAPI, Django, Flask, Next.js, Express, NestJS, Spring, Rails, Laravel, and ASP.NET Core. FastAPI has static mutating-route dependency declarations plus non-decision dynamic-route review metadata. Next.js has narrow direct public-environment, session-cookie, static credentialed-CORS, and Server Action local-guard-marker controls. Other detected frameworks remain visible coverage gaps unless a dedicated control is stated.
+Framework signals include FastAPI, Django, Flask, Next.js, Express, NestJS, Spring, Rails, Laravel, and ASP.NET Core. FastAPI has static mutating-route dependency declarations plus non-decision dynamic-route review metadata for dynamic paths/methods and one direct non-literal `APIRouter(prefix=...)` form; it does not resolve the prefix or infer an effective path. Next.js has narrow direct public-environment, session-cookie, static credentialed-CORS, and Server Action local-guard-marker controls. Other detected frameworks remain visible coverage gaps unless a dedicated control is stated.
 
 ## 4. Versioned capability catalog
 
@@ -51,7 +51,7 @@ The code maintains a fixed capability catalog. Each entry maps one control ident
 | Go module integrity / direct TLS verification | Applicable only to a detected root Go module; module-sum presence and direct `tls.Config` literals only. |
 | Gosec adapter | Applicable only to a detected root Go module and only when an explicit external policy configures a preinstalled binary. |
 | Python direct/local SQL, separately opt-in one-alias SQL, production configuration, and pip-audit | Applicable only to detected Python repositories; each SQL contract has a separate bounded scope. |
-| FastAPI route auth and dynamic review | Applicable only when FastAPI is detected. Static mutation routes may create ordinary findings; dynamic path/method structures create execution metadata only. |
+| FastAPI route auth and dynamic review | Applicable only when FastAPI is detected. Static mutation routes may create ordinary findings; dynamic path/method structures and the direct top-level non-literal `APIRouter(prefix=...)` form used by that same router name create execution metadata only. No prefix value or effective path is derived. |
 | Local Semgrep adapter | Applicable only to detected Python because the initial checked-in rule pack is Python-only. |
 | Next.js public-env, session-cookie, static CORS, module-level Server Action, and named-inline Server Action checks | Applicable only when Next.js is detected; each control has a separate direct/static lexical scope. |
 | SBOM presence | Applicable to release profiles that declare the control, regardless of language. |

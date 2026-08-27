@@ -43,7 +43,7 @@ class FastApiRouteAuthenticationControl:
     """Require declared dependencies on static mutating routes and report dynamic review states."""
 
     control_id = "SEC-API-001"
-    control_version = "0.2.0"
+    control_version = "0.3.0"
 
     def run(self, context: ControlContext) -> ControlResult:
         started_at = utc_now()
@@ -60,10 +60,11 @@ class FastApiRouteAuthenticationControl:
                 raise ValueError(f"Unable to parse Python source: {relative}") from error
             if _imports_fastapi(tree):
                 fastapi_detected = True
+            dynamic_router_prefixes = _dynamic_router_prefixes(tree)
             for node in ast.walk(tree):
                 if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     continue
-                static_routes, review_states = _routes_for_function(node)
+                static_routes, review_states = _routes_for_function(node, dynamic_router_prefixes)
                 routes.extend((relative, route) for route in static_routes)
                 dynamic_route_reviews.extend((relative, state) for state in review_states)
 
@@ -136,6 +137,7 @@ def _imports_fastapi(tree: ast.AST) -> bool:
 
 def _routes_for_function(
     node: ast.FunctionDef | ast.AsyncFunctionDef,
+    dynamic_router_prefixes: frozenset[str],
 ) -> tuple[tuple[Route, ...], tuple[DynamicRouteReviewState, ...]]:
     authenticated = _function_has_dependency(node)
     routes: list[Route] = []
@@ -145,6 +147,11 @@ def _routes_for_function(
             continue
         decorator_name = decorator.func.attr
         if decorator_name not in _ROUTE_DECORATORS:
+            continue
+        if _decorator_uses_dynamic_router_prefix(decorator, dynamic_router_prefixes):
+            review_states.append(
+                DynamicRouteReviewState(line=decorator.lineno, reason="DYNAMIC_ROUTER_PREFIX")
+            )
             continue
         path = _literal_path_or_none(decorator)
         if path is None:
@@ -167,11 +174,53 @@ def _routes_for_function(
     return tuple(routes), tuple(review_states)
 
 
+def _dynamic_router_prefixes(tree: ast.Module) -> frozenset[str]:
+    """Recognize only direct top-level APIRouter assignments with non-literal prefixes."""
+    dynamic_names: set[str] = set()
+    for statement in tree.body:
+        if isinstance(statement, ast.Assign):
+            target_names = [target.id for target in statement.targets if isinstance(target, ast.Name)]
+            if len(statement.targets) == 1 and len(target_names) == 1 and _has_dynamic_router_prefix(
+                statement.value
+            ):
+                dynamic_names.add(target_names[0])
+            else:
+                dynamic_names.difference_update(target_names)
+        elif isinstance(statement, (ast.AnnAssign, ast.AugAssign)) and isinstance(statement.target, ast.Name):
+            dynamic_names.discard(statement.target.id)
+    return frozenset(dynamic_names)
+
+
+def _has_dynamic_router_prefix(value: ast.AST) -> bool:
+    if not (
+        isinstance(value, ast.Call)
+        and isinstance(value.func, ast.Name)
+        and value.func.id == "APIRouter"
+    ):
+        return False
+    for keyword in value.keywords:
+        if keyword.arg == "prefix":
+            return not _is_literal_route_path(keyword.value)
+    return False
+
+
+def _decorator_uses_dynamic_router_prefix(
+    decorator: ast.Call, dynamic_router_prefixes: frozenset[str]
+) -> bool:
+    return isinstance(decorator.func.value, ast.Name) and (
+        decorator.func.value.id in dynamic_router_prefixes
+    )
+
+
 def _literal_path_or_none(decorator: ast.Call) -> str | None:
-    if not decorator.args or not isinstance(decorator.args[0], ast.Constant):
+    if not decorator.args:
         return None
-    value = decorator.args[0].value
-    return value if isinstance(value, str) and value.startswith("/") else None
+    value = decorator.args[0]
+    return value.value if _is_literal_route_path(value) else None
+
+
+def _is_literal_route_path(value: ast.AST) -> bool:
+    return isinstance(value, ast.Constant) and isinstance(value.value, str) and value.value.startswith("/")
 
 
 def _route_methods_or_none(name: str, decorator: ast.Call) -> tuple[str, ...] | None:
