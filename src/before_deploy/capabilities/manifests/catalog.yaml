@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.16.0"
+catalog_version: "0.18.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -11,6 +11,7 @@ manifests:
   - control.docker-compose-privileged.yaml
   - control.fastapi-api.yaml
   - control.fastapi-input-validation.yaml
+  - control.fastapi-file-upload.yaml
   - control.github-actions.yaml
   - control.go-module.yaml
   - control.go-tls.yaml

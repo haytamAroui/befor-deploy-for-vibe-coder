@@ -20,10 +20,10 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.16.0"
+    assert catalog.catalog_version == "0.18.0"
     assert catalog.catalog_digest == second.catalog_digest
     assert len(catalog.domains) == 30
-    assert len(catalog.controls) == 28
+    assert len(catalog.controls) == 29
     assert catalog.domains["DOMAIN-SSRF-001"].title == "Server-side request forgery"
     assert {
         control.capability_id for control in catalog.controls.values()
@@ -91,6 +91,14 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert fastapi_input_contract.security_domain_ids == (
         "DOMAIN-INPUT-VALIDATION-001",
         "DOMAIN-API-SECURITY-001",
+    )
+    fastapi_upload_contract = catalog.control_for_implementation("SEC-API-UPLOAD-001")
+    assert fastapi_upload_contract is not None
+    assert fastapi_upload_contract.control_id == "CONTROL-API-FASTAPI-UPLOAD-001"
+    assert fastapi_upload_contract.version == "0.1.0"
+    assert fastapi_upload_contract.security_domain_ids == (
+        "DOMAIN-FILE-UPLOAD-001",
+        "DOMAIN-PATH-TRAVERSAL-001",
     )
     trivy_contract = catalog.control_for_implementation("SEC-TRIVY-CONFIG-001")
     assert trivy_contract is not None

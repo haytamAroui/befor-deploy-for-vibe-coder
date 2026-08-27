@@ -1,6 +1,6 @@
 # Security Domain + Control Catalog
 
-**Version:** 0.16.0
+**Version:** 0.18.0
 **Authority:** Informational only; it is not a policy profile, a scanner, a compliance assessment, or a release authority.
 
 ## Purpose and authority boundary
@@ -50,7 +50,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 | `DOMAIN-SECRETS-001` | Secrets and sensitive configuration | Mapped | Native patterns and optional Gitleaks do not establish secret-store or rotation posture. |
 | `DOMAIN-SENSITIVE-DATA-001` | Sensitive data handling | Unmapped | Response filtering, encryption, retention, and privacy compliance are not inferred. |
 | `DOMAIN-ERROR-HANDLING-001` | Error handling | Unmapped | Runtime handlers, stack traces, and production error responses are not inferred. |
-| `DOMAIN-FILE-UPLOAD-001` | File upload security | Unmapped | Content validation, malware scanning, isolation, archives, and image handling are not inferred. |
+| `DOMAIN-FILE-UPLOAD-001` | File upload security | `CONTROL-API-FASTAPI-UPLOAD-001` | Content validation, malware scanning, isolation, archives, image handling, and runtime upload behavior are not inferred. |
 | `DOMAIN-DATABASE-SECURITY-001` | Database security | Unmapped | Transport, IAM, encryption, backups, and network posture are not inferred. |
 | `DOMAIN-DATABASE-RELIABILITY-001` | Database reliability and performance | Unmapped | Query plans, pools, caching, and runtime performance are separate assurance topics. |
 | `DOMAIN-DATA-INTEGRITY-001` | Data integrity | Unmapped | Constraints, transactions, concurrency, and tenant isolation are not inferred. |
@@ -84,6 +84,7 @@ The catalog maps **only the twenty-seven reviewed capability implementations alr
 | `CONTROL-INJECTION-PYTHON-SQL-SINGLE-ALIAS-001` | `control.native.python-sql-single-local-alias` / `SEC-SAST-SQL-ALIAS-001` | Injection | Separate opt-in one name-to-name alias from an already unsafe local SQL query to a standalone `execute`/`executemany` sink; alias chains, branches, calls, attributes, annotations, and wrapped sinks are excluded. |
 | `CONTROL-INJECTION-SEMGREP-001` | `adapter.semgrep-python-local` / `SEC-SAST-SEMGREP-001` | Injection | Explicit external policy configuration only. |
 | `CONTROL-API-FASTAPI-001` | `control.native.fastapi-api` / `SEC-API-001` | API security | Supported static FastAPI mutating routes plus structural `REVIEW_REQUIRED` metadata for dynamic paths, `api_route` methods, or a direct module-top-level non-literal `APIRouter(prefix=...)` shape used by that same router name. Prefix values and effective paths are not derived; the metadata is neither a finding nor a gate input. |
+| `CONTROL-API-FASTAPI-UPLOAD-001` | `control.native.fastapi-file-upload` / `SEC-API-UPLOAD-001` | File upload security, Path traversal | Explicit `fastapi-file-upload-policy.yaml` only; a direct `UploadFile.filename` expression passed to built-in `open` in a literal mutating route creates a finding. It does not infer sanitization, path resolution, storage behavior, archive safety, MIME validation, size limits, malware scanning, authorization, or runtime behavior. |
 | `CONTROL-CONFIG-PYTHON-DEBUG-001` | `control.native.python-debug-config` / `SEC-CONFIG-001` | Production configuration | Supported static Python/configuration sources. |
 | `CONTROL-CORS-PYTHON-001` | `control.native.python-cors` / `SEC-CONFIG-002` | CORS | Supported static Python/configuration sources. |
 | `CONTROL-CONTAINER-DOCKER-COMPOSE-PRIVILEGED-001` | `control.native.docker-compose-privileged` / `SEC-COMPOSE-PRIVILEGED-001` | Container security | Explicit `docker-compose-privileged-policy.yaml` only; a supported root Compose YAML direct services mapping and direct service mapping with unquoted lowercase `privileged: true` creates a finding. It does not interpret dynamic/reused YAML, other configuration, images, runtime state, or execute Docker or Compose. |

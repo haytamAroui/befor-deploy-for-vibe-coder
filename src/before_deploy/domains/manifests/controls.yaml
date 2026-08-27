@@ -75,6 +75,21 @@ controls:
       - Schema semantics, normalization, size limits, business constraints, interprocedural flow, and runtime behavior are not covered.
     references:
       - REF-OWASP-API-2023
+  - id: CONTROL-API-FASTAPI-UPLOAD-001
+    version: "0.1.0"
+    title: FastAPI direct upload filename filesystem sink check
+    capability_id: control.native.fastapi-file-upload
+    implementation_id: SEC-API-UPLOAD-001
+    security_domains:
+      - DOMAIN-FILE-UPLOAD-001
+      - DOMAIN-PATH-TRAVERSAL-001
+    detection_scope: Python AST check for a direct UploadFile annotation whose filename attribute is passed directly to the built-in open call inside a literal mutating FastAPI route.
+    exclusions:
+      - A direct filename sink is a bounded lexical signal and does not prove path traversal, upload binding, or runtime reachability.
+      - Sanitization, path resolution, aliases, helper calls, storage APIs, archive handling, MIME validation, size limits, malware scanning, authorization, and runtime behavior are not inferred.
+      - Dynamic decorators, decorator aliases, route factories, indirect parameters, non-literal paths, and non-FastAPI decorators are excluded.
+    references:
+      - REF-OWASP-API-2023
   - id: CONTROL-CONFIG-PYTHON-DEBUG-001
     version: "0.1.0"
     title: Python debug configuration check

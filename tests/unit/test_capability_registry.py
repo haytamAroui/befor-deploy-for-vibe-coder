@@ -17,9 +17,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     second = load_builtin_capability_registry()
 
     assert first.schema_version == 1
-    assert first.catalog_version == "0.16.0"
+    assert first.catalog_version == "0.18.0"
     assert first.catalog_digest == second.catalog_digest
-    assert len(first.capabilities) == 28
+    assert len(first.capabilities) == 29
     assert first.definition_for_implementation("SEC-NEXT-ENV-001").capability_id == (
         "control.native.nextjs-public-env"
     )
@@ -59,6 +59,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     fastapi_input = first.definition_for_implementation("SEC-API-INPUT-001")
     assert fastapi_input.capability_id == "control.native.fastapi-input-validation"
     assert fastapi_input.version == "0.1.0"
+    fastapi_upload = first.definition_for_implementation("SEC-API-UPLOAD-001")
+    assert fastapi_upload.capability_id == "control.native.fastapi-file-upload"
+    assert fastapi_upload.version == "0.1.0"
     assert first.definition_for_implementation("SEC-UNREGISTERED-001") is None
 
 

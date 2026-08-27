@@ -1,0 +1,17 @@
+schema_version: 1
+id: control.native.fastapi-file-upload
+version: "0.1.0"
+implementation_id: SEC-API-UPLOAD-001
+kind: CONTROL
+title: FastAPI direct upload filename filesystem sink check
+applies_when:
+  frameworks:
+    - FastAPI
+security_domains:
+  - File upload security
+  - Path traversal
+exclusions:
+  - Only a direct UploadFile annotation and direct open(filename) expression in the same route function are recognized.
+  - Filename sanitization, path resolution, aliases, helper calls, storage APIs, archive handling, MIME validation, size limits, malware scanning, and authorization are not inferred.
+  - Dynamic decorators, decorator aliases, route factories, indirect parameters, non-literal paths, and non-FastAPI decorators are excluded.
+  - The control never executes Python, FastAPI, application code, tests, builds, scanners, package managers, Docker, or network requests.

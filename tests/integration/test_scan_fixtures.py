@@ -14,6 +14,7 @@ RUST_CARGO_LOCK_POLICY_PATH = ROOT / "rules" / "rust-cargo-lock-policy.yaml"
 RUBY_RAILS_GEMFILE_LOCK_POLICY_PATH = ROOT / "rules" / "ruby-rails-gemfile-lock-policy.yaml"
 DOCKER_COMPOSE_PRIVILEGED_POLICY_PATH = ROOT / "rules" / "docker-compose-privileged-policy.yaml"
 FASTAPI_INPUT_VALIDATION_POLICY_PATH = ROOT / "rules" / "fastapi-input-validation-policy.yaml"
+FASTAPI_FILE_UPLOAD_POLICY_PATH = ROOT / "rules" / "fastapi-file-upload-policy.yaml"
 
 
 def _scan(fixture_name: str):
@@ -54,12 +55,54 @@ def _scan_docker_compose_privileged(fixture_name: str):
     )
 
 
+def _scan_fastapi_file_upload(fixture_name: str):
+    profile = load_policy(FASTAPI_FILE_UPLOAD_POLICY_PATH)
+    controls = configured_controls(profile, native_controls())
+    return ScanOrchestrator(controls).scan(
+        ROOT / "fixtures" / fixture_name, FASTAPI_FILE_UPLOAD_POLICY_PATH
+    )
+
+
 def _scan_fastapi_input_validation(fixture_name: str):
     profile = load_policy(FASTAPI_INPUT_VALIDATION_POLICY_PATH)
     controls = configured_controls(profile, native_controls())
     return ScanOrchestrator(controls).scan(
         ROOT / "fixtures" / fixture_name, FASTAPI_INPUT_VALIDATION_POLICY_PATH
     )
+
+
+def test_fastapi_file_upload_vulnerable_fixture_blocks_and_redacts_filename():
+    result = _scan_fastapi_file_upload("vulnerable_fastapi_file_upload")
+
+    assert result.decision.outcome == GateOutcome.BLOCK
+    assert {finding.rule_id for finding in result.findings} == {"SEC-API-UPLOAD-001"}
+    finding = result.findings[0]
+    assert finding.evidence == {"artifact": "python", "issue": "upload_filename_filesystem_sink"}
+    assert "/upload" not in finding.message
+    assert "upload_document" not in finding.message
+
+
+def test_fastapi_file_upload_secure_fixture_passes_without_findings():
+    result = _scan_fastapi_file_upload("secure_fastapi_file_upload")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert result.findings == ()
+
+
+def test_fastapi_file_upload_ambiguous_fixture_passes_without_finding():
+    result = _scan_fastapi_file_upload("fastapi_file_upload_ambiguous")
+
+    assert result.decision.outcome == GateOutcome.NOT_EVALUATED
+    assert result.findings == ()
+
+
+def test_fastapi_file_upload_isolated_from_default_policy():
+    result = _scan("vulnerable_fastapi_file_upload")
+
+    assert result.decision.outcome == GateOutcome.BLOCK
+    assert "SEC-API-UPLOAD-001" not in {finding.rule_id for finding in result.findings}
+    assert "BLOCKING_FINDING:SEC-API-001" in result.decision.reason_codes
+    assert all(item.control_id != "SEC-API-UPLOAD-001" for item in result.executions)
 
 
 def test_fastapi_input_validation_vulnerable_fixture_blocks():
