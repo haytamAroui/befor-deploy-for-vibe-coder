@@ -9,6 +9,11 @@ from before_deploy.controls.deployment_config import (
 from before_deploy.controls.fastapi_routes import FastApiRouteAuthenticationControl
 from before_deploy.controls.github_actions import GitHubActionsSecurityControl
 from before_deploy.controls.injection import SqlInjectionControl
+from before_deploy.controls.nextjs import (
+    NextPublicEnvironmentControl,
+    NextSessionCookieControl,
+    NextStaticCorsControl,
+)
 from before_deploy.controls.sbom import CycloneDxSbomControl
 from before_deploy.controls.secrets import SecretDetectionControl
 
@@ -21,6 +26,9 @@ def native_controls() -> tuple[Control, ...]:
         FastApiRouteAuthenticationControl(),
         ProductionDebugControl(),
         CredentialedWildcardCorsControl(),
+        NextPublicEnvironmentControl(),
+        NextSessionCookieControl(),
+        NextStaticCorsControl(),
         GitHubActionsSecurityControl(),
         DependencyLockfileControl(),
         CycloneDxSbomControl(),
@@ -36,6 +44,9 @@ __all__ = [
     "DependencyLockfileControl",
     "FastApiRouteAuthenticationControl",
     "GitHubActionsSecurityControl",
+    "NextPublicEnvironmentControl",
+    "NextSessionCookieControl",
+    "NextStaticCorsControl",
     "ProductionDebugControl",
     "SecretDetectionControl",
     "SqlInjectionControl",

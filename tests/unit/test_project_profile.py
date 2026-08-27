@@ -33,7 +33,8 @@ def test_detects_nextjs_typescript_and_visible_coverage_gap():
     assert profile.frameworks == ("Next.js",)
     assert profile.signals["framework:Next.js"] == "1"
     assert profile.coverage_gaps == (
-        "Next.js is detected, but no Next.js-specific AST controls are currently installed.",
+        "Next.js coverage is limited to direct public-env, explicit session-cookie, and static CORS checks; "
+        "Server Actions, middleware, and data-boundary analysis are not installed.",
     )
 
 

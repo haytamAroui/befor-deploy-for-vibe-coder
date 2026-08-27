@@ -20,6 +20,15 @@ controls:
   SEC-CONFIG-002:
     required: true
     disposition: BLOCK
+  SEC-NEXT-ENV-001:
+    required: true
+    disposition: BLOCK
+  SEC-NEXT-COOKIE-001:
+    required: true
+    disposition: BLOCK
+  SEC-NEXT-CORS-001:
+    required: true
+    disposition: BLOCK
   SEC-CICD-001:
     required: true
     disposition: BLOCK

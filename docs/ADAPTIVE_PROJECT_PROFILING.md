@@ -29,7 +29,7 @@ A profile signal is evidence of repository makeup, not a claim that an applicati
 | Technology | Deterministic signals | Initial control coverage |
 |---|---|---|
 | Python | `.py`, `pyproject.toml`, `requirements*.txt`, `uv.lock` | Native secret/SAST/config checks; FastAPI support when imported; pip-audit release evidence. |
-| TypeScript / JavaScript | `.ts`, `.tsx`, `.js`, `.jsx`, `package.json`, lockfiles | Cross-language secrets, CI, lockfile evidence; Next.js detected for visible reporting only. |
+| TypeScript / JavaScript | `.ts`, `.tsx`, `.js`, `.jsx`, `package.json`, lockfiles | Cross-language secrets, CI, and lockfile evidence; generic TypeScript semantics remain outside the current scope. |
 | Go | `.go`, `go.mod` | Cross-language secrets and CI checks; coverage gap reports absence of Go-specific SAST/dependency-vulnerability adapter. |
 | Rust | `.rs`, `Cargo.toml` | Cross-language secrets and CI checks; coverage gap reports absence of Rust-specific SAST/dependency-vulnerability adapter. |
 | Java / Kotlin | `.java`, `.kt`, `pom.xml`, `build.gradle*` | Cross-language secrets and CI checks; coverage gap reports absence of JVM-specific adapters. |
@@ -37,7 +37,7 @@ A profile signal is evidence of repository makeup, not a claim that an applicati
 | PHP | `.php`, `composer.json` | Cross-language secrets and CI checks; coverage gap reports absence of PHP-specific adapters. |
 | C# | `.cs`, `*.csproj` | Cross-language secrets and CI checks; coverage gap reports absence of .NET-specific adapters. |
 
-Framework signals initially include FastAPI, Django, Flask, Next.js, Express, NestJS, Spring, Rails, Laravel, and ASP.NET Core. A framework may be detected without a dedicated control; this is intentionally visible as a coverage gap rather than an unsupported promise.
+Framework signals include FastAPI, Django, Flask, Next.js, Express, NestJS, Spring, Rails, Laravel, and ASP.NET Core. Next.js has narrow static controls for direct public environment access, explicit session-cookie options, and static credentialed CORS. Other detected frameworks remain visible coverage gaps unless a dedicated control is stated.
 
 ## 4. Versioned capability catalog
 
@@ -51,6 +51,7 @@ The code maintains a fixed capability catalog. Each entry maps one control ident
 | Python SQL / production configuration / pip-audit | Applicable only to detected Python repositories. |
 | FastAPI route auth | Applicable only when FastAPI is detected. |
 | Local Semgrep adapter | Applicable only to detected Python because the initial checked-in rule pack is Python-only. |
+| Next.js public-env, session-cookie, and static CORS checks | Applicable only when Next.js is detected; direct/static patterns only. |
 | SBOM presence | Applicable to release profiles that declare the control, regardless of language. |
 
 When a policy selects a control but the profile identifies it as incompatible, the orchestrator records an explicit `NOT_APPLICABLE` execution containing the adaptation reason. It does **not** silently omit that control. Required controls are still errors when they are missing because of a construction/configuration fault, not when the agent records a legitimate non-applicability decision.

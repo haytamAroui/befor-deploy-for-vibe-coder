@@ -88,6 +88,15 @@ _CAPABILITY_CATALOG = {
     "SEC-DEP-VULN-001": ControlCompatibility(
         control_id="SEC-DEP-VULN-001", languages=frozenset({"Python"})
     ),
+    "SEC-NEXT-ENV-001": ControlCompatibility(
+        control_id="SEC-NEXT-ENV-001", frameworks=frozenset({"Next.js"})
+    ),
+    "SEC-NEXT-COOKIE-001": ControlCompatibility(
+        control_id="SEC-NEXT-COOKIE-001", frameworks=frozenset({"Next.js"})
+    ),
+    "SEC-NEXT-CORS-001": ControlCompatibility(
+        control_id="SEC-NEXT-CORS-001", frameworks=frozenset({"Next.js"})
+    ),
     "SEC-SAST-001": ControlCompatibility(
         control_id="SEC-SAST-001", languages=frozenset({"Python"})
     ),
@@ -201,7 +210,14 @@ def _coverage_gaps(languages: set[str], frameworks: set[str]) -> tuple[str, ...]
     for language in sorted(languages - {"JavaScript", "Python", "TypeScript"}):
         gaps.append(f"No language-specific controls are currently installed for {language}.")
     if "Next.js" in frameworks:
-        gaps.append("Next.js is detected, but no Next.js-specific AST controls are currently installed.")
+        gaps.append(
+            "Next.js coverage is limited to direct public-env, explicit session-cookie, and static CORS checks; "
+            "Server Actions, middleware, and data-boundary analysis are not installed."
+        )
+    elif {"JavaScript", "TypeScript"}.intersection(languages):
+        gaps.append(
+            "No language-specific JavaScript/TypeScript controls are installed without a detected Next.js framework."
+        )
     for framework in sorted(frameworks - {"FastAPI", "Next.js", "GitHub Actions"}):
         gaps.append(f"{framework} is detected, but no framework-specific controls are currently installed.")
     if not languages:

@@ -12,7 +12,7 @@ The current release is a local and CI-ready Python CLI with deterministic adapti
 |---|---|
 | **Repository evidence** | Deterministic inventory, repository digest, policy digest, Git revision when available, and explicit scope limitations. |
 | **Adaptive profiling** | Local detection of supported languages, frameworks, manifests, and lockfiles; compatible controls run while incompatible configured controls are recorded as `NOT_APPLICABLE`. |
-| **Native controls** | High-confidence secret patterns, selected Python SQL interpolation, FastAPI mutating-route authentication declarations, Python debug/CORS patterns, GitHub Actions hardening, dependency lockfile presence, and a release SBOM check. |
+| **Native controls** | High-confidence secret patterns, selected Python SQL interpolation, FastAPI mutating-route authentication declarations, Python debug/CORS patterns, Next.js public-environment, session-cookie, and static-CORS checks, GitHub Actions hardening, dependency lockfile presence, and a release SBOM check. |
 | **External adapters** | Optional Gitleaks directory scan, Python Semgrep local-rule scan, Python dependency-vulnerability evidence, and offline provenance verification, each with bounded execution and redacted normalization. |
 | **Policy** | Versioned YAML profiles, explicit block/waiver/warn dispositions, tightly scoped expiry-bound waivers, and fail-closed control errors. |
 | **Reports** | Versioned JSON, Markdown, and SARIF 2.1.0 writers containing normalized findings, control health, adaptive profile, and visible coverage gaps. |
@@ -31,7 +31,7 @@ Every scan now begins with a deterministic **Adaptive Project Agent**. It profil
 | Detected technology | Current adaptive behavior |
 |---|---|
 | **Python / FastAPI** | Enables existing Python AST, configuration, FastAPI-route, dependency, and release-evidence capabilities where the selected policy includes them. |
-| **JavaScript / TypeScript / Next.js** | Retains generic controls, GitHub Actions checks, and lockfile evidence; reports the absence of Next.js-specific AST controls. |
+| **JavaScript / TypeScript / Next.js** | Retains generic controls, GitHub Actions checks, and lockfile evidence; when Next.js is detected, adds direct public-env, explicit session-cookie, and static credentialed-CORS checks. |
 | **Go, Rust, Java, Kotlin, Ruby, PHP, C#** | Retains generic secrets/CI/provenance controls and reports an explicit language-specific coverage gap. |
 | **Mixed-language repositories** | Detects each recognized language independently, retains compatible controls, and exposes all coverage gaps in JSON, Markdown, and SARIF reports. |
 
@@ -274,6 +274,9 @@ Pin every third-party action to a verified full commit SHA. Do not use `pull_req
 | `SEC-API-001` | Enabled | Declared FastAPI route decorators and visible `Depends`/`Security` declarations; not semantic proof of authorization. |
 | `SEC-CONFIG-001` | Enabled | Explicit debug declarations in Python and selected configuration files; not effective cloud runtime state. |
 | `SEC-CONFIG-002` | Enabled | Credentialed wildcard CORS patterns in common FastAPI/config forms. |
+| `SEC-NEXT-ENV-001` | Enabled when Next.js is detected | Direct `NEXT_PUBLIC_` references whose names clearly indicate a secret/private/session value; no computed-access analysis. |
+| `SEC-NEXT-COOKIE-001` | Enabled when Next.js is detected | Explicit unsafe options on statically named session/auth/token cookies; no custom-wrapper or missing-option inference. |
+| `SEC-NEXT-CORS-001` | Enabled when Next.js is detected | Static `next.config.*` header arrays combining wildcard origin and credentials; no middleware/proxy/runtime analysis. |
 | `SEC-CICD-001` | Enabled when workflows are present | Selected GitHub Actions trigger, permission, and action-pin checks. |
 | `SEC-DEP-001` | Enabled | Supported Python/Node manifest and lockfile presence; not vulnerability analysis yet. |
 | `SEC-SECRET-GITLEAKS-001` | External profile | Gitleaks directory-scan findings, normalized without the raw secret. |
@@ -318,6 +321,6 @@ The project follows least privilege, isolated execution, explicit policy, fail-c
 
 ## Status and next steps
 
-The deterministic kernel, adaptive project profiler, versioned report writers, isolated external adapters, dependency/provenance evidence foundation, manual scanner calibration workflow, and release-evidence preparation script are implemented and tested. A clean GitHub checkout has been verified to install, self-scan under the strict CI policy, produce all report formats, and pass the test suite. The next engineering priorities are language-specific controls for Next.js and other ecosystems, broader dependency-vulnerability coverage, confirmed private-repository attestation eligibility, and only then tightly bounded read-only AI assistance.
+The deterministic kernel, adaptive project profiler, versioned report writers, isolated external adapters, dependency/provenance evidence foundation, manual scanner calibration workflow, release-evidence preparation script, and first Next.js/TypeScript static-control set are implemented and tested. A clean GitHub checkout has been verified to install, self-scan under the strict CI policy, produce all report formats, and pass the test suite. The next engineering priorities are deeper Next.js Server Actions/middleware analysis, controls for additional ecosystems, broader dependency-vulnerability coverage, confirmed private-repository attestation eligibility, and only then tightly bounded read-only AI assistance.
 
 For the design rationale and phased roadmap, see [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) and [`docs/DEEP_ANALYSIS_AND_BUILD_BLUEPRINT.md`](docs/DEEP_ANALYSIS_AND_BUILD_BLUEPRINT.md).
