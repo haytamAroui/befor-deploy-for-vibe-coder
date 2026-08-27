@@ -24,6 +24,14 @@ The catalog is loaded only from reviewed YAML files packaged inside `before_depl
 
 The catalog digest is a canonical SHA-256 digest over semantic metadata. The scan plan and coverage audit record its version and digest, so a report can be tied to the exact domain/control definitions used to produce it.
 
+## Selected control-contract provenance
+
+`SecurityAnalysisPlan` version `0.4.0` records a `control_contract_selections` collection alongside capability selections. Every capability or adapter implementation actually selected by the versioned policy must resolve to exactly one reviewed control contract in this catalog. Each recorded item contains only the contract ID and version, capability ID, implementation ID, mapped domain IDs, bounded detection scope, and declared exclusions.
+
+This is a traceability feature, not a second planner, scanner, coverage engine, or policy input. The catalog cannot cause an implementation to run; the policy still selects the runnable implementation, and the deterministic policy engine alone determines the release outcome. If a selected implementation has no unique contract or its contract points to another capability, plan construction fails closed rather than inventing coverage.
+
+The provenance model provides a stable path for future multi-language work. A future Go, PHP, Rust, Java, or other-language capability may receive a contract only after its real reviewed implementation, registry entry, bounded applicability, tests, exclusions, and explicit policy-selection boundary exist. No placeholder contract, scanner configuration, command, or coverage claim is accepted before that point.
+
 ## Security-domain taxonomy
 
 The first catalog contains the **twenty-one foundational categories** adapted from the reviewed checklist as a taxonomy only. It also contains nine separately named extensions where collapsing a distinct surface would obscure coverage limits. A domain marked **mapped** has at least one reviewed current control contract; an **unmapped** domain has no approved implementation and remains explicit in coverage output only when its bounded applicability condition is observed.

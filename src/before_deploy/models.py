@@ -215,6 +215,19 @@ class CapabilitySelection:
 
 
 @dataclass(frozen=True)
+class ControlContractSelection:
+    """Read-only provenance for the reviewed control contract behind a selected implementation."""
+
+    control_id: str
+    control_version: str
+    capability_id: str
+    implementation_id: str
+    security_domain_ids: tuple[str, ...]
+    detection_scope: str
+    exclusions: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class CoverageExpectation:
     """A security domain that should be assessed because of deterministic evidence."""
 
@@ -238,6 +251,7 @@ class SecurityAnalysisPlan:
     control_selections: tuple[CapabilitySelection, ...]
     adapter_selections: tuple[CapabilitySelection, ...]
     skill_selections: tuple[CapabilitySelection, ...]
+    control_contract_selections: tuple[ControlContractSelection, ...]
     coverage_expectations: tuple[CoverageExpectation, ...]
     exclusions: tuple[str, ...]
     security_domain_catalog_version: str | None = None

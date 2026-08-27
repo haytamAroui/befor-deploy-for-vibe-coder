@@ -11,7 +11,7 @@ The current release is a local and CI-ready Python CLI with deterministic adapti
 | Area | Current capability |
 |---|---|
 | **Repository evidence** | Deterministic inventory, repository digest, policy digest, Git revision when available, explicit scope limitations, and bounded repository/requirements evidence signals. |
-| **Adaptive planning** | Local profile plus strict packaged capability and security-domain/control catalogs. The versioned `SecurityAnalysisPlan` records approved compatible controls, explicitly policy-configured adapters, catalog/policy provenance, coverage expectations, exclusions, and traceable evidence. |
+| **Adaptive planning** | Local profile plus strict packaged capability and security-domain/control catalogs. The versioned `SecurityAnalysisPlan` records approved compatible controls, explicitly policy-configured adapters, the reviewed non-executable contract behind every selected implementation, catalog/policy provenance, coverage expectations, exclusions, and traceable evidence. |
 | **Native controls** | High-confidence secret patterns, selected Python SQL interpolation, FastAPI mutating-route authentication declarations, Python debug/CORS patterns, Next.js public-environment, session-cookie, and static-CORS checks, GitHub Actions hardening, dependency lockfile presence, and a release SBOM check. |
 | **External adapters** | Optional Gitleaks directory scan, Python Semgrep local-rule scan, Python dependency-vulnerability evidence, and offline provenance verification, each with bounded execution and redacted normalization. |
 | **Policy** | Versioned YAML profiles, explicit block/waiver/warn dispositions, tightly scoped expiry-bound waivers, and fail-closed control errors. |
@@ -130,8 +130,8 @@ Every completed CLI scan writes three redacted artifacts to `--output-dir`. The 
 
 | File | Intended use | Contents |
 |---|---|---|
-| `report.json` | Automation and future control-plane integrations. | Full normalized scan result, manifest, adaptive project profile, evidence identifiers, policy/catalog-bound security analysis plan, diagnostic coverage audit, control executions, policy decision, findings, and waivers. |
-| `report.md` | Pull-request and release review. | Gate rationale, adaptive technology profile, approved plan selections with implementation/policy/catalog provenance, coverage expectations/audit, explicit exclusions, execution status, grouped findings, remediation guidance, waiver list, and limitations. |
+| `report.json` | Automation and future control-plane integrations. | Full normalized scan result, manifest, adaptive project profile, evidence identifiers, policy/catalog-bound security analysis plan including selected control-contract provenance, diagnostic coverage audit, control executions, policy decision, findings, and waivers. |
+| `report.md` | Pull-request and release review. | Gate rationale, adaptive technology profile, approved plan selections with implementation/policy/catalog provenance and selected contract scope/exclusions, coverage expectations/audit, explicit exclusions, execution status, grouped findings, remediation guidance, waiver list, and limitations. |
 | `report.sarif` | Code-scanning integrations. | SARIF 2.1.0-compatible rule/location information plus redacted profile, plan, and coverage-audit properties. |
 
 The scan manifest binds reports to the repository digest, policy digest, policy name, scan timestamps, bounded file count, and relevant Git revision. Before Deploy deliberately does **not** print raw secret values in its own normalized reports. If a secret detector reports a potential credential, rotate it through the relevant issuer and inspect access logs according to your incident procedure.

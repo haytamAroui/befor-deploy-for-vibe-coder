@@ -34,6 +34,18 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     )
 
 
+def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementation():
+    catalog = load_builtin_security_domain_catalog()
+
+    contract = catalog.control_for_implementation("SEC-GO-TLS-001")
+
+    assert contract is not None
+    assert contract.control_id == "CONTROL-TRANSPORT-GO-TLS-001"
+    assert contract.capability_id == "control.native.go-tls-verification"
+    assert contract.security_domain_ids == ("DOMAIN-TRANSPORT-SECURITY-001",)
+    assert catalog.control_for_implementation("SEC-NOT-REGISTERED-001") is None
+
+
 def test_domain_catalog_is_informational_and_exposes_registry_mapping(tmp_path):
     catalog = load_builtin_security_domain_catalog()
     registry = load_builtin_capability_registry()

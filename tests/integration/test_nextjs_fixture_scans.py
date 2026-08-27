@@ -69,6 +69,23 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
     }
     assert all(selection.catalog_digest == plan.catalog_digest for selection in plan.control_selections)
     assert all(selection.policy_digest == plan.policy_digest for selection in plan.control_selections)
+    assert plan.plan_version == "0.4.0"
+    selected_implementation_ids = {
+        selection.implementation_id
+        for selection in (*plan.control_selections, *plan.adapter_selections)
+    }
+    contract_by_implementation = {
+        selection.implementation_id: selection for selection in plan.control_contract_selections
+    }
+    assert set(contract_by_implementation) == selected_implementation_ids
+    assert contract_by_implementation["SEC-NEXT-COOKIE-001"].control_id == (
+        "CONTROL-NEXTJS-SESSION-COOKIE-001"
+    )
+    assert contract_by_implementation["SEC-NEXT-COOKIE-001"].security_domain_ids == (
+        "DOMAIN-SESSION-SECURITY-001",
+    )
+    assert all(selection.detection_scope for selection in plan.control_contract_selections)
+    assert all(selection.exclusions for selection in plan.control_contract_selections)
     assert plan.security_domain_catalog_version == "0.2.0"
     assert plan.security_domain_catalog_digest
     assert not plan.adapter_selections
@@ -92,10 +109,14 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
     markdown_report = render_markdown(result)
     sarif_report = render_sarif(result)
     assert "security_analysis_plan" in json_report
+    assert "control_contract_selections" in json_report
     assert "security_domain_catalog_digest" in json_report
     assert "Security domain catalog" in markdown_report
+    assert "Selected control contracts" in markdown_report
+    assert "CONTROL-NEXTJS-SESSION-COOKIE-001" in markdown_report
     assert "DOMAIN-SESSION-SECURITY-001" in markdown_report
     assert "beforeDeploySecurityAnalysisPlan" in sarif_report
+    assert "control_contract_selections" in sarif_report
     assert "beforeDeploySecurityDomainCatalog" in sarif_report
     assert "JWT-backed login sessions" not in json_report
     assert "JWT-backed login sessions" not in markdown_report

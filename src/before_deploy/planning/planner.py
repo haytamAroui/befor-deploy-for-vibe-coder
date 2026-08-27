@@ -9,6 +9,7 @@ from before_deploy.capabilities.schema import CapabilityDefinition
 from before_deploy.domains import SecurityDomainCatalog
 from before_deploy.models import (
     CapabilitySelection,
+    ControlContractSelection,
     CoverageExpectation,
     EvidenceSignal,
     ProjectProfile,
@@ -16,7 +17,7 @@ from before_deploy.models import (
     SecurityAnalysisPlan,
 )
 
-PLAN_VERSION = "0.3.0"
+PLAN_VERSION = "0.4.0"
 PROFILE_VERSION = "0.1.0"
 
 
@@ -44,6 +45,15 @@ def build_security_analysis_plan(
     selections = tuple(
         _selection(definition, manifest, registry, evidence_ids) for definition in definitions
     )
+    control_contract_selections = tuple(
+        sorted(
+            (
+                _control_contract_selection(definition, security_domain_catalog)
+                for definition in definitions
+            ),
+            key=lambda item: item.control_id,
+        )
+    )
     control_selections = tuple(item for item in selections if item.kind == "CONTROL")
     adapter_selections = tuple(item for item in selections if item.kind == "ADAPTER")
     exclusions = _exclusions(project_profile, definitions)
@@ -58,6 +68,7 @@ def build_security_analysis_plan(
         control_selections=control_selections,
         adapter_selections=adapter_selections,
         skill_selections=(),
+        control_contract_selections=control_contract_selections,
         coverage_expectations=_coverage_expectations(
             project_profile, ordered_evidence, security_domain_catalog
         ),
@@ -73,6 +84,30 @@ def _definition_for_control(control: object, registry: CapabilityRegistry) -> Ca
     if definition is None:
         raise ValueError(f"No approved capability is registered for control: {implementation_id}")
     return definition
+
+
+def _control_contract_selection(
+    definition: CapabilityDefinition, security_domain_catalog: SecurityDomainCatalog
+) -> ControlContractSelection:
+    """Record the reviewed non-executable contract for a policy-selected implementation."""
+    contract = security_domain_catalog.control_for_implementation(definition.implementation_id)
+    if contract is None:
+        raise ValueError(
+            f"No reviewed control contract is registered for implementation: {definition.implementation_id}"
+        )
+    if contract.capability_id != definition.capability_id:
+        raise ValueError(
+            f"Control contract capability does not match implementation: {definition.implementation_id}"
+        )
+    return ControlContractSelection(
+        control_id=contract.control_id,
+        control_version=contract.version,
+        capability_id=contract.capability_id,
+        implementation_id=contract.implementation_id,
+        security_domain_ids=contract.security_domain_ids,
+        detection_scope=contract.detection_scope,
+        exclusions=contract.exclusions,
+    )
 
 
 def _selection(

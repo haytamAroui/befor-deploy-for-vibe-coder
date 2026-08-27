@@ -111,6 +111,19 @@ class SecurityDomainCatalog:
             )
         )
 
+    def control_for_implementation(self, implementation_id: str) -> ControlDefinition | None:
+        """Return the unique declarative contract for one reviewed implementation."""
+        matches = [
+            control
+            for control in self.controls.values()
+            if control.implementation_id == implementation_id
+        ]
+        if len(matches) > 1:
+            raise ValueError(
+                f"Multiple control contracts reference implementation: {implementation_id}"
+            )
+        return matches[0] if matches else None
+
 
 def validate_category(value: str) -> str:
     """Ensure catalog category is descriptive taxonomy, not an executable mode."""

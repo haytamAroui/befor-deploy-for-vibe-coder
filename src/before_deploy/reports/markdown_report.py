@@ -91,6 +91,28 @@ def render_markdown(result: ScanResult) -> str:
                 )
         else:
             lines.append("- No approved capabilities were selected.")
+        lines.extend(["", "### Selected control contracts", ""])
+        if plan.control_contract_selections:
+            lines.extend(
+                [
+                    "| Control contract | Capability | Implementation | Domains | Scope | Exclusions |",
+                    "|---|---|---|---|---|---|",
+                ]
+            )
+            for contract in plan.control_contract_selections:
+                lines.append(
+                    "| `{control}` (`{version}`) | `{capability}` | `{implementation}` | {domains} | {scope} | {exclusions} |".format(
+                        control=_clean(contract.control_id),
+                        version=_clean(contract.control_version),
+                        capability=_clean(contract.capability_id),
+                        implementation=_clean(contract.implementation_id),
+                        domains=_clean(", ".join(contract.security_domain_ids)),
+                        scope=_clean(contract.detection_scope),
+                        exclusions=_clean("; ".join(contract.exclusions) or "—"),
+                    )
+                )
+        else:
+            lines.append("- No reviewed control contracts were selected.")
         if plan.coverage_expectations:
             lines.extend(["", "### Coverage expectations", ""])
             lines.extend(["| Domain | Domain ID | Evidence | Rationale |", "|---|---|---|---|"])
