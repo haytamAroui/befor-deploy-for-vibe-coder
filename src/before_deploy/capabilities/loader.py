@@ -27,6 +27,7 @@ APPROVED_IMPLEMENTATION_IDS = frozenset(
         "SEC-CICD-001",
         "SEC-CONFIG-001",
         "SEC-CONFIG-002",
+        "SEC-COMPOSE-PRIVILEGED-001",
         "SEC-DEP-001",
         "SEC-DEP-VULN-001",
         "SEC-GO-MODULE-001",

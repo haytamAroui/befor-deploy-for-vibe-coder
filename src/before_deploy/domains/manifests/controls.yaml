@@ -94,6 +94,18 @@ controls:
       - Repository settings, runner isolation, secrets, and workflow behavior are not covered.
     references:
       - REF-OWASP-CICD
+  - id: CONTROL-CONTAINER-DOCKER-COMPOSE-PRIVILEGED-001
+    version: "0.1.0"
+    title: Direct Docker Compose privileged service configuration check
+    capability_id: control.native.docker-compose-privileged
+    implementation_id: SEC-COMPOSE-PRIVILEGED-001
+    security_domains:
+      - DOMAIN-CONTAINER-SECURITY-001
+    detection_scope: Root compose.yaml, compose.yml, docker-compose.yaml, or docker-compose.yml single-document YAML mapping with a direct services mapping, direct service mapping, and unquoted lowercase boolean privileged true scalar.
+    exclusions:
+      - Anchors, aliases, merge keys, interpolation, templates, include, extends, profiles, quoted or alternative boolean values, nested projects, Kubernetes, Helm, CloudFormation, Terraform, Dockerfiles, images, commands, secrets, host policy, runtime behavior, and Docker or Compose execution are not covered.
+      - A finding records only constant artifact and issue evidence, the relative file path, and value line; service names, images, YAML content, and parser output are not retained.
+    references: []
   - id: CONTROL-SUPPLY-DEPENDENCY-MANIFEST-001
     version: "0.1.0"
     title: Dependency manifest and lockfile presence check

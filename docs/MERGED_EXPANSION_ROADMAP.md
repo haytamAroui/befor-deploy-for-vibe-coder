@@ -72,6 +72,7 @@ Each work item below is a **single incremental milestone**. A milestone may not 
 | PHP/Laravel Composer lockfile control | Implemented as one opt-in static root-file-presence form | No generic PHP coverage, Composer/lock integrity, value/constraint, vulnerability, dependency-resolution, configuration, or runtime assurance. |
 | Rust/Cargo lockfile control | Implemented as one opt-in conventional binary static root-file-presence form | No generic Rust coverage, Cargo/lock integrity, value/constraint, vulnerability, dependency-resolution, library/workspace/custom-target, configuration, or runtime assurance. |
 | Ruby/Rails Gemfile lockfile control | Implemented as one opt-in conventional direct static root-file-presence form | No generic Ruby coverage, Gemfile/lock integrity, value/constraint, vulnerability, dependency-resolution, dynamic-declaration/group/library/nested-project, configuration, or runtime assurance. |
+| Docker Compose privileged-service control | Implemented as one opt-in direct static configuration form | No broad Compose coverage, dynamic/reused YAML, image/container/host/runtime privilege, Kubernetes, Helm, CloudFormation, Terraform, or deployment assurance. |
 | Next.js controls | Implemented as bounded static checks | Middleware/proxy is structural metadata only; local guard markers are not authorization proof. |
 | Go controls and offline advisory snapshot | Implemented within a narrow boundary | No live advisory database, reachability, indirect dependency resolution, or broad Go assurance. |
 | Existing external adapters | Implemented and opt-in | They are not standard protected-branch gates without an explicit policy choice and calibration. |
@@ -143,19 +144,13 @@ Canonical planning and registry documentation now reflects the registered, opt-i
 
 **Delivered boundary:** the finding does not expose Gemfile values, arguments, or source text. Root lockfile presence alone satisfies the check; lockfile contents, integrity, freshness, dependency resolution, manifest consistency, vulnerabilities, provenance, groups, sources, conditional/indented declarations, parenthesized or dynamic calls, gemspecs, libraries, nested projects, Rails configuration, and runtime behavior remain excluded. The control never executes Ruby, Bundler, Rails, Gemfile code, scripts, builds, tests, resolvers, downloads, registries, or network operations. Secure, vulnerable, indented-declaration, unreadable-Gemfile, default-policy-isolation, redaction, package, and catalog-contract tests accompany the control.
 
-### Milestone 9 — Infrastructure expansion, one artifact family at a time
+### Milestone 9 — Completed Docker Compose privileged-service increment
 
-The existing Trivy adapter must not silently broaden. Any new artifact family requires a new adapter contract or a carefully versioned expansion with distinct fixtures and calibration.
+`SEC-COMPOSE-PRIVILEGED-001` now covers exactly one static Docker Compose configuration form: a supported root Compose filename containing a single YAML mapping with direct `services` and service mappings and an unquoted lowercase `privileged: true` scalar. Under its dedicated opt-in policy only, each supported direct service produces one normalized container-security finding. Docker documents Compose as application service configuration and states that `privileged` configures a service container with elevated privileges, while effects remain platform-specific.[12] [13]
 
-| Candidate | First permitted scope | Explicitly excluded initially |
-|---|---|---|
-| Docker Compose | Static YAML configuration only, staged independently after adapter design and calibration. | Image pull, service startup, network probing, secrets validity, runtime privileges. |
-| Kubernetes manifests | Static manifest configuration only, independently staged. | Cluster access, admission behavior, live RBAC, workload execution. |
-| Helm | Only a hermetic, fixed rendering/input model if one can be designed without target values/plugins/network. | Target chart scripts, remote dependencies, arbitrary values, cluster state. |
-| CloudFormation | Static templates only with a strict parser/scanner boundary. | Account inspection, deployment changes, live IAM evaluation. |
-| Terraform plans | Defer until a no-target-command/no-provider/no-state trust model is proven. | Running `terraform init`, `plan`, provider calls, external data resolution. |
+**Delivered boundary:** the finding records only constant evidence, the relative file path, and value line; service names, images, YAML content, and parser output are not retained. Anchors, aliases, merges, interpolation, templates, multi-document YAML, top-level or services shape variations, include, extends, profiles, quoted/alternative booleans, nested projects, other Compose settings, images, Dockerfiles, commands, ports, networks, mounts, capabilities, secrets, host policy, runtime state, Kubernetes, Helm, CloudFormation, Terraform, and deployment behavior remain excluded. The control never executes Docker, Docker Compose, containers, images, target source code, commands, scripts, builds, tests, downloads, registries, networks, providers, or cloud APIs. Secure, vulnerable, dynamic/reused, malformed-YAML, default-policy-isolation, redaction, package, and catalog-contract tests accompany the control.
 
-**Acceptance:** no modification to existing Trivy Dockerfile/Terraform policy until the new family has its own calibrated data contract and explicit policy selection.
+The existing Trivy adapter remains separately bounded to Dockerfile/Containerfile and Terraform configuration staging and must not be interpreted as Compose coverage.
 
 ### Milestone 10 — Deterministic requirements-evidence expansion
 
@@ -228,3 +223,5 @@ No individual control is complete unless it has a stable implementation ID, capa
 [9]: https://doc.rust-lang.org/cargo/reference/cargo-targets.html "Cargo Book — Cargo targets"
 [10]: https://guides.rubygems.org/dependency_management/ "RubyGems Guides — How to manage dependencies with Bundler"
 [11]: https://guides.rubyonrails.org/configuring.html "Rails Guides — Configuring Rails Applications"
+[12]: https://docs.docker.com/reference/compose-file/ "Docker Docs — Compose file reference"
+[13]: https://docs.docker.com/reference/compose-file/services/ "Docker Docs — Define services in Docker Compose"

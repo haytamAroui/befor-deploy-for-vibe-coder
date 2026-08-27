@@ -1,6 +1,6 @@
 # Security Domain + Control Catalog
 
-**Version:** 0.14.0
+**Version:** 0.15.0
 **Authority:** Informational only; it is not a policy profile, a scanner, a compliance assessment, or a release authority.
 
 ## Purpose and authority boundary
@@ -65,7 +65,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 | `DOMAIN-API-SECURITY-001` | API security | Mapped for FastAPI route authentication declarations | Does not prove API inventory, authorization correctness, SSRF safety, or runtime configuration. |
 | `DOMAIN-SESSION-SECURITY-001` | Session security | Mapped for narrow Next.js cookie options | Does not infer custom cookie wrappers, expiry, token generation, or session lifecycle. |
 | `DOMAIN-CICD-SECURITY-001` | CI/CD security | Mapped for selected GitHub Actions hardening checks | Does not inspect repository settings, runners, identities, or external CI platforms. |
-| `DOMAIN-CONTAINER-SECURITY-001` | Container security | Mapped for the opt-in staged Trivy Dockerfile/Containerfile configuration adapter | Images, Compose, registries, image execution, runtime posture, and deployed configuration are not inspected. |
+| `DOMAIN-CONTAINER-SECURITY-001` | Container security | Mapped for the opt-in staged Trivy Dockerfile/Containerfile configuration adapter and one opt-in direct Compose privileged-service property | Neither control inspects images, broad Compose configuration, registries, image execution, runtime posture, or deployed configuration. |
 | `DOMAIN-IAC-SECURITY-001` | Infrastructure-as-code security | Mapped for the opt-in staged Trivy Terraform `.tf` configuration adapter | Plans, tfvars, modules, providers, state, computed values, cloud state, IAM, and deployment posture are not inspected. |
 | `DOMAIN-SSRF-001` | Server-side request forgery | Mapped for opt-in Gosec on root Go modules | Declared external URL fetching is not proof of an SSRF implementation or mitigation; Gosec coverage is limited to upstream findings. |
 | `DOMAIN-PAYMENT-INTEGRATION-001` | Payment integration security | Unmapped | Payment declarations do not prove provider, webhook, or business-flow security. |
@@ -74,7 +74,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 
 ## Current control contracts
 
-The catalog maps **only the twenty-six reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
+The catalog maps **only the twenty-seven reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
 
 | Control contract | Capability / implementation | Domain mapping | Selection boundary |
 |---|---|---|---|
@@ -86,6 +86,7 @@ The catalog maps **only the twenty-six reviewed capability implementations alrea
 | `CONTROL-API-FASTAPI-001` | `control.native.fastapi-api` / `SEC-API-001` | API security | Supported static FastAPI mutating routes plus structural `REVIEW_REQUIRED` metadata for dynamic paths, `api_route` methods, or a direct module-top-level non-literal `APIRouter(prefix=...)` shape used by that same router name. Prefix values and effective paths are not derived; the metadata is neither a finding nor a gate input. |
 | `CONTROL-CONFIG-PYTHON-DEBUG-001` | `control.native.python-debug-config` / `SEC-CONFIG-001` | Production configuration | Supported static Python/configuration sources. |
 | `CONTROL-CORS-PYTHON-001` | `control.native.python-cors` / `SEC-CONFIG-002` | CORS | Supported static Python/configuration sources. |
+| `CONTROL-CONTAINER-DOCKER-COMPOSE-PRIVILEGED-001` | `control.native.docker-compose-privileged` / `SEC-COMPOSE-PRIVILEGED-001` | Container security | Explicit `docker-compose-privileged-policy.yaml` only; a supported root Compose YAML direct services mapping and direct service mapping with unquoted lowercase `privileged: true` creates a finding. It does not interpret dynamic/reused YAML, other configuration, images, runtime state, or execute Docker or Compose. |
 | `CONTROL-CICD-GITHUB-ACTIONS-001` | `control.native.github-actions` / `SEC-CICD-001` | CI/CD security | Visible GitHub Actions workflows only. |
 | `CONTROL-SUPPLY-DEPENDENCY-MANIFEST-001` | `control.native.dependency-manifest` / `SEC-DEP-001` | Software supply chain | Supported Python/Node manifests and lockfiles only. |
 | `CONTROL-SUPPLY-PHP-LARAVEL-COMPOSER-LOCK-001` | `control.native.php-laravel-composer-lock` / `SEC-PHP-LARAVEL-COMPOSER-LOCK-001` | Software supply chain | Explicit `php-laravel-composer-lock-policy.yaml` only; a root JSON `composer.json` direct `require` object with exact `laravel/framework` key plus root `artisan` must have a root `composer.lock`. It does not parse values or lock contents, or execute PHP, Composer, or Artisan. |

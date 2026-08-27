@@ -1,0 +1,10 @@
+services:
+  defaults: &shared
+    privileged: true
+  web:
+    <<: *shared
+  worker:
+    privileged: ${PRIVILEGED}
+  review_only:
+    profiles: [development]
+    privileged: true

@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.14.0"
+catalog_version: "0.15.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -8,6 +8,7 @@ manifests:
   - adapter.semgrep.yaml
   - adapter.trivy-config.yaml
   - control.dependency-manifest.yaml
+  - control.docker-compose-privileged.yaml
   - control.fastapi-api.yaml
   - control.github-actions.yaml
   - control.go-module.yaml

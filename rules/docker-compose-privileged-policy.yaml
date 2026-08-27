@@ -1,0 +1,14 @@
+schema_version: 1
+profile: docker-compose-privileged
+allow_nonrequired_control_errors: true
+public_fastapi_routes: []
+controls:
+  SEC-SECRET-001:
+    required: true
+    disposition: BLOCK
+  SEC-COMPOSE-PRIVILEGED-001:
+    required: true
+    disposition: BLOCK
+  SEC-CICD-001:
+    required: false
+    disposition: BLOCK

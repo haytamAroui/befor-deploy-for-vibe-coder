@@ -1,0 +1,4 @@
+services:
+  web:
+    image: registry.example/safe-image:latest
+    privileged: false

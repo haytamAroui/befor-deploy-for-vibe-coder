@@ -12,6 +12,7 @@ SQL_SINGLE_ALIAS_POLICY_PATH = ROOT / "rules" / "python-sql-single-alias-policy.
 PHP_LARAVEL_COMPOSER_LOCK_POLICY_PATH = ROOT / "rules" / "php-laravel-composer-lock-policy.yaml"
 RUST_CARGO_LOCK_POLICY_PATH = ROOT / "rules" / "rust-cargo-lock-policy.yaml"
 RUBY_RAILS_GEMFILE_LOCK_POLICY_PATH = ROOT / "rules" / "ruby-rails-gemfile-lock-policy.yaml"
+DOCKER_COMPOSE_PRIVILEGED_POLICY_PATH = ROOT / "rules" / "docker-compose-privileged-policy.yaml"
 
 
 def _scan(fixture_name: str):
@@ -41,6 +42,14 @@ def _scan_ruby_rails_gemfile_lock(fixture_name: str):
     controls = configured_controls(profile, native_controls())
     return ScanOrchestrator(controls).scan(
         ROOT / "fixtures" / fixture_name, RUBY_RAILS_GEMFILE_LOCK_POLICY_PATH
+    )
+
+
+def _scan_docker_compose_privileged(fixture_name: str):
+    profile = load_policy(DOCKER_COMPOSE_PRIVILEGED_POLICY_PATH)
+    controls = configured_controls(profile, native_controls())
+    return ScanOrchestrator(controls).scan(
+        ROOT / "fixtures" / fixture_name, DOCKER_COMPOSE_PRIVILEGED_POLICY_PATH
     )
 
 
@@ -289,6 +298,65 @@ def test_default_policy_does_not_implicitly_select_ruby_rails_gemfile_lock_contr
     }
     assert result.security_analysis_plan is not None
     assert "SEC-RUBY-RAILS-GEMFILE-LOCK-001" not in {
+        item.implementation_id for item in result.security_analysis_plan.control_contract_selections
+    }
+
+
+def test_docker_compose_privileged_policy_blocks_only_on_direct_literal_true():
+    result = _scan_docker_compose_privileged("vulnerable_docker_compose_privileged")
+
+    assert result.decision.outcome == GateOutcome.BLOCK
+    assert {finding.rule_id for finding in result.findings} == {"SEC-COMPOSE-PRIVILEGED-001"}
+    execution = next(
+        item for item in result.executions if item.control_id == "SEC-COMPOSE-PRIVILEGED-001"
+    )
+    assert execution.status.value == "COMPLETED"
+    assert result.security_analysis_plan is not None
+    contract = next(
+        item
+        for item in result.security_analysis_plan.control_contract_selections
+        if item.implementation_id == "SEC-COMPOSE-PRIVILEGED-001"
+    )
+    assert contract.control_id == "CONTROL-CONTAINER-DOCKER-COMPOSE-PRIVILEGED-001"
+    assert contract.security_domain_ids == ("DOMAIN-CONTAINER-SECURITY-001",)
+    for report in (render_json(result), render_markdown(result), render_sarif(result)):
+        assert "SEC-COMPOSE-PRIVILEGED-001" in report
+        assert "privileged_web" not in report
+        assert "registry.example/private-image:latest" not in report
+        assert "do-not-report-compose-value" not in report
+
+
+def test_docker_compose_privileged_policy_handles_safe_excluded_and_invalid_fixtures():
+    secure = _scan_docker_compose_privileged("secure_docker_compose_privileged")
+    excluded = _scan_docker_compose_privileged("docker_compose_privileged_dynamic_or_aliased")
+    malformed = _scan_docker_compose_privileged("docker_compose_privileged_malformed")
+
+    assert secure.decision.outcome == GateOutcome.PASS
+    assert not secure.findings
+    assert excluded.decision.outcome == GateOutcome.PASS
+    assert not excluded.findings
+    excluded_execution = next(
+        item for item in excluded.executions if item.control_id == "SEC-COMPOSE-PRIVILEGED-001"
+    )
+    assert excluded_execution.status.value == "COMPLETED"
+    assert malformed.decision.outcome == GateOutcome.ERROR
+    assert not malformed.findings
+    malformed_execution = next(
+        item for item in malformed.executions if item.control_id == "SEC-COMPOSE-PRIVILEGED-001"
+    )
+    assert malformed_execution.status.value == "ERROR"
+    assert malformed_execution.metadata == {"error_kind": "COMPOSE_YAML_INVALID"}
+    for report in (render_json(malformed), render_markdown(malformed), render_sarif(malformed)):
+        assert "source_only_invalid" not in report
+
+
+def test_default_policy_does_not_implicitly_select_docker_compose_privileged_control():
+    result = _scan("vulnerable_docker_compose_privileged")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert "SEC-COMPOSE-PRIVILEGED-001" not in {item.control_id for item in result.executions}
+    assert result.security_analysis_plan is not None
+    assert "SEC-COMPOSE-PRIVILEGED-001" not in {
         item.implementation_id for item in result.security_analysis_plan.control_contract_selections
     }
 

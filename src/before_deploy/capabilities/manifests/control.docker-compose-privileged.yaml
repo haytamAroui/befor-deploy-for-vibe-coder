@@ -1,0 +1,17 @@
+schema_version: 1
+id: control.native.docker-compose-privileged
+version: "0.1.0"
+implementation_id: SEC-COMPOSE-PRIVILEGED-001
+kind: CONTROL
+title: Direct Docker Compose privileged service configuration check
+applies_when:
+  languages: []
+  frameworks: []
+  requires_github_workflow: false
+  required_project_signals: []
+security_domains:
+  - Container security
+exclusions:
+  - Only root compose.yaml, compose.yml, docker-compose.yaml, and docker-compose.yml files are inspected.
+  - Only a direct YAML services mapping with a direct service mapping and an unquoted lowercase boolean privileged true scalar is considered.
+  - Anchors, aliases, merge keys, interpolation, templates, include, extends, profiles, values other than the exact boolean true, nested projects, Kubernetes, Helm, CloudFormation, Terraform, Dockerfiles, images, commands, secrets, host policy, runtime behavior, Docker or Compose execution, and network access are excluded.

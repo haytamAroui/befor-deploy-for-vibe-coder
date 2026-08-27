@@ -47,6 +47,7 @@ The code maintains a fixed capability catalog. Each entry maps one control ident
 |---|---|
 | Secrets / Gitleaks / provenance | Applicable to every repository with scan scope, regardless of language. |
 | GitHub Actions | Applicable only when a GitHub workflow file is visible. |
+| Docker Compose privileged service | No language/framework predicate is inferred. The control is selected only by its dedicated policy and returns `NOT_APPLICABLE` unless a supported root Compose filename exists; it evaluates only one direct literal `privileged: true` service property. |
 | Lockfile evidence | Applicable to detected Python or Node/TypeScript/JavaScript dependency ecosystems. |
 | Go module integrity / direct TLS verification | Applicable only to a detected root Go module; module-sum presence and direct `tls.Config` literals only. |
 | Rust Cargo lockfile | Applicable only when Rust is detected and only selected by the dedicated policy. The control requires one root `Cargo.toml` direct non-empty `dependencies` table plus conventional root-relative `src/main.rs`, then checks only root `Cargo.lock` presence. |
@@ -77,6 +78,7 @@ A future read-only advisory agent may consume only the normalized project profil
 | PHP/Laravel repository | Detect PHP and Laravel from bounded manifest/source markers; select the Composer lockfile control only through its dedicated policy and retain the explicit limits on values, lock contents, dependency integrity, vulnerabilities, and runtime behavior. |
 | Rust conventional binary repository | Detect Rust from bounded manifest/source markers; select the Cargo lockfile control only through its dedicated policy and retain the explicit limits on values, lock contents, dependency integrity, vulnerabilities, libraries, workspaces, custom targets, and runtime behavior. |
 | Ruby/Rails conventional repository | Detect Ruby and Rails from bounded manifest/source markers; select the Gemfile lockfile control only through its dedicated policy and retain the explicit limits on values, lock contents, dependency integrity, vulnerabilities, groups, dynamic declarations, libraries, and runtime behavior. |
+| Docker Compose repository | Select the privileged-service control only through its dedicated policy. Detect one direct unquoted lowercase `privileged: true` scalar in the supported root YAML shape; retain dynamic/reused YAML, other settings, image, host, and runtime limits explicitly. |
 | Next.js repository | Detect TypeScript/JavaScript and Next.js; run compatible cross-language controls, narrow static controls, and separately selected module-level and named-inline Server Action local-guard-marker checks; report deferred proxy/middleware, arrow-action, semantic authorization, and data-boundary coverage. |
 | Go repository | Detect Go and root-module evidence; run selected module/TLS controls, expose the separately opt-in offline snapshot control, and report Gosec-backed injection, SSRF, and path-traversal coverage as `NOT_SELECTED` until an explicit adapter policy selects it. |
 | Rust/Java mixed repository | Detect each language deterministically; retain generic checks; record language-specific coverage gaps. |

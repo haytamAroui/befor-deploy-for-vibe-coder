@@ -1,0 +1,5 @@
+services:
+  privileged_web:
+    image: registry.example/private-image:latest
+    privileged: true
+    source_only_note: do-not-report-compose-value

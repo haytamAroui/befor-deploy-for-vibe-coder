@@ -17,9 +17,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     second = load_builtin_capability_registry()
 
     assert first.schema_version == 1
-    assert first.catalog_version == "0.14.0"
+    assert first.catalog_version == "0.15.0"
     assert first.catalog_digest == second.catalog_digest
-    assert len(first.capabilities) == 26
+    assert len(first.capabilities) == 27
     assert first.definition_for_implementation("SEC-NEXT-ENV-001").capability_id == (
         "control.native.nextjs-public-env"
     )
@@ -53,6 +53,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     ruby_rails = first.definition_for_implementation("SEC-RUBY-RAILS-GEMFILE-LOCK-001")
     assert ruby_rails.capability_id == "control.native.ruby-rails-gemfile-lock"
     assert ruby_rails.version == "0.1.0"
+    docker_compose = first.definition_for_implementation("SEC-COMPOSE-PRIVILEGED-001")
+    assert docker_compose.capability_id == "control.native.docker-compose-privileged"
+    assert docker_compose.version == "0.1.0"
     assert first.definition_for_implementation("SEC-UNREGISTERED-001") is None
 
 
