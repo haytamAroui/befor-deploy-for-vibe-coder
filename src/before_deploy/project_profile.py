@@ -180,12 +180,14 @@ def _coverage_gaps(languages: set[str], frameworks: set[str]) -> tuple[str, ...]
     if "Go" in languages:
         gaps.append(
             "Go coverage is limited to root-module checksum presence, direct tls.Config InsecureSkipVerify literals, "
-            "and an opt-in isolated Gosec adapter; deep framework, dataflow, and runtime analysis are not installed."
+            "one exact offline dependency-vulnerability snapshot, and an opt-in isolated Gosec adapter; deep "
+            "framework, dataflow, live-database, and runtime analysis are not installed."
         )
     if "Next.js" in frameworks:
         gaps.append(
-            "Next.js coverage is limited to direct public-env, explicit session-cookie, and static CORS checks; "
-            "Server Actions, middleware, and data-boundary analysis are not installed."
+            "Next.js coverage is limited to direct public-env, explicit session-cookie, static CORS, and one "
+            "module-level Server Action local-guard-marker check; middleware/proxy coverage, inline actions, "
+            "semantic authorization, and client/server data-boundary analysis are not installed."
         )
     elif {"JavaScript", "TypeScript"}.intersection(languages):
         gaps.append(

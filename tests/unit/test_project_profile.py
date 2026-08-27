@@ -23,7 +23,8 @@ def test_detects_go_and_reports_language_specific_coverage_gap():
     assert profile.signals["manifest:go.mod"] == "1"
     assert profile.coverage_gaps == (
         "Go coverage is limited to root-module checksum presence, direct tls.Config InsecureSkipVerify literals, "
-        "and an opt-in isolated Gosec adapter; deep framework, dataflow, and runtime analysis are not installed.",
+        "one exact offline dependency-vulnerability snapshot, and an opt-in isolated Gosec adapter; deep "
+        "framework, dataflow, live-database, and runtime analysis are not installed.",
     )
 
 
@@ -34,8 +35,9 @@ def test_detects_nextjs_typescript_and_visible_coverage_gap():
     assert profile.frameworks == ("Next.js",)
     assert profile.signals["framework:Next.js"] == "1"
     assert profile.coverage_gaps == (
-        "Next.js coverage is limited to direct public-env, explicit session-cookie, and static CORS checks; "
-        "Server Actions, middleware, and data-boundary analysis are not installed.",
+        "Next.js coverage is limited to direct public-env, explicit session-cookie, static CORS, and one "
+        "module-level Server Action local-guard-marker check; middleware/proxy coverage, inline actions, "
+        "semantic authorization, and client/server data-boundary analysis are not installed.",
     )
 
 

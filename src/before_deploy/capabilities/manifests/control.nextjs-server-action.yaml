@@ -1,0 +1,16 @@
+schema_version: 1
+id: control.native.nextjs-server-action-local-guard
+version: "0.1.0"
+implementation_id: SEC-NEXT-ACTION-001
+kind: CONTROL
+title: Next.js Server Action local guard-marker check
+applies_when:
+  frameworks:
+    - Next.js
+security_domains:
+  - DOMAIN-AUTHORIZATION-001
+exclusions:
+  - Only named exported async functions in a module-level use server file are considered.
+  - Only direct db or prisma create, delete, update, or upsert calls are considered.
+  - A local preceding auth/authorization marker is not proof of authentication, authorization, ownership, or policy correctness.
+  - Middleware/proxy conventions, matcher behavior, imported delegates, aliases, closures, runtime dataflow, reachability, and route coverage are not inferred.

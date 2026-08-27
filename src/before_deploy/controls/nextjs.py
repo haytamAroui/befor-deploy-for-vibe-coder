@@ -42,6 +42,17 @@ _CORS_CREDENTIALS = re.compile(
     r"key\s*:\s*['\"]access-control-allow-credentials['\"]\s*,?\s*value\s*:\s*['\"]true['\"]",
     re.IGNORECASE,
 )
+_EXPORTED_ASYNC_FUNCTION = re.compile(
+    r"\bexport\s+async\s+function\s+(?P<name>[A-Za-z_$][\w$]*)\s*\(", re.MULTILINE
+)
+_DIRECT_MUTATION = re.compile(
+    r"\b(?:db|prisma)(?:\s*\.\s*[A-Za-z_$][\w$]*)*\s*\.\s*"
+    r"(?P<operation>create|createMany|delete|deleteMany|update|updateMany|upsert)\s*\("
+)
+_LOCAL_GUARD_CALL = re.compile(
+    r"\b(?:await\s+)?(?:auth|authorize|require(?:User|Admin|Role|Permission|Ownership)|"
+    r"assert(?:User|Admin|Role|Permission|Ownership)|verify(?:User|Admin|Role|Permission|Ownership))\s*\("
+)
 
 
 class NextPublicEnvironmentControl:
@@ -185,6 +196,89 @@ class NextStaticCorsControl:
         return _completed(self, started_at, findings, "Checked static Next.js CORS header arrays.")
 
 
+class NextServerActionLocalGuardControl:
+    """Flag a narrow Server Action mutation pattern lacking a visible local guard call.
+
+    Next.js treats exported Server Actions as direct POST entry points. This static rule intentionally
+    checks only module-level `use server` files, named exported async functions, direct `db`/`prisma`
+    mutations, and a preceding call whose local name is in the reviewed guard-marker set. It does not
+    prove authentication, authorization, ownership, route/proxy coverage, data access layer behavior,
+    imports, closures, aliases, runtime behavior, or action reachability.
+    """
+
+    control_id = "SEC-NEXT-ACTION-001"
+    control_version = "0.1.0"
+
+    def run(self, context: ControlContext) -> ControlResult:
+        started_at = utc_now()
+        if not _is_nextjs(context):
+            return _not_applicable(self, started_at, "Next.js framework was not detected.")
+        findings: list[Finding] = []
+        for path in _source_files(context):
+            source = _read_source(path)
+            if not _has_module_server_directive(source):
+                continue
+            sanitized = _strip_javascript_comments_and_strings(source)
+            for action in _EXPORTED_ASYNC_FUNCTION.finditer(sanitized):
+                opening_brace = sanitized.find("{", action.end())
+                if opening_brace < 0:
+                    continue
+                body_end = _balanced_javascript_block(sanitized, opening_brace)
+                if body_end is None:
+                    continue
+                body = sanitized[opening_brace : body_end + 1]
+                mutation = _DIRECT_MUTATION.search(body)
+                if mutation is None:
+                    continue
+                if _LOCAL_GUARD_CALL.search(body[: mutation.start()]) is not None:
+                    continue
+                line_number = source.count("\n", 0, opening_brace + mutation.start()) + 1
+                location = _location(context, path, line_number)
+                evidence = {
+                    "action": action.group("name"),
+                    "mutation_operation": mutation.group("operation"),
+                    "pattern": "module_use_server_exported_async_direct_mutation_no_local_guard_marker",
+                }
+                findings.append(
+                    Finding(
+                        rule_id=self.control_id,
+                        rule_version=self.control_version,
+                        title="Server Action mutation has no visible preceding local guard marker",
+                        message=(
+                            "An exported async function in a module-level 'use server' file directly calls a "
+                            "db/prisma mutation before any recognized local authorization-marker call. Server "
+                            "Actions must be reviewed as direct POST entry points; proxy or page checks are not "
+                            "treated as an action guard."
+                        ),
+                        remediation=(
+                            "Perform authentication and resource-specific authorization inside the Server Action "
+                            "or its immediately called server-side data-access path, then document a narrowly "
+                            "scoped waiver only if this bounded static pattern is an intentional false positive."
+                        ),
+                        severity=Severity.HIGH,
+                        confidence=Confidence.MEDIUM,
+                        fingerprint=fingerprint_for(self.control_id, location, evidence),
+                        location=location,
+                        evidence=evidence,
+                    )
+                )
+        return ControlResult(
+            execution=ControlExecution(
+                control_id=self.control_id,
+                control_version=self.control_version,
+                status=ExecutionStatus.COMPLETED,
+                started_at=started_at,
+                completed_at=utc_now(),
+                message=(
+                    "Checked module-level Server Actions for direct db/prisma mutations lacking a visible "
+                    "local guard marker. Proxy/middleware presence is recorded only as a structural fact."
+                ),
+                metadata={"next_proxy_convention": _next_proxy_convention(context)},
+            ),
+            findings=tuple(findings),
+        )
+
+
 def _is_nextjs(context: ControlContext) -> bool:
     return context.project_profile is not None and "Next.js" in context.project_profile.frameworks
 
@@ -193,9 +287,177 @@ def _source_files(context: ControlContext) -> tuple[Path, ...]:
     return tuple(path for path in context.inventory.files if path.suffix.lower() in _SOURCE_SUFFIXES)
 
 
+def _next_proxy_convention(context: ControlContext) -> str:
+    """Report only the root/src convention present; it is not authorization evidence."""
+    supported_names = {
+        "middleware.js",
+        "middleware.jsx",
+        "middleware.ts",
+        "middleware.tsx",
+        "proxy.js",
+        "proxy.jsx",
+        "proxy.ts",
+        "proxy.tsx",
+    }
+    conventions: set[str] = set()
+    for path in context.inventory.files:
+        relative = path.relative_to(context.repository_root)
+        if len(relative.parts) == 1 or (len(relative.parts) == 2 and relative.parts[0] == "src"):
+            if path.name in supported_names:
+                conventions.add("proxy" if path.name.startswith("proxy.") else "middleware")
+    return "+".join(sorted(conventions)) if conventions else "absent"
+
+
 def _next_config_files(context: ControlContext) -> tuple[Path, ...]:
     names = {"next.config.js", "next.config.mjs", "next.config.ts"}
     return tuple(path for path in context.inventory.files if path.name in names)
+
+
+def _has_module_server_directive(source: str) -> bool:
+    """Recognize only `use server` as the first non-comment statement in a module."""
+    index = 0
+    while index < len(source):
+        while index < len(source) and source[index].isspace():
+            index += 1
+        if source.startswith("//", index):
+            newline = source.find("\n", index + 2)
+            index = len(source) if newline < 0 else newline + 1
+            continue
+        if source.startswith("/*", index):
+            end = source.find("*/", index + 2)
+            if end < 0:
+                return False
+            index = end + 2
+            continue
+        break
+    directive = re.match(r"(['\"])use server\1\s*;?", source[index:])
+    return directive is not None
+
+
+def _balanced_javascript_block(source: str, opening_brace: int) -> int | None:
+    """Return the end of a JavaScript block while ignoring comments and string literals."""
+    depth = 0
+    index = opening_brace
+    state = "code"
+    escaped = False
+    while index < min(len(source), opening_brace + 20_000):
+        character = source[index]
+        next_character = source[index + 1] if index + 1 < len(source) else ""
+        if state == "line_comment":
+            if character == "\n":
+                state = "code"
+            index += 1
+            continue
+        if state == "block_comment":
+            if character == "*" and next_character == "/":
+                state = "code"
+                index += 2
+                continue
+            index += 1
+            continue
+        if state in {"single_quote", "double_quote", "template"}:
+            quote = {"single_quote": "'", "double_quote": '\"', "template": "`"}[state]
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == quote:
+                state = "code"
+            index += 1
+            continue
+        if character == "/" and next_character == "/":
+            state = "line_comment"
+            index += 2
+            continue
+        if character == "/" and next_character == "*":
+            state = "block_comment"
+            index += 2
+            continue
+        if character == "'":
+            state = "single_quote"
+            index += 1
+            continue
+        if character == '\"':
+            state = "double_quote"
+            index += 1
+            continue
+        if character == "`":
+            state = "template"
+            index += 1
+            continue
+        if character == "{":
+            depth += 1
+        elif character == "}":
+            depth -= 1
+            if depth == 0:
+                return index
+        index += 1
+    return None
+
+
+def _strip_javascript_comments_and_strings(source: str) -> str:
+    """Blank comments and string literals while preserving offsets and newlines."""
+    result: list[str] = []
+    index = 0
+    state = "code"
+    escaped = False
+    while index < len(source):
+        character = source[index]
+        next_character = source[index + 1] if index + 1 < len(source) else ""
+        if state == "line_comment":
+            result.append("\n" if character == "\n" else " ")
+            if character == "\n":
+                state = "code"
+            index += 1
+            continue
+        if state == "block_comment":
+            if character == "*" and next_character == "/":
+                result.extend((" ", " "))
+                state = "code"
+                index += 2
+                continue
+            result.append("\n" if character == "\n" else " ")
+            index += 1
+            continue
+        if state in {"single_quote", "double_quote", "template"}:
+            quote = {"single_quote": "'", "double_quote": '\"', "template": "`"}[state]
+            result.append("\n" if character == "\n" else " ")
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == quote:
+                state = "code"
+            index += 1
+            continue
+        if character == "/" and next_character == "/":
+            result.extend((" ", " "))
+            state = "line_comment"
+            index += 2
+            continue
+        if character == "/" and next_character == "*":
+            result.extend((" ", " "))
+            state = "block_comment"
+            index += 2
+            continue
+        if character == "'":
+            result.append(" ")
+            state = "single_quote"
+            index += 1
+            continue
+        if character == '\"':
+            result.append(" ")
+            state = "double_quote"
+            index += 1
+            continue
+        if character == "`":
+            result.append(" ")
+            state = "template"
+            index += 1
+            continue
+        result.append(character)
+        index += 1
+    return "".join(result)
 
 
 def _read_source(path: Path) -> str:

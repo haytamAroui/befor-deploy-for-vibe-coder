@@ -88,7 +88,7 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
     )
     assert all(selection.detection_scope for selection in plan.control_contract_selections)
     assert all(selection.exclusions for selection in plan.control_contract_selections)
-    assert plan.security_domain_catalog_version == "0.3.0"
+    assert plan.security_domain_catalog_version == "0.4.0"
     assert plan.security_domain_catalog_digest
     assert not plan.adapter_selections
     assert not plan.skill_selections
@@ -123,6 +123,23 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
     assert "JWT-backed login sessions" not in json_report
     assert "JWT-backed login sessions" not in markdown_report
     assert "JWT-backed login sessions" not in sarif_report
+
+
+def test_vulnerable_nextjs_server_action_fixture_blocks_on_the_local_guard_contract():
+    result = _scan("vulnerable_nextjs_server_action")
+
+    assert result.decision.outcome.value == "BLOCK"
+    assert {finding.rule_id for finding in result.findings} == {"SEC-NEXT-ACTION-001"}
+    assert result.security_analysis_plan is not None
+    contract = next(
+        selection
+        for selection in result.security_analysis_plan.control_contract_selections
+        if selection.implementation_id == "SEC-NEXT-ACTION-001"
+    )
+    assert contract.control_id == "CONTROL-AUTHORIZATION-NEXT-SERVER-ACTION-001"
+    assert contract.security_domain_ids == ("DOMAIN-AUTHORIZATION-001",)
+    execution = next(item for item in result.executions if item.control_id == "SEC-NEXT-ACTION-001")
+    assert execution.metadata["next_proxy_convention"] == "absent"
 
 
 def test_default_policy_does_not_implicitly_select_the_go_vulnerability_snapshot():

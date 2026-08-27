@@ -1,6 +1,6 @@
 # Security Domain + Control Catalog
 
-**Version:** 0.3.0
+**Version:** 0.4.0
 **Authority:** Informational only; it is not a policy profile, a scanner, a compliance assessment, or a release authority.
 
 ## Purpose and authority boundary
@@ -39,7 +39,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 | ID | Domain | Current mapping posture | Present limitation |
 |---|---|---|---|
 | `DOMAIN-AUTHENTICATION-001` | Authentication | Unmapped | Requirement evidence does not prove an authentication mechanism, MFA posture, or identity assurance level. |
-| `DOMAIN-AUTHORIZATION-001` | Authorization | Unmapped | Object/function/property authorization, tenant isolation, and business logic require dedicated evidence-backed analysis. |
+| `DOMAIN-AUTHORIZATION-001` | Authorization | Mapped for one narrow Next.js Server Action guard-marker pattern | A local guard marker does not prove authentication, authorization, ownership, tenant isolation, proxy coverage, or policy correctness. |
 | `DOMAIN-ENDPOINT-SECURITY-001` | Endpoint security | Unmapped | Endpoint inventory, runtime headers, request limits, and enforcement are not inferred. |
 | `DOMAIN-INPUT-VALIDATION-001` | Input validation | Unmapped | Schema validation and runtime normalization are not inferred. |
 | `DOMAIN-INJECTION-001` | Injection protection | Mapped | Native Python SQL interpolation, optional local Semgrep, and opt-in Gosec are narrow; most injection families remain out of scope. |
@@ -74,7 +74,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 
 ## Current control contracts
 
-The catalog maps **only the nineteen reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
+The catalog maps **only the twenty reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
 
 | Control contract | Capability / implementation | Domain mapping | Selection boundary |
 |---|---|---|---|
@@ -95,6 +95,7 @@ The catalog maps **only the nineteen reviewed capability implementations already
 | `CONTROL-TRANSPORT-GO-TLS-001` | `control.native.go-tls-verification` / `SEC-GO-TLS-001` | Transport security | Direct literal `tls.Config{InsecureSkipVerify: true}` only. |
 | `CONTROL-GOSEC-STATIC-ANALYSIS-001` | `adapter.gosec-go-module` / `SEC-GOSEC-001` | Injection, SSRF, path traversal | Explicit external-adapters policy, preinstalled Gosec, fixed local/offline arguments, and normalized redacted report only. |
 | `CONTROL-NEXTJS-PUBLIC-ENV-001` | `control.native.nextjs-public-env` / `SEC-NEXT-ENV-001` | Secrets | Direct sensitive-looking public variable names only. |
+| `CONTROL-AUTHORIZATION-NEXT-SERVER-ACTION-001` | `control.native.nextjs-server-action-local-guard` / `SEC-NEXT-ACTION-001` | Authorization | Module-level Server Action direct `db`/`prisma` mutation before a local guard marker; proxy/middleware is structural metadata only. |
 | `CONTROL-NEXTJS-SESSION-COOKIE-001` | `control.native.nextjs-session-cookie` / `SEC-NEXT-COOKIE-001` | Session security | Explicit unsafe static cookie-option combinations only. |
 | `CONTROL-NEXTJS-CORS-001` | `control.native.nextjs-static-cors` / `SEC-NEXT-CORS-001` | CORS | Static `next.config.*` header arrays only. |
 

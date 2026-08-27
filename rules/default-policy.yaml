@@ -29,6 +29,9 @@ controls:
   SEC-NEXT-CORS-001:
     required: true
     disposition: BLOCK
+  SEC-NEXT-ACTION-001:
+    required: true
+    disposition: BLOCK
   SEC-CICD-001:
     required: false
     disposition: BLOCK

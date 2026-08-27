@@ -35,6 +35,7 @@ APPROVED_IMPLEMENTATION_IDS = frozenset(
         "SEC-GOSEC-001",
         "SEC-NEXT-COOKIE-001",
         "SEC-NEXT-CORS-001",
+        "SEC-NEXT-ACTION-001",
         "SEC-NEXT-ENV-001",
         "SEC-PROVENANCE-001",
         "SEC-RELEASE-001",

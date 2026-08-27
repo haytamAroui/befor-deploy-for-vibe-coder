@@ -13,6 +13,7 @@ from before_deploy.controls.go_vulnerabilities import GoVulnerabilitySnapshotCon
 from before_deploy.controls.injection import SqlInjectionControl
 from before_deploy.controls.nextjs import (
     NextPublicEnvironmentControl,
+    NextServerActionLocalGuardControl,
     NextSessionCookieControl,
     NextStaticCorsControl,
 )
@@ -31,6 +32,7 @@ def native_controls() -> tuple[Control, ...]:
         NextPublicEnvironmentControl(),
         NextSessionCookieControl(),
         NextStaticCorsControl(),
+        NextServerActionLocalGuardControl(),
         GitHubActionsSecurityControl(),
         DependencyLockfileControl(),
         GoModuleIntegrityControl(),
@@ -52,6 +54,7 @@ __all__ = [
     "GoTLSVerificationControl",
     "GoVulnerabilitySnapshotControl",
     "NextPublicEnvironmentControl",
+    "NextServerActionLocalGuardControl",
     "NextSessionCookieControl",
     "NextStaticCorsControl",
     "ProductionDebugControl",

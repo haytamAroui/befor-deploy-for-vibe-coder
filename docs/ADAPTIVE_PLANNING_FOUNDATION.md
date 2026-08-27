@@ -65,7 +65,7 @@ The coverage auditor uses only the plan, the versioned capability registry, the 
 | `NOT_APPLICABLE` | All mapped approved capabilities are incompatible with the repository. |
 | `DECLARED_REVIEW_REQUIRED` | A bounded documentation signal declared a domain. It requires implementation review; the signal is not a finding and cannot alter the gate. |
 
-Current mapped coverage is intentionally modest: repository-wide secrets, Python source/configuration, FastAPI, Next.js static controls, dependency-manifest checks, and GitHub Actions. Container and Terraform evidence correctly become visible `UNAVAILABLE` states because no corresponding scanner is installed. This makes the limitation observable rather than implying coverage.
+Current mapped coverage is intentionally modest: repository-wide secrets, Python source/configuration, FastAPI, three Next.js static controls, one bounded Server Action local-guard-marker contract, dependency-manifest checks, and GitHub Actions. Container and Terraform evidence correctly become visible `UNAVAILABLE` states because no corresponding scanner is installed. This makes the limitation observable rather than implying coverage.
 
 ## 5. Reports and redaction
 

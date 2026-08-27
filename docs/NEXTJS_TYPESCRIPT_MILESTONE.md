@@ -1,6 +1,6 @@
 # Next.js and TypeScript Control Milestone
 
-**Status:** Approved implementation scope
+**Status:** Implemented bounded Next.js/TypeScript control set
 **Purpose:** Add narrow, deterministic checks that close meaningful coverage gaps for visible Next.js/TypeScript code without representing syntax matching as full semantic analysis.
 
 ## Evidence basis
@@ -18,10 +18,11 @@ Next.js also recommends `httpOnly`, `secure`, and `sameSite` options for session
 | `SEC-NEXT-ENV-001` | Detected Next.js project; JS/TS source | Direct `process.env.NEXT_PUBLIC_*` access where the variable name contains `SECRET`, `PASSWORD`, `PRIVATE`, `DATABASE_URL`, `ACCESS_TOKEN`, `AUTH_TOKEN`, `SESSION_TOKEN`, or `API_SECRET`. | `BLOCK` | Generic `KEY`, analytics identifiers, public application IDs, computed property access, and non-Next public settings are not flagged. |
 | `SEC-NEXT-COOKIE-001` | Detected Next.js project; JS/TS source | A direct `cookies().set(...)` / `cookieStore.set(...)` call for a statically named session/auth/token cookie explicitly sets `httpOnly: false`, `secure: false`, or combines `sameSite: 'none'` with `secure: false`. | `BLOCK` | Missing/indirect options, non-session cookies, computed names/options, and custom cookie wrappers are not inferred. |
 | `SEC-NEXT-CORS-001` | Detected Next.js project; `next.config.*` | The same static header object visibly declares `Access-Control-Allow-Origin: '*'` and `Access-Control-Allow-Credentials: 'true'`. | `BLOCK` | Dynamic headers, route-handler CORS logic, middleware, reverse proxies, and wildcard origin without credentials are not evaluated. |
+| `SEC-NEXT-ACTION-001` | Detected Next.js project; named exported async function in a module-level `use server` file | A direct `db`/`prisma` mutation appears before any finite recognized local authorization-marker call. Root or `src/` `middleware.*` / `proxy.*` presence is recorded only as metadata. | `BLOCK` | A marker does not prove authorization or ownership; imported delegates, aliases, closures, inline actions, matchers, proxy/middleware coverage, dataflow, and runtime conditions are not inferred. [4] [5] |
 
 ## Applicability and decision semantics
 
-The adaptive capability catalog marks all three controls as requiring the **Next.js** framework signal. A policy may select them for every repository; a non-Next repository receives explicit `NOT_APPLICABLE` executions rather than silent omission. A Next.js project without one of the risky patterns receives a completed execution with zero findings.
+The adaptive capability catalog marks all four controls as requiring the **Next.js** framework signal. A policy may select them for every repository; a non-Next repository receives explicit `NOT_APPLICABLE` executions rather than silent omission. A Next.js project without one of the risky patterns receives a completed execution with zero findings.
 
 Each finding has a stable fingerprint, redacted evidence consisting only of path, line, and variable/cookie/header identifiers, and ordinary policy handling. The project profile never decides `PASS` or suppresses a finding.
 
@@ -31,15 +32,21 @@ Each finding has a stable fingerprint, redacted evidence consisting only of path
 |---|---|
 | Secure Next.js fixture | `PASS`; static public analytics ID, secure session cookie options, and specific/credentialed CORS configuration are accepted. |
 | Vulnerable Next.js fixture | `BLOCK`; exposes a named public secret, writes a session cookie with explicitly unsafe options, and uses wildcard origin plus credentials. |
-| Python/FastAPI fixture | All three controls are `NOT_APPLICABLE`; existing Python controls retain their previous behavior. |
+| Python/FastAPI fixture | All four controls are `NOT_APPLICABLE`; existing Python controls retain their previous behavior. |
+| Unguarded module-level Server Action fixture | `BLOCK`; a named exported action directly deletes through Prisma with no preceding local guard marker. |
+| Local-guard fixture | `PASS`; a recognized local guard marker precedes the direct mutation. This is not treated as semantic authorization proof. |
+| Proxy-only fixture | `BLOCK`; proxy presence is reported as a structural fact but does not suppress the action finding. |
+| Inline/comment/string ambiguity fixture | No Server Action finding; inline actions and text are outside the first contract. |
 | Dynamic/unknown constructs | No speculative finding. The report retains the static-analysis boundary in its limitations. |
 
 ## Deferred controls
 
-Server Actions authorization, client/server data boundary analysis, dynamic route handlers, middleware authorization, and generalized JavaScript taint tracking remain deferred. They require a proven parser/semantic adapter and calibration corpus before becoming release controls.
+Semantic Server Actions authorization and ownership, client/server data-boundary analysis, dynamic route handlers, middleware/proxy authorization, inline and closure actions, imported delegate analysis, and generalized JavaScript taint tracking remain deferred. They require a proven parser/semantic adapter and calibration corpus before becoming release controls.
 
 ## References
 
 [1]: https://nextjs.org/docs/pages/guides/environment-variables "Next.js documentation: `NEXT_PUBLIC_` variables are inlined into browser JavaScript"
 [2]: https://nextjs.org/docs/app/guides/authentication "Next.js authentication guide: recommended session-cookie options"
 [3]: https://nextjs.org/docs/pages/api-reference/config/next-config-js/headers "Next.js headers configuration and CORS options"
+[4]: https://nextjs.org/docs/app/guides/data-security "Next.js Data Security — Server Actions as direct POST entry points"
+[5]: https://nextjs.org/docs/app/api-reference/file-conventions/proxy "Next.js Proxy convention and Server Function matcher boundary"

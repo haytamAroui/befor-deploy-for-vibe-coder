@@ -151,6 +151,19 @@ controls:
     exclusions:
       - Actual values, indirect access, build outputs, and runtime configuration are not covered.
     references: []
+  - id: CONTROL-AUTHORIZATION-NEXT-SERVER-ACTION-001
+    version: "0.1.0"
+    title: Next.js Server Action local guard-marker check
+    capability_id: control.native.nextjs-server-action-local-guard
+    implementation_id: SEC-NEXT-ACTION-001
+    security_domains:
+      - DOMAIN-AUTHORIZATION-001
+    detection_scope: Named exported async functions in module-level use server files with direct db or prisma mutations before any recognized local guard-marker call.
+    exclusions:
+      - A local marker does not prove authentication, authorization, ownership, or data-access-layer correctness.
+      - Middleware/proxy conventions, matcher behavior, imported delegates, aliases, closures, runtime dataflow, reachability, and route coverage are not inferred.
+      - Only direct db or prisma create, delete, update, or upsert calls are considered.
+    references: []
   - id: CONTROL-NEXTJS-SESSION-COOKIE-001
     version: "0.1.0"
     title: Next.js explicit unsafe session-cookie option check
