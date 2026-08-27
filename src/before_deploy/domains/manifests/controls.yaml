@@ -1,0 +1,175 @@
+schema_version: 1
+controls:
+  - id: CONTROL-SECRETS-NATIVE-001
+    version: "0.1.0"
+    title: Native source secret pattern detection
+    capability_id: control.native.secrets
+    implementation_id: SEC-SECRET-001
+    security_domains:
+      - DOMAIN-SECRETS-001
+    detection_scope: Redaction-safe detection of bounded source-visible secret patterns.
+    exclusions:
+      - Entropy analysis, git history, runtime secret stores, and secret validity are not covered.
+    references:
+      - REF-OWASP-CICD
+  - id: CONTROL-SECRETS-GITLEAKS-001
+    version: "0.1.0"
+    title: Gitleaks directory scan adapter
+    capability_id: adapter.gitleaks-directory
+    implementation_id: SEC-SECRET-GITLEAKS-001
+    security_domains:
+      - DOMAIN-SECRETS-001
+    detection_scope: Policy-configured isolated Gitleaks directory scan with normalized redacted findings.
+    exclusions:
+      - This adapter is opt-in and git-history scanning is not enabled by this contract.
+    references:
+      - REF-OWASP-CICD
+  - id: CONTROL-INJECTION-PYTHON-001
+    version: "0.1.0"
+    title: Python direct SQL interpolation detection
+    capability_id: control.native.python-sast
+    implementation_id: SEC-SAST-001
+    security_domains:
+      - DOMAIN-INJECTION-001
+    detection_scope: Python AST detection of direct f-string, percent, or format interpolation passed to execute calls.
+    exclusions:
+      - Interprocedural dataflow, ORMs, other injection families, and non-Python code are not covered.
+    references: []
+  - id: CONTROL-INJECTION-SEMGREP-001
+    version: "0.1.0"
+    title: Semgrep local Python rule adapter
+    capability_id: adapter.semgrep-python-local
+    implementation_id: SEC-SAST-SEMGREP-001
+    security_domains:
+      - DOMAIN-INJECTION-001
+    detection_scope: Policy-configured isolated Semgrep execution using the reviewed local Python rule pack.
+    exclusions:
+      - This adapter is opt-in and remote registries, metrics, autofix, and local builds are disabled.
+    references: []
+  - id: CONTROL-API-FASTAPI-001
+    version: "0.1.0"
+    title: FastAPI mutating-route authentication declaration check
+    capability_id: control.native.fastapi-api
+    implementation_id: SEC-API-001
+    security_domains:
+      - DOMAIN-API-SECURITY-001
+    detection_scope: Python AST check for visible authentication dependencies on supported mutating FastAPI routes.
+    exclusions:
+      - Dynamic routes, business authorization, object-level access, and runtime middleware are not covered.
+    references:
+      - REF-OWASP-API-2023
+  - id: CONTROL-CONFIG-PYTHON-DEBUG-001
+    version: "0.1.0"
+    title: Python debug configuration check
+    capability_id: control.native.python-debug-config
+    implementation_id: SEC-CONFIG-001
+    security_domains:
+      - DOMAIN-PRODUCTION-CONFIGURATION-001
+    detection_scope: Static supported Python and configuration evidence of debug enabled.
+    exclusions:
+      - Deployed environment values and runtime configuration precedence are not covered.
+    references: []
+  - id: CONTROL-CORS-PYTHON-001
+    version: "0.1.0"
+    title: Python credentialed wildcard CORS check
+    capability_id: control.native.python-cors
+    implementation_id: SEC-CONFIG-002
+    security_domains:
+      - DOMAIN-CORS-001
+    detection_scope: Static supported Python and configuration evidence of credentialed wildcard CORS.
+    exclusions:
+      - Proxies, CDNs, dynamic origin handling, and runtime middleware are not covered.
+    references: []
+  - id: CONTROL-CICD-GITHUB-ACTIONS-001
+    version: "0.1.0"
+    title: GitHub Actions workflow hardening check
+    capability_id: control.native.github-actions
+    implementation_id: SEC-CICD-001
+    security_domains:
+      - DOMAIN-CICD-SECURITY-001
+    detection_scope: Static workflow checks for privileged checkout, write-all permissions, and non-full-SHA action pins.
+    exclusions:
+      - Repository settings, runner isolation, secrets, and workflow behavior are not covered.
+    references:
+      - REF-OWASP-CICD
+  - id: CONTROL-SUPPLY-DEPENDENCY-MANIFEST-001
+    version: "0.1.0"
+    title: Dependency manifest and lockfile presence check
+    capability_id: control.native.dependency-manifest
+    implementation_id: SEC-DEP-001
+    security_domains:
+      - DOMAIN-SUPPLY-CHAIN-001
+    detection_scope: Presence checks for supported ecosystem manifests and lockfiles.
+    exclusions:
+      - Vulnerability analysis, integrity validation, and unsupported package ecosystems are not covered.
+    references:
+      - REF-OWASP-CICD
+  - id: CONTROL-SUPPLY-PIP-AUDIT-001
+    version: "0.1.0"
+    title: pip-audit Python dependency adapter
+    capability_id: adapter.pip-audit-python
+    implementation_id: SEC-DEP-VULN-001
+    security_domains:
+      - DOMAIN-SUPPLY-CHAIN-001
+    detection_scope: Policy-configured isolated audit of declared Python dependency evidence.
+    exclusions:
+      - This adapter is opt-in and only supported Python dependency evidence is analyzed.
+    references:
+      - REF-OWASP-CICD
+  - id: CONTROL-SUPPLY-SBOM-001
+    version: "0.1.0"
+    title: SBOM presence check
+    capability_id: control.native.release-sbom
+    implementation_id: SEC-RELEASE-001
+    security_domains:
+      - DOMAIN-SUPPLY-CHAIN-001
+    detection_scope: Release-policy presence check for a source artifact and declared SBOM evidence.
+    exclusions:
+      - This control does not generate, validate, or certify SBOM completeness.
+    references:
+      - REF-SLSA-1-2-TRACKS
+  - id: CONTROL-SUPPLY-PROVENANCE-001
+    version: "0.1.0"
+    title: Offline GitHub provenance verification adapter
+    capability_id: adapter.github-attestation-offline
+    implementation_id: SEC-PROVENANCE-001
+    security_domains:
+      - DOMAIN-SUPPLY-CHAIN-001
+    detection_scope: Policy-configured offline verification of supplied local artifact and attestation evidence.
+    exclusions:
+      - This adapter is opt-in and does not create attestations or establish a SLSA level.
+    references:
+      - REF-SLSA-1-2-TRACKS
+  - id: CONTROL-NEXTJS-PUBLIC-ENV-001
+    version: "0.1.0"
+    title: Next.js sensitive public environment name check
+    capability_id: control.native.nextjs-public-env
+    implementation_id: SEC-NEXT-ENV-001
+    security_domains:
+      - DOMAIN-SECRETS-001
+    detection_scope: Direct sensitive-looking NEXT_PUBLIC environment variable references in Next.js sources.
+    exclusions:
+      - Actual values, indirect access, build outputs, and runtime configuration are not covered.
+    references: []
+  - id: CONTROL-NEXTJS-SESSION-COOKIE-001
+    version: "0.1.0"
+    title: Next.js explicit unsafe session-cookie option check
+    capability_id: control.native.nextjs-session-cookie
+    implementation_id: SEC-NEXT-COOKIE-001
+    security_domains:
+      - DOMAIN-SESSION-SECURITY-001
+    detection_scope: Explicit unsafe options on statically named session-like Next.js cookie calls.
+    exclusions:
+      - Missing options, custom wrappers, computed names, token lifetime, and token generation are not covered.
+    references: []
+  - id: CONTROL-NEXTJS-CORS-001
+    version: "0.1.0"
+    title: Next.js credentialed wildcard CORS check
+    capability_id: control.native.nextjs-static-cors
+    implementation_id: SEC-NEXT-CORS-001
+    security_domains:
+      - DOMAIN-CORS-001
+    detection_scope: Literal credentialed wildcard CORS pairs in static next.config header arrays.
+    exclusions:
+      - Dynamic headers, reverse proxies, CDNs, and runtime configuration are not covered.
+    references: []

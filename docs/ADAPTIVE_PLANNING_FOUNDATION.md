@@ -15,8 +15,9 @@ Before Deploy now records a versioned **Security Analysis Plan** for every compl
 | Requirements evidence collector | Explicit bounded documentation files | Declared-domain signals with path and line only | Does not prove implementation. |
 | Adaptive project profiler | Extensions, manifests, lockfiles, fixed markers | Languages, frameworks, package managers, and compatibility gaps | Selects no new policy. |
 | Declarative capability registry | Packaged, version-controlled YAML manifests | Validated approved capability definitions and semantic catalog digest | Metadata-only; cannot execute code or configure a tool. |
-| Security analysis planner | Profile, evidence, registry, and already-compatible configured controls | Versioned selected capabilities with policy/catalog provenance, coverage expectations, and exclusions | Describes existing approved selections only. |
-| Coverage auditor | Analysis plan, registry, profile, and observed control executions | Deterministic coverage statuses | Cannot affect the policy result. |
+| Security domain + control catalog | Packaged, version-controlled YAML taxonomy | Versioned `DOMAIN-` definitions, reviewed `CONTROL-` contracts, informative references, and semantic catalog digest | Informational only; cannot add a capability, certify compliance, or set policy. |
+| Security analysis planner | Profile, evidence, both catalogs, and already-compatible configured controls | Versioned selected capabilities with policy/catalog provenance, domain expectations, and exclusions | Describes existing approved selections only. |
+| Coverage auditor | Analysis plan, both catalogs, profile, and observed control executions | Deterministic domain and technology coverage statuses | Cannot affect the policy result. |
 | Policy engine | Normalized executions, findings, waivers, selected policy | Final release outcome | Sole release authority. |
 
 The planner runs only after the configured controls have been filtered through the existing compatibility catalog. It cannot discover a tool on `PATH`, activate an unconfigured adapter, or run a capability merely because a document mentions it.
@@ -38,21 +39,21 @@ The requirements collector inspects only root `README.*`, root `architecture.md`
 
 ## 3. Security Analysis Plan
 
-`SecurityAnalysisPlan` is immutable and contains a plan version, profile version, policy name/digest, capability-catalog version/digest, ordered evidence, and the selections listed below.
+`SecurityAnalysisPlan` is immutable and contains a plan version, profile version, policy name/digest, capability-catalog version/digest, security-domain-catalog version/digest, ordered evidence, and the selections listed below.
 
 | Plan field | Meaning in this milestone |
 |---|---|
 | `control_selections` | Native approved controls that the configured policy selected and the adaptive compatibility catalog marked runnable. |
 | `adapter_selections` | Existing external-control adapters only when the selected policy explicitly configures them and they are compatible. No adapter is auto-enabled. |
 | `skill_selections` | Always empty. Declarative skill packs are intentionally deferred; no executable skill code exists. |
-| `coverage_expectations` | Domains derived from observed technology, repository artifacts, and declared-document signals. |
+| `coverage_expectations` | Stable catalog `DOMAIN-` entries activated by bounded profile/evidence facts, plus legacy technology visibility and declared-document review expectations. |
 | `exclusions` | Existing profile coverage gaps plus explicit foundation limits, including the absence of loaded skill packs. |
 
 Each selected capability includes its fixed ID/version, type, deterministic rationale, and evidence IDs. The plan is therefore reproducible from the same repository scope, policy-selected controls, and versioned catalogs. It remains descriptive: execution still occurs through the existing bounded control adapters.
 
 ## 4. Coverage audit
 
-The coverage auditor uses only the plan, the versioned domain-to-capability catalog, and observed execution statuses. It does not inspect raw source, make vulnerability assertions, or calculate a percentage score.
+The coverage auditor uses only the plan, the versioned capability registry, the separate Security Domain + Control Catalog, and observed execution statuses. It does not inspect raw source, make vulnerability assertions, or calculate a percentage score.
 
 | Status | Meaning |
 |---|---|
@@ -69,6 +70,8 @@ Current mapped coverage is intentionally modest: repository-wide secrets, Python
 ## 5. Reports and redaction
 
 The complete plan and audit are included in the canonical JSON report. Markdown exposes readable tables of selected capabilities, coverage expectations, exclusions, and audit states. SARIF stores the normalized plan and coverage audit under Before Deploy properties. None of these report paths include matching requirement text or raw source excerpts.
+
+For the taxonomy, control-contract mappings, reference boundary, and exact current coverage limits, see [`SECURITY_DOMAIN_CONTROL_CATALOG.md`](SECURITY_DOMAIN_CONTROL_CATALOG.md).
 
 ## 6. Deferred expansion
 

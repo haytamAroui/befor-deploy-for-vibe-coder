@@ -30,10 +30,12 @@ def test_selected_capability_execution_error_is_visible_in_coverage_but_does_not
     policy = _policy(tmp_path / "nonrequired.yaml", required=False, allow_errors=True)
 
     result = ScanOrchestrator((_ErrorSecretControl(),)).scan(repository, policy)
-    coverage = {item.domain: item.status.value for item in result.coverage_audit.assessments}
+    coverage = {
+        (item.domain_id, item.domain): item.status.value for item in result.coverage_audit.assessments
+    }
 
     assert result.decision.outcome.value == "PASS"
-    assert coverage["Secrets"] == "ERROR"
+    assert coverage[("DOMAIN-SECRETS-001", "Secrets and sensitive configuration")] == "ERROR"
 
 
 def _policy(path: Path, *, required: bool, allow_errors: bool) -> Path:

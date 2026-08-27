@@ -221,6 +221,7 @@ class CoverageExpectation:
     domain: str
     rationale: str
     evidence_ids: tuple[str, ...] = ()
+    domain_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -239,6 +240,8 @@ class SecurityAnalysisPlan:
     skill_selections: tuple[CapabilitySelection, ...]
     coverage_expectations: tuple[CoverageExpectation, ...]
     exclusions: tuple[str, ...]
+    security_domain_catalog_version: str | None = None
+    security_domain_catalog_digest: str | None = None
 
 
 @dataclass(frozen=True)
@@ -250,6 +253,7 @@ class CoverageAssessment:
     rationale: str
     capability_ids: tuple[str, ...] = ()
     evidence_ids: tuple[str, ...] = ()
+    domain_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -258,6 +262,8 @@ class CoverageAudit:
 
     audit_version: str
     assessments: tuple[CoverageAssessment, ...]
+    security_domain_catalog_version: str | None = None
+    security_domain_catalog_digest: str | None = None
 
 
 @dataclass(frozen=True)

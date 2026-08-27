@@ -1,0 +1,19 @@
+schema_version: 1
+catalog_version: "0.1.0"
+references:
+  REF-NIST-SSDF-DRAFT-1-2:
+    title: NIST SSDF Version 1.2 initial public draft announcement
+    url: https://www.nist.gov/news-events/news/2025/12/secure-software-development-framework-ssdf-version-12-available-public
+  REF-OWASP-API-2023:
+    title: OWASP API Security Top 10 2023
+    url: https://owasp.org/API-Security/editions/2023/en/0x11-t10/
+  REF-OWASP-CICD:
+    title: OWASP CI/CD Security Cheat Sheet
+    url: https://cheatsheetseries.owasp.org/cheatsheets/CI_CD_Security_Cheat_Sheet.html
+  REF-SLSA-1-2-TRACKS:
+    title: SLSA v1.2 tracks
+    url: https://slsa.dev/spec/v1.2/tracks
+domain_manifests:
+  - domains.yaml
+control_manifests:
+  - controls.yaml

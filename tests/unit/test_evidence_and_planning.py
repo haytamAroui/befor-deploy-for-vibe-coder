@@ -1,4 +1,5 @@
 from before_deploy.capabilities import load_builtin_capability_registry
+from before_deploy.domains import load_builtin_security_domain_catalog
 from before_deploy.evidence import collect_repository_evidence, collect_requirements_evidence
 from before_deploy.inventory import collect_inventory
 from before_deploy.models import ScanManifest, utc_now
@@ -45,6 +46,7 @@ def test_planner_selects_only_provided_compatible_capabilities(tmp_path):
         runnable_controls=(),
         manifest=manifest,
         registry=registry,
+        security_domain_catalog=load_builtin_security_domain_catalog(),
     )
 
     assert not plan.control_selections
@@ -53,4 +55,5 @@ def test_planner_selects_only_provided_compatible_capabilities(tmp_path):
     assert plan.policy_name == "unit-test"
     assert plan.policy_digest == "policy-digest"
     assert plan.catalog_digest == registry.catalog_digest
+    assert plan.security_domain_catalog_digest
     assert "External adapters are selected only when explicitly configured by policy." in plan.exclusions

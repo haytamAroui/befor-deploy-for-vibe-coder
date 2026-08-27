@@ -59,6 +59,15 @@ def render_sarif(result: ScanResult) -> str:
                     "beforeDeployCoverageAudit": (
                         to_primitive(result.coverage_audit) if result.coverage_audit else None
                     ),
+                    "beforeDeploySecurityDomainCatalog": (
+                        {
+                            "version": result.security_analysis_plan.security_domain_catalog_version,
+                            "digest": result.security_analysis_plan.security_domain_catalog_digest,
+                        }
+                        if result.security_analysis_plan
+                        and result.security_analysis_plan.security_domain_catalog_digest
+                        else None
+                    ),
                 },
             }
         ],

@@ -64,6 +64,7 @@ def render_markdown(result: ScanResult) -> str:
                 f"| Plan version | `{_clean(plan.plan_version)}` |",
                 f"| Profile version | `{_clean(plan.profile_version)}` |",
                 f"| Capability catalog | `{_clean(plan.catalog_version)}` (`{_clean(plan.catalog_digest)}`) |",
+                f"| Security domain catalog | `{_clean(plan.security_domain_catalog_version or 'unavailable')}` (`{_clean(plan.security_domain_catalog_digest or 'unavailable')}`) |",
                 f"| Policy provenance | `{_clean(plan.policy_name)}` (`{_clean(plan.policy_digest)}`) |",
                 f"| Evidence signals | {len(plan.evidence)} |",
             ]
@@ -92,11 +93,12 @@ def render_markdown(result: ScanResult) -> str:
             lines.append("- No approved capabilities were selected.")
         if plan.coverage_expectations:
             lines.extend(["", "### Coverage expectations", ""])
-            lines.extend(["| Domain | Evidence | Rationale |", "|---|---|---|"])
+            lines.extend(["| Domain | Domain ID | Evidence | Rationale |", "|---|---|---|---|"])
             for expectation in plan.coverage_expectations:
                 lines.append(
-                    "| {domain} | {evidence} | {rationale} |".format(
+                    "| {domain} | `{domain_id}` | {evidence} | {rationale} |".format(
                         domain=_clean(expectation.domain),
+                        domain_id=_clean(expectation.domain_id or "—"),
                         evidence=_clean(", ".join(expectation.evidence_ids)),
                         rationale=_clean(expectation.rationale),
                     )
@@ -112,12 +114,13 @@ def render_markdown(result: ScanResult) -> str:
             "Coverage is diagnostic only. `COVERED` means the mapped selected capabilities completed; "
             "it is not a claim of exhaustive analysis or a gate decision."
         )
-        lines.extend(["", "| Domain | Status | Capabilities | Evidence | Rationale |", "|---|---|---|---|---|"])
+        lines.extend(["", "| Domain | Domain ID | Status | Capabilities | Evidence | Rationale |", "|---|---|---|---|---|---|"])
         for assessment in coverage_audit.assessments:
             lines.append(
-                "| {domain} | **{status}** | {capabilities} | {evidence} | {rationale} |".format(
-                    domain=_clean(assessment.domain),
-                    status=_clean(assessment.status.value),
+                    "| {domain} | `{domain_id}` | **{status}** | {capabilities} | {evidence} | {rationale} |".format(
+                        domain=_clean(assessment.domain),
+                        domain_id=_clean(assessment.domain_id or "—"),
+                        status=_clean(assessment.status.value),
                     capabilities=_clean(", ".join(assessment.capability_ids) or "—"),
                     evidence=_clean(", ".join(assessment.evidence_ids) or "—"),
                     rationale=_clean(assessment.rationale),

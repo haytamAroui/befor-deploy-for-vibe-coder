@@ -4,7 +4,7 @@
 
 The capability registry is the reviewed metadata layer between technology evidence and the existing controls/adapters. It makes selection traceable without creating executable plugins, autonomous planning, or a second release authority.
 
-> **Authority boundary:** A registry manifest cannot contain a command, executable path, shell fragment, URL, secret, environment override, policy rule, waiver, deployment instruction, or arbitrary scanner argument. It only maps a fixed registered implementation ID to versioned applicability metadata, security domains, and exclusions. The policy engine remains the sole component that produces a release outcome.
+> **Authority boundary:** A registry manifest cannot contain a command, executable path, shell fragment, URL, secret, environment override, policy rule, waiver, deployment instruction, or arbitrary scanner argument. It only maps a fixed registered implementation ID to versioned applicability metadata and exclusions. The separate packaged Security Domain + Control Catalog maps reviewed capabilities to security domains. The policy engine remains the sole component that produces a release outcome.
 
 ## 1. Trusted source and loading model
 
@@ -37,7 +37,6 @@ Each manifest has this strict shape. The fields are data, not instructions.
 | `kind` | `CONTROL` or `ADAPTER`. It describes the already-implemented execution path; it cannot construct one. |
 | `title` | Redaction-safe capability label. |
 | `applies_when` | Optional fixed `languages`, `frameworks`, and/or `requires_github_workflow` predicates evaluated against the deterministic project profile. |
-| `security_domains` | Explicit coverage domains represented by the capability. |
 | `exclusions` | Explicit coverage limits preserved in plan/report output. |
 
 Only the three `applies_when` keys listed above are accepted. A future manifest field requires a schema version, loader validation, documentation, fixtures, and tests before it can be accepted.
@@ -53,11 +52,11 @@ The execution path is deterministic and one-way:
 5. The planner records a `CapabilitySelection` for each runnable implementation.
 6. The policy engine evaluates executions, findings, and waivers as before.
 
-Every `SecurityAnalysisPlan` includes policy name/digest, catalog version/digest, and evidence. Every selection includes its capability ID/version, implementation ID, kind, rationale, policy name/digest, catalog digest, and evidence IDs. This explains a selection without allowing the plan to choose unconfigured tools or modify policy.
+Every `SecurityAnalysisPlan` includes policy name/digest, capability-catalog version/digest, security-domain-catalog version/digest, and evidence. Every selection includes its capability ID/version, implementation ID, kind, rationale, policy name/digest, capability-catalog digest, and evidence IDs. The separate domain catalog attaches stable `DOMAIN-` identifiers to coverage expectations. This explains a selection without allowing the plan to choose unconfigured tools or modify policy.
 
 ## 4. Coverage semantics
 
-The coverage auditor reads the same registry and observed execution statuses. It is diagnostic only.
+The coverage auditor reads the capability registry, the separate domain/control catalog, and observed execution statuses. It is diagnostic only.
 
 | Status | Exact meaning |
 |---|---|
@@ -77,4 +76,4 @@ The initial catalog describes the current native secrets, Python SAST/configurat
 
 A future capability must be introduced only with a real reviewed control or bounded adapter. Add a manifest through `catalog.yaml`, validate the package-data build, test malformed manifests and duplicate references, provide secure/vulnerable fixtures when a detector is added, update domain mappings/exclusions, and document the detection scope. Adding YAML metadata alone must never imply a scanner exists or security coverage is available.
 
-Future declarative skill packs remain deferred. If introduced, they must be metadata-only and resolve only to already registered capabilities. They may not include executable code or expand policy authority.
+For the taxonomy, control contracts, and informative standards-reference boundary, see [`SECURITY_DOMAIN_CONTROL_CATALOG.md`](SECURITY_DOMAIN_CONTROL_CATALOG.md). Future declarative skill packs remain deferred. If introduced, they must be metadata-only and resolve only to already registered capabilities. They may not include executable code or expand policy authority.

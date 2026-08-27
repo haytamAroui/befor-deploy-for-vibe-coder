@@ -9,6 +9,7 @@ from typing import Iterable
 from before_deploy.capabilities import load_builtin_capability_registry
 from before_deploy.controls.base import Control, ControlContext
 from before_deploy.coverage import audit_security_coverage
+from before_deploy.domains import load_builtin_security_domain_catalog
 from before_deploy.evidence import collect_repository_evidence, collect_requirements_evidence
 from before_deploy.inventory import collect_inventory, create_manifest
 from before_deploy.models import (
@@ -47,6 +48,7 @@ class ScanOrchestrator:
         )
         project_profile = detect_project_profile(inventory)
         registry = load_builtin_capability_registry()
+        security_domain_catalog = load_builtin_security_domain_catalog()
         runnable_controls, non_applicable_executions = select_compatible_controls(
             self._controls, project_profile, registry=registry
         )
@@ -57,6 +59,7 @@ class ScanOrchestrator:
             runnable_controls,
             manifest=manifest,
             registry=registry,
+            security_domain_catalog=security_domain_catalog,
         )
         waivers = load_waivers(waiver_path)
         context = ControlContext(
@@ -94,6 +97,7 @@ class ScanOrchestrator:
             project_profile,
             executions,
             registry=registry,
+            security_domain_catalog=security_domain_catalog,
         )
         evaluated_findings, decision = evaluate(
             manifest=manifest,

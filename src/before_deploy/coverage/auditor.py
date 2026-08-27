@@ -1,10 +1,11 @@
-"""Deterministic coverage auditing over registered capabilities and observed executions."""
+"""Deterministic coverage auditing over registered capabilities and a non-executable domain catalog."""
 
 from __future__ import annotations
 
 from collections.abc import Iterable
 
 from before_deploy.capabilities import CapabilityRegistry
+from before_deploy.domains import SecurityDomainCatalog
 from before_deploy.models import (
     CoverageAssessment,
     CoverageAudit,
@@ -14,7 +15,7 @@ from before_deploy.models import (
     SecurityAnalysisPlan,
 )
 
-AUDIT_VERSION = "0.2.0"
+AUDIT_VERSION = "0.3.0"
 
 
 def audit_security_coverage(
@@ -23,8 +24,9 @@ def audit_security_coverage(
     executions: Iterable[object],
     *,
     registry: CapabilityRegistry,
+    security_domain_catalog: SecurityDomainCatalog,
 ) -> CoverageAudit:
-    """Produce diagnostic coverage from registered capability definitions and execution state.
+    """Produce diagnostic coverage from reviewed catalogs and observed execution state.
 
     Coverage never changes policy evaluation. ``NOT_SELECTED`` means a compatible registered capability
     existed but was absent from the active policy selection; ``ERROR`` preserves a selected execution
@@ -36,16 +38,25 @@ def audit_security_coverage(
         for selection in (*plan.control_selections, *plan.adapter_selections)
     }
     assessments = tuple(
-        _assess(expectation, selected, statuses, project_profile, registry)
+        _assess(expectation, selected, statuses, project_profile, registry, security_domain_catalog)
         for expectation in plan.coverage_expectations
     )
     return CoverageAudit(
         audit_version=AUDIT_VERSION,
-        assessments=tuple(sorted(assessments, key=lambda item: item.domain)),
+        assessments=tuple(sorted(assessments, key=lambda item: (item.domain, item.domain_id or ""))),
+        security_domain_catalog_version=security_domain_catalog.catalog_version,
+        security_domain_catalog_digest=security_domain_catalog.catalog_digest,
     )
 
 
-def _assess(expectation, selected, statuses, project_profile, registry) -> CoverageAssessment:
+def _assess(
+    expectation,
+    selected,
+    statuses,
+    project_profile,
+    registry,
+    security_domain_catalog,
+) -> CoverageAssessment:
     if expectation.domain.startswith("Declared requirement:"):
         return CoverageAssessment(
             domain=expectation.domain,
@@ -55,15 +66,17 @@ def _assess(expectation, selected, statuses, project_profile, registry) -> Cover
                 "release decision is derived from the declaration."
             ),
             evidence_ids=expectation.evidence_ids,
+            domain_id=expectation.domain_id,
         )
 
-    candidates = registry.definitions_for_domain(expectation.domain)
+    candidates = _candidate_definitions(expectation, registry, security_domain_catalog)
     if not candidates:
         return CoverageAssessment(
             domain=expectation.domain,
             status=CoverageStatus.UNAVAILABLE,
             rationale="No approved capability in the versioned registry currently covers this domain.",
             evidence_ids=expectation.evidence_ids,
+            domain_id=expectation.domain_id,
         )
 
     selected_definitions = tuple(
@@ -82,6 +95,7 @@ def _assess(expectation, selected, statuses, project_profile, registry) -> Cover
             rationale=rationale,
             capability_ids=tuple(definition.capability_id for definition in candidates),
             evidence_ids=expectation.evidence_ids,
+            domain_id=expectation.domain_id,
         )
 
     execution_statuses = [
@@ -102,4 +116,16 @@ def _assess(expectation, selected, statuses, project_profile, registry) -> Cover
         rationale=rationale,
         capability_ids=tuple(definition.capability_id for definition in selected_definitions),
         evidence_ids=expectation.evidence_ids,
+        domain_id=expectation.domain_id,
+    )
+
+
+def _candidate_definitions(expectation, registry, security_domain_catalog):
+    if expectation.domain_id is None:
+        return registry.definitions_for_domain(expectation.domain)
+    controls = security_domain_catalog.controls_for_domain(expectation.domain_id)
+    return tuple(
+        registry.capabilities[control.capability_id]
+        for control in controls
+        if control.capability_id in registry.capabilities
     )

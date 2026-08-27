@@ -69,23 +69,34 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
     }
     assert all(selection.catalog_digest == plan.catalog_digest for selection in plan.control_selections)
     assert all(selection.policy_digest == plan.policy_digest for selection in plan.control_selections)
+    assert plan.security_domain_catalog_version == "0.1.0"
+    assert plan.security_domain_catalog_digest
     assert not plan.adapter_selections
     assert not plan.skill_selections
 
     coverage = {item.domain: item.status.value for item in result.coverage_audit.assessments}
+    coverage_by_id = {item.domain_id: item.status.value for item in result.coverage_audit.assessments}
+    assert result.coverage_audit.security_domain_catalog_digest == plan.security_domain_catalog_digest
     assert coverage["Framework: Next.js"] == "COVERED"
     assert coverage["CI/CD"] == "COVERED"
     assert coverage["Container"] == "UNAVAILABLE"
     assert coverage["Infrastructure as code"] == "UNAVAILABLE"
     assert coverage["Declared requirement: Authentication"] == "DECLARED_REVIEW_REQUIRED"
     assert coverage["Declared requirement: File upload"] == "DECLARED_REVIEW_REQUIRED"
+    assert coverage_by_id["DOMAIN-SESSION-SECURITY-001"] == "COVERED"
+    assert coverage_by_id["DOMAIN-FILE-UPLOAD-001"] == "UNAVAILABLE"
+    assert coverage_by_id["DOMAIN-PAYMENT-INTEGRATION-001"] == "UNAVAILABLE"
+    assert coverage_by_id["DOMAIN-CONTAINER-SECURITY-001"] == "UNAVAILABLE"
 
     json_report = render_json(result)
     markdown_report = render_markdown(result)
     sarif_report = render_sarif(result)
     assert "security_analysis_plan" in json_report
-    assert "Coverage audit" in markdown_report
+    assert "security_domain_catalog_digest" in json_report
+    assert "Security domain catalog" in markdown_report
+    assert "DOMAIN-SESSION-SECURITY-001" in markdown_report
     assert "beforeDeploySecurityAnalysisPlan" in sarif_report
+    assert "beforeDeploySecurityDomainCatalog" in sarif_report
     assert "JWT-backed login sessions" not in json_report
     assert "JWT-backed login sessions" not in markdown_report
     assert "JWT-backed login sessions" not in sarif_report

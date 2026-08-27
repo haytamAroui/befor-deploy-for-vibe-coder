@@ -1,0 +1,335 @@
+schema_version: 1
+domains:
+  - id: DOMAIN-SECRETS-001
+    version: "0.1.0"
+    title: Secrets and sensitive configuration
+    category: CONFIGURATION_SECURITY
+    description: Source-visible credentials and sensitive configuration exposure.
+    applies_when:
+      repository_wide: true
+    references:
+      - REF-OWASP-CICD
+    exclusions:
+      - Runtime secret-store posture, rotation, and access governance are not inferred.
+  - id: DOMAIN-AUTHENTICATION-001
+    version: "0.1.0"
+    title: Authentication
+    category: APPLICATION_SECURITY
+    description: Authentication mechanisms declared by bounded repository evidence.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-AUTHENTICATION
+    references: []
+    exclusions:
+      - A declared requirement does not prove authentication implementation or MFA posture.
+  - id: DOMAIN-AUTHORIZATION-001
+    version: "0.1.0"
+    title: Authorization
+    category: APPLICATION_SECURITY
+    description: Authorization and access-control behavior requiring dedicated evidence-backed checks.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-AUTHORIZATION
+    references:
+      - REF-OWASP-API-2023
+    exclusions:
+      - Object, function, property, tenant, and business-logic authorization are not inferred.
+  - id: DOMAIN-API-SECURITY-001
+    version: "0.1.0"
+    title: API security
+    category: APPLICATION_SECURITY
+    description: Observable API surfaces and endpoint security declarations.
+    applies_when:
+      frameworks:
+        - FastAPI
+      evidence_signal_ids:
+        - REPOSITORY-API-OPENAPI
+        - REQUIREMENT-API
+    references:
+      - REF-OWASP-API-2023
+    exclusions:
+      - API inventory completeness and object-level authorization are not inferred.
+  - id: DOMAIN-INPUT-VALIDATION-001
+    version: "0.1.0"
+    title: Input validation
+    category: APPLICATION_SECURITY
+    description: Input validation and schema enforcement requiring dedicated implementation evidence.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-API
+    references:
+      - REF-OWASP-API-2023
+    exclusions:
+      - Schema validation, normalization, and runtime limits are not inferred.
+  - id: DOMAIN-INJECTION-001
+    version: "0.1.0"
+    title: Injection protection
+    category: APPLICATION_SECURITY
+    description: Injection risks represented by individually scoped language and scanner controls.
+    applies_when:
+      languages:
+        - Python
+    references: []
+    exclusions:
+      - NoSQL, command, template, LDAP, XPath, XSS, and interprocedural dataflow are not covered by the native Python check.
+  - id: DOMAIN-CORS-001
+    version: "0.1.0"
+    title: Cross-origin resource sharing
+    category: CONFIGURATION_SECURITY
+    description: Static CORS configuration patterns in supported Python and Next.js sources.
+    applies_when:
+      languages:
+        - Python
+      frameworks:
+        - Next.js
+    references: []
+    exclusions:
+      - Runtime, proxy, CDN, and dynamically assembled CORS configuration are not inferred.
+  - id: DOMAIN-SESSION-SECURITY-001
+    version: "0.1.0"
+    title: Session security
+    category: APPLICATION_SECURITY
+    description: Static session-cookie option safety for supported Next.js sources.
+    applies_when:
+      frameworks:
+        - Next.js
+    references: []
+    exclusions:
+      - Session lifetime, token generation, custom wrappers, and computed cookie names are not inferred.
+  - id: DOMAIN-SENSITIVE-DATA-001
+    version: "0.1.0"
+    title: Sensitive data handling
+    category: APPLICATION_SECURITY
+    description: Declared personal-data handling requiring dedicated response and dataflow analysis.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-PERSONAL-DATA
+    references: []
+    exclusions:
+      - Response filtering, encryption, retention, and privacy compliance are not inferred.
+  - id: DOMAIN-ERROR-HANDLING-001
+    version: "0.1.0"
+    title: Error handling
+    category: APPLICATION_SECURITY
+    description: Application error exposure and handling requiring dedicated framework-aware checks.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-API
+    references: []
+    exclusions:
+      - Stack trace, error response, and runtime handler behavior are not inferred.
+  - id: DOMAIN-FILE-UPLOAD-001
+    version: "0.1.0"
+    title: File upload security
+    category: APPLICATION_SECURITY
+    description: Declared upload flows requiring dedicated validation and storage controls.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-FILE-UPLOAD
+    references: []
+    exclusions:
+      - Content validation, malware scanning, storage isolation, and archive safety are not inferred.
+  - id: DOMAIN-DATABASE-SECURITY-001
+    version: "0.1.0"
+    title: Database security
+    category: APPLICATION_SECURITY
+    description: Database access and transport security requiring technology-specific evidence.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-DATABASE
+    references: []
+    exclusions:
+      - TLS, access controls, encryption, backups, and network posture are not inferred.
+  - id: DOMAIN-DATA-INTEGRITY-001
+    version: "0.1.0"
+    title: Data integrity
+    category: APPLICATION_SECURITY
+    description: Transactional and persistence integrity requiring data-model and runtime evidence.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-DATABASE
+    references: []
+    exclusions:
+      - Constraints, transactions, concurrency, and tenant isolation are not inferred.
+  - id: DOMAIN-API-ASSURANCE-001
+    version: "0.1.0"
+    title: API validation and assurance
+    category: ASSURANCE
+    description: API schema, contract, and validation evidence requiring dedicated checks.
+    applies_when:
+      evidence_signal_ids:
+        - REPOSITORY-API-OPENAPI
+        - REQUIREMENT-API
+    references:
+      - REF-OWASP-API-2023
+    exclusions:
+      - OpenAPI presence does not prove request or response validation.
+  - id: DOMAIN-OBSERVABILITY-001
+    version: "0.1.0"
+    title: Security observability
+    category: ASSURANCE
+    description: Security logging and monitoring evidence requiring operational configuration review.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-OBSERVABILITY
+    references:
+      - REF-OWASP-CICD
+    exclusions:
+      - Log content, retention, alerting, and production monitoring are not inferred.
+  - id: DOMAIN-SECURITY-TESTING-001
+    version: "0.1.0"
+    title: Security testing evidence
+    category: ASSURANCE
+    description: Test and verification evidence requiring policy-scoped assurance checks.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-SECURITY-TESTING
+    references:
+      - REF-NIST-SSDF-DRAFT-1-2
+    exclusions:
+      - Test quantity and code coverage percentages do not prove application security.
+  - id: DOMAIN-PRODUCTION-CONFIGURATION-001
+    version: "0.1.0"
+    title: Production configuration
+    category: CONFIGURATION_SECURITY
+    description: Static production-oriented configuration safety in supported sources.
+    applies_when:
+      languages:
+        - Python
+      frameworks:
+        - Next.js
+    references: []
+    exclusions:
+      - Environment-specific deployment configuration and runtime health are not inferred.
+  - id: DOMAIN-SUPPLY-CHAIN-001
+    version: "0.1.0"
+    title: Software supply chain
+    category: SUPPLY_CHAIN_SECURITY
+    description: Dependency, SBOM, and provenance evidence for supported ecosystems and policies.
+    applies_when:
+      languages:
+        - JavaScript
+        - Python
+        - TypeScript
+    references:
+      - REF-SLSA-1-2-TRACKS
+      - REF-OWASP-CICD
+    exclusions:
+      - A green scan does not establish SLSA level, artifact trust, or complete dependency safety.
+  - id: DOMAIN-CICD-SECURITY-001
+    version: "0.1.0"
+    title: CI/CD security
+    category: INFRASTRUCTURE_SECURITY
+    description: Static GitHub Actions workflow hardening evidence.
+    applies_when:
+      evidence_signal_ids:
+        - REPOSITORY-CI-GITHUB-ACTIONS
+    references:
+      - REF-OWASP-CICD
+    exclusions:
+      - Repository settings, runner isolation, identities, and external CI platforms are not inferred.
+  - id: DOMAIN-CONTAINER-SECURITY-001
+    version: "0.1.0"
+    title: Container security
+    category: INFRASTRUCTURE_SECURITY
+    description: Container artifacts requiring dedicated image and runtime security controls.
+    applies_when:
+      evidence_signal_ids:
+        - REPOSITORY-CONTAINER-DOCKERFILE
+        - REPOSITORY-CONTAINER-COMPOSE
+    references: []
+    exclusions:
+      - Image contents, runtime configuration, and orchestration posture are not inspected.
+  - id: DOMAIN-IAC-SECURITY-001
+    version: "0.1.0"
+    title: Infrastructure as code security
+    category: INFRASTRUCTURE_SECURITY
+    description: Infrastructure-as-code artifacts requiring dedicated IaC controls.
+    applies_when:
+      evidence_signal_ids:
+        - REPOSITORY-IAC-TERRAFORM
+    references:
+      - REF-OWASP-CICD
+    exclusions:
+      - Terraform content, cloud IAM, and deployment state are not inspected.
+  - id: DOMAIN-SSRF-001
+    version: "0.1.0"
+    title: Server-side request forgery
+    category: APPLICATION_SECURITY
+    description: User-influenced outbound request behavior requiring dedicated dataflow analysis.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-EXTERNAL-URL-FETCH
+    references:
+      - REF-OWASP-API-2023
+    exclusions:
+      - URL validation and remote-request dataflow are not inferred.
+  - id: DOMAIN-PAYMENT-INTEGRATION-001
+    version: "0.1.0"
+    title: Payment integration security
+    category: APPLICATION_SECURITY
+    description: Declared payment integrations requiring dedicated third-party and business-flow analysis.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-PAYMENT
+    references:
+      - REF-OWASP-API-2023
+    exclusions:
+      - Payment provider configuration, webhooks, and transactional authorization are not inferred.
+  - id: DOMAIN-ENDPOINT-SECURITY-001
+    version: "0.1.0"
+    title: Endpoint security
+    category: APPLICATION_SECURITY
+    description: Endpoint access, method, header, and resource-protection behavior requiring dedicated checks.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-API
+    references:
+      - REF-OWASP-API-2023
+    exclusions:
+      - Endpoint inventory, authentication, request limits, and header behavior are not inferred.
+  - id: DOMAIN-JWT-SECURITY-001
+    version: "0.1.0"
+    title: JSON Web Token security
+    category: APPLICATION_SECURITY
+    description: JWT issuance, validation, storage, and lifecycle controls requiring token-specific evidence.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-AUTHENTICATION
+    references: []
+    exclusions:
+      - JWT use, algorithm selection, token lifetime, key management, and revocation are not inferred.
+  - id: DOMAIN-PASSWORD-SECURITY-001
+    version: "0.1.0"
+    title: Password security
+    category: APPLICATION_SECURITY
+    description: Password storage and verifier controls requiring context-specific authentication evidence.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-AUTHENTICATION
+    references: []
+    exclusions:
+      - Password support, hashing configuration, breach checks, and policy requirements are not inferred.
+  - id: DOMAIN-RATE-LIMITING-001
+    version: "0.1.0"
+    title: Rate limiting and resource consumption
+    category: APPLICATION_SECURITY
+    description: Abuse and resource-consumption controls requiring endpoint and deployment evidence.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-API
+    references:
+      - REF-OWASP-API-2023
+    exclusions:
+      - Limit values, enforcement location, business-flow protections, and runtime behavior are not inferred.
+  - id: DOMAIN-DATABASE-RELIABILITY-001
+    version: "0.1.0"
+    title: Database reliability and performance
+    category: ASSURANCE
+    description: Database performance and reliability behavior separate from direct security vulnerability detection.
+    applies_when:
+      evidence_signal_ids:
+        - REQUIREMENT-DATABASE
+    references: []
+    exclusions:
+      - Query plans, connection pools, cache behavior, and performance characteristics are not inferred.
