@@ -31,8 +31,8 @@ An `EvidenceSignal` contains a versioned signal ID, category, title, path, optio
 | Repository profile | Detected languages, frameworks, and package-manager/lockfile evidence | Reuses the existing bounded inventory and fixed profile markers. |
 | CI/CD | GitHub Actions workflow path | Detects a visible workflow file; does not evaluate hosted runtime behavior. |
 | API | OpenAPI or Swagger document path | Identifies an API contract artifact; does not validate endpoint authorization. |
-| Container | Dockerfile or Compose file path | Identifies container artifacts; no container-image or runtime analysis is installed. |
-| Infrastructure as code | Terraform file path | Identifies `.tf` configuration; no IaC scanner is installed in this milestone. |
+| Container | Dockerfile, Containerfile, or Compose file path | Identifies container artifacts. The opt-in Trivy adapter covers only staged Dockerfile/Containerfile configuration; it does not inspect images, Compose, registries, or runtime state. |
+| Infrastructure as code | Terraform file path | Identifies `.tf` configuration. The opt-in Trivy adapter covers only staged Terraform `.tf` configuration; it does not inspect plans, tfvars, modules, providers, state, or cloud runtime state. |
 | Declared requirements | Authentication, API, file-upload, payment, and personal-data phrases in named Markdown documents | Creates a declared-domain signal only; it never concludes that the feature exists or is secure. |
 
 The requirements collector inspects only root `README.*`, root `architecture.md`, `design.md`, `requirements.md`, `spec.md`, `specification.md`, and Markdown files under `docs/`. It does **not** treat Python dependency files such as `requirements.txt` as product requirements, and it ignores unbounded generic text files. Each recognized domain is reported once at its first deterministic document location.
@@ -65,7 +65,7 @@ The coverage auditor uses only the plan, the versioned capability registry, the 
 | `NOT_APPLICABLE` | All mapped approved capabilities are incompatible with the repository. |
 | `DECLARED_REVIEW_REQUIRED` | A bounded documentation signal declared a domain. It requires implementation review; the signal is not a finding and cannot alter the gate. |
 
-Current mapped coverage is intentionally modest: repository-wide secrets, Python source/configuration, FastAPI, three Next.js static controls, one bounded Server Action local-guard-marker contract, dependency-manifest checks, and GitHub Actions. Container and Terraform evidence correctly become visible `UNAVAILABLE` states because no corresponding scanner is installed. This makes the limitation observable rather than implying coverage.
+Current mapped coverage is intentionally modest: repository-wide secrets, Python source/configuration, FastAPI, three Next.js static controls, one bounded Server Action local-guard-marker contract, dependency-manifest checks, GitHub Actions, and an opt-in staged Trivy Dockerfile/Containerfile/Terraform configuration adapter. For a compatible repository, container and Terraform evidence become `NOT_SELECTED` under policies that do not select Trivy, and can become `COVERED`, `PARTIAL`, or `ERROR` only through a selected observed adapter execution. These scope-limited states remain diagnostic and never imply image, runtime, cloud, or comprehensive IaC assurance.
 
 ## 5. Reports and redaction
 

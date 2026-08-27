@@ -13,7 +13,7 @@ The built-in registry is shipped as package data under `src/before_deploy/capabi
 | Item | Current rule |
 |---|---|
 | Catalog schema | `1` |
-| Catalog version | `0.1.0` |
+| Catalog version | `0.7.0` |
 | Catalog digest | SHA-256 over canonical schema-approved semantic fields, not raw YAML formatting or source paths. |
 | Manifest source | Packaged, version-controlled YAML listed by `catalog.yaml`. |
 | Duplicate YAML mapping keys | Rejected. |
@@ -22,7 +22,7 @@ The built-in registry is shipped as package data under `src/before_deploy/capabi
 | Duplicate capability IDs or implementation IDs | Rejected. |
 | Policy-to-registry check | Every configured policy control is covered by a test-backed registered implementation. |
 
-The registry contains only capabilities for controls and bounded adapters already implemented in this repository. It deliberately does not pre-register Go, PHP, Rust, Terraform, Kubernetes, CodeQL, Trivy, OSV, or any other capability without a real reviewed implementation and regression fixtures.
+The registry contains only capabilities for controls and bounded adapters already implemented in this repository. It deliberately does not pre-register PHP, Rust, Kubernetes, CodeQL, OSV, or any other capability without a real reviewed implementation and regression fixtures. The registered Trivy capability covers only its implemented staged Dockerfile/Containerfile and Terraform `.tf` configuration boundary; it is not a generic infrastructure-scanner registration.
 
 ## 2. Capability manifest contract
 
@@ -36,10 +36,10 @@ Each manifest has this strict shape. The fields are data, not instructions.
 | `implementation_id` | Exactly one existing approved control/adapter ID, such as `SEC-NEXT-ENV-001`. |
 | `kind` | `CONTROL` or `ADAPTER`. It describes the already-implemented execution path; it cannot construct one. |
 | `title` | Redaction-safe capability label. |
-| `applies_when` | Optional fixed `languages`, `frameworks`, and/or `requires_github_workflow` predicates evaluated against the deterministic project profile. |
+| `applies_when` | Optional fixed `languages`, `frameworks`, `requires_github_workflow`, and/or `required_project_signals` predicates evaluated against the deterministic project profile. |
 | `exclusions` | Explicit coverage limits preserved in plan/report output. |
 
-Only the three `applies_when` keys listed above are accepted. A future manifest field requires a schema version, loader validation, documentation, fixtures, and tests before it can be accepted.
+Only the four `applies_when` keys listed above are accepted. A future manifest field requires a schema version, loader validation, documentation, fixtures, and tests before it can be accepted.
 
 ## 3. Selection and provenance
 
@@ -70,7 +70,7 @@ The coverage auditor reads the capability registry, the separate domain/control 
 
 ## 5. Current capability boundary
 
-The current catalog describes native secrets, Python SAST/configuration, FastAPI static routes plus dynamic-route review metadata, Next.js public-environment/cookie/CORS plus one Server Action local-guard-marker control, GitHub Actions, dependency-manifest, offline Go snapshot, and SBOM controls. It also describes the existing Gitleaks, Semgrep, pip-audit, Gosec, and offline provenance adapters. Adapter manifests never carry their executable, version pin, timeouts, paths, or arguments; these remain explicit policy and adapter-code concerns.
+The current catalog describes native secrets, Python SAST/configuration, FastAPI static routes plus dynamic-route review metadata, Next.js public-environment/cookie/CORS plus one Server Action local-guard-marker control, GitHub Actions, dependency-manifest, offline Go snapshot, and SBOM controls. It also describes the existing Gitleaks, Semgrep, pip-audit, Gosec, offline provenance, and staged Trivy Dockerfile/Containerfile/Terraform configuration adapters. Adapter manifests never carry their executable, version pin, timeouts, paths, or arguments; these remain explicit policy and adapter-code concerns.
 
 ## 6. Adding a future capability
 
