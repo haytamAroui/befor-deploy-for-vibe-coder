@@ -1,0 +1,13 @@
+schema_version: 1
+id: adapter.semgrep-python-local
+version: "0.1.0"
+implementation_id: SEC-SAST-SEMGREP-001
+kind: ADAPTER
+title: Isolated local Semgrep adapter
+applies_when:
+  languages:
+    - Python
+security_domains:
+  - "Language: Python"
+exclusions:
+  - Requires explicit policy configuration and the checked-in Python-only rule pack.

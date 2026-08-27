@@ -70,8 +70,10 @@ class CoverageStatus(str, Enum):
     COVERED = "COVERED"
     PARTIAL = "PARTIAL"
     UNAVAILABLE = "UNAVAILABLE"
+    NOT_SELECTED = "NOT_SELECTED"
     NOT_APPLICABLE = "NOT_APPLICABLE"
     DECLARED_REVIEW_REQUIRED = "DECLARED_REVIEW_REQUIRED"
+    ERROR = "ERROR"
 
 
 @dataclass(frozen=True)
@@ -199,12 +201,16 @@ class EvidenceSignal:
 
 @dataclass(frozen=True)
 class CapabilitySelection:
-    """One approved capability selected by a deterministic plan with traceable evidence."""
+    """One approved capability selected by a deterministic plan with traceable provenance."""
 
     capability_id: str
     capability_version: str
+    implementation_id: str
     kind: str
     rationale: str
+    policy_name: str
+    policy_digest: str
+    catalog_digest: str
     evidence_ids: tuple[str, ...] = ()
 
 
@@ -224,6 +230,9 @@ class SecurityAnalysisPlan:
     plan_version: str
     profile_version: str
     catalog_version: str
+    catalog_digest: str
+    policy_name: str
+    policy_digest: str
     evidence: tuple[EvidenceSignal, ...]
     control_selections: tuple[CapabilitySelection, ...]
     adapter_selections: tuple[CapabilitySelection, ...]

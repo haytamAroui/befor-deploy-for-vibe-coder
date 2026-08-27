@@ -1,0 +1,15 @@
+schema_version: 1
+id: control.native.nextjs-public-env
+version: "0.1.0"
+implementation_id: SEC-NEXT-ENV-001
+kind: CONTROL
+title: Next.js sensitive public environment-name check
+applies_when:
+  frameworks:
+    - Next.js
+security_domains:
+  - "Framework: Next.js"
+  - "Language: JavaScript"
+  - "Language: TypeScript"
+exclusions:
+  - Only direct NEXT_PUBLIC references with sensitive-looking names are covered.

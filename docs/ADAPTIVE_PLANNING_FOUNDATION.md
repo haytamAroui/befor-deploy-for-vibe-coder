@@ -2,7 +2,7 @@
 
 **Status:** Implemented deterministic foundation
 
-Before Deploy now records a versioned **Security Analysis Plan** for every completed scan. The plan is a redaction-safe explanation of which approved capabilities were selected from bounded repository evidence. It is not a release decision, a scanner executor, a waiver mechanism, or an AI agent.
+Before Deploy now records a versioned **Security Analysis Plan** for every completed scan. The plan is a redaction-safe explanation of which approved registry capabilities were selected from bounded repository evidence and the active policy. It is not a release decision, a scanner executor, a waiver mechanism, or an AI agent.
 
 > **Authority boundary:** Only the versioned policy engine can return `PASS`, `BLOCK`, `WAIVER_REQUIRED`, `ERROR`, or `NOT_EVALUATED`. Evidence collection, planning, and coverage auditing are diagnostic. They cannot add a capability, mutate a policy, suppress a finding, execute project code, create a waiver, merge, deploy, or access source values outside the existing bounded scan scope.
 
@@ -14,8 +14,9 @@ Before Deploy now records a versioned **Security Analysis Plan** for every compl
 | Repository evidence collector | Inventory and project profile | Redaction-safe technology, CI, API, container, and IaC signals | Proves only observable repository facts. |
 | Requirements evidence collector | Explicit bounded documentation files | Declared-domain signals with path and line only | Does not prove implementation. |
 | Adaptive project profiler | Extensions, manifests, lockfiles, fixed markers | Languages, frameworks, package managers, and compatibility gaps | Selects no new policy. |
-| Security analysis planner | Profile, evidence, and already-compatible configured controls | Versioned selected capabilities, coverage expectations, and exclusions | Describes existing approved selections only. |
-| Coverage auditor | Analysis plan and observed control executions | Deterministic coverage statuses | Cannot affect the policy result. |
+| Declarative capability registry | Packaged, version-controlled YAML manifests | Validated approved capability definitions and semantic catalog digest | Metadata-only; cannot execute code or configure a tool. |
+| Security analysis planner | Profile, evidence, registry, and already-compatible configured controls | Versioned selected capabilities with policy/catalog provenance, coverage expectations, and exclusions | Describes existing approved selections only. |
+| Coverage auditor | Analysis plan, registry, profile, and observed control executions | Deterministic coverage statuses | Cannot affect the policy result. |
 | Policy engine | Normalized executions, findings, waivers, selected policy | Final release outcome | Sole release authority. |
 
 The planner runs only after the configured controls have been filtered through the existing compatibility catalog. It cannot discover a tool on `PATH`, activate an unconfigured adapter, or run a capability merely because a document mentions it.
@@ -37,7 +38,7 @@ The requirements collector inspects only root `README.*`, root `architecture.md`
 
 ## 3. Security Analysis Plan
 
-`SecurityAnalysisPlan` is immutable and contains a plan version, profile version, capability-catalog version, ordered evidence, and the selections listed below.
+`SecurityAnalysisPlan` is immutable and contains a plan version, profile version, policy name/digest, capability-catalog version/digest, ordered evidence, and the selections listed below.
 
 | Plan field | Meaning in this milestone |
 |---|---|
@@ -56,9 +57,11 @@ The coverage auditor uses only the plan, the versioned domain-to-capability cata
 | Status | Meaning |
 |---|---|
 | `COVERED` | Every selected capability mapped to the domain completed. This is not a claim of exhaustive analysis or deployment security. |
-| `PARTIAL` | At least one selected mapped capability did not complete. |
-| `UNAVAILABLE` | The catalog has no approved capability for the observed domain, or it was not selected by the configured policy. |
-| `NOT_APPLICABLE` | A mapped capability was explicitly recorded as incompatible for the repository. |
+| `PARTIAL` | At least one selected mapped capability did not complete without an execution error. |
+| `ERROR` | A selected mapped capability returned an execution error; this remains distinct from security findings. |
+| `UNAVAILABLE` | The registry has no approved capability for the observed domain. |
+| `NOT_SELECTED` | A compatible approved capability exists, but the active policy did not select it. |
+| `NOT_APPLICABLE` | All mapped approved capabilities are incompatible with the repository. |
 | `DECLARED_REVIEW_REQUIRED` | A bounded documentation signal declared a domain. It requires implementation review; the signal is not a finding and cannot alter the gate. |
 
 Current mapped coverage is intentionally modest: repository-wide secrets, Python source/configuration, FastAPI, Next.js static controls, dependency-manifest checks, and GitHub Actions. Container and Terraform evidence correctly become visible `UNAVAILABLE` states because no corresponding scanner is installed. This makes the limitation observable rather than implying coverage.
@@ -69,4 +72,4 @@ The complete plan and audit are included in the canonical JSON report. Markdown 
 
 ## 6. Deferred expansion
 
-The next evolution may add declarative skill metadata, but not agent code. A future skill must have a fixed ID/version, deterministic applicability conditions, approved control/adapter references, documented exclusions, validation fixtures, and no arbitrary executable payload. A future read-only AI advisor may explain normalized redacted plan/audit output, but it cannot determine applicability, choose tools, execute commands, change policy, create waivers, or influence the gate outcome.
+The next evolution may add declarative skill metadata, but not agent code. A future skill must have a fixed ID/version, deterministic applicability conditions, approved control/adapter references, documented exclusions, validation fixtures, and no arbitrary executable payload. It must resolve only to registry capabilities and meet the strict validation contract in [`DECLARATIVE_CAPABILITY_REGISTRY.md`](DECLARATIVE_CAPABILITY_REGISTRY.md). A future read-only AI advisor may explain normalized redacted plan/audit output, but it cannot determine applicability, choose tools, execute commands, change policy, create waivers, or influence the gate outcome.

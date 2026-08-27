@@ -1,0 +1,11 @@
+schema_version: 1
+id: control.native.release-sbom
+version: "0.1.0"
+implementation_id: SEC-RELEASE-001
+kind: CONTROL
+title: CycloneDX SBOM presence check
+applies_when: {}
+security_domains:
+  - Release evidence
+exclusions:
+  - SBOM generation, integrity validation, and artifact attestation are separate capabilities.

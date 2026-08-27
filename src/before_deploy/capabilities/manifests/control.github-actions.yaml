@@ -1,0 +1,13 @@
+schema_version: 1
+id: control.native.github-actions
+version: "0.1.0"
+implementation_id: SEC-CICD-001
+kind: CONTROL
+title: GitHub Actions workflow hardening check
+applies_when:
+  requires_github_workflow: true
+security_domains:
+  - CI/CD
+  - "Framework: GitHub Actions"
+exclusions:
+  - Hosted workflow runtime behavior is not evaluated.

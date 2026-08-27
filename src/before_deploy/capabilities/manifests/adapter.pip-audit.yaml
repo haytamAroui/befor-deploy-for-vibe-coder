@@ -1,0 +1,14 @@
+schema_version: 1
+id: adapter.pip-audit-python
+version: "0.1.0"
+implementation_id: SEC-DEP-VULN-001
+kind: ADAPTER
+title: Isolated pip-audit dependency-vulnerability adapter
+applies_when:
+  languages:
+    - Python
+security_domains:
+  - Dependency manifests
+  - "Language: Python"
+exclusions:
+  - Requires explicit policy configuration and does not analyze non-Python packages.

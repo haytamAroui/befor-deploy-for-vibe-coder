@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+from before_deploy.capabilities import CapabilityRegistry, load_builtin_capability_registry
 from before_deploy.inventory import RepositoryInventory
 from before_deploy.models import ControlExecution, ExecutionStatus, ProjectProfile, utc_now
 
@@ -56,53 +56,6 @@ _FRAMEWORK_MARKERS = {
     "Next.js": ("next",),
     "Rails": ("rails",),
     "Spring": ("spring-boot", "org.springframework"),
-}
-
-
-@dataclass(frozen=True)
-class ControlCompatibility:
-    """One bounded applicability rule for a deterministic control."""
-
-    control_id: str
-    languages: frozenset[str] = frozenset()
-    frameworks: frozenset[str] = frozenset()
-    requires_github_workflow: bool = False
-
-
-_CAPABILITY_CATALOG = {
-    "SEC-API-001": ControlCompatibility(
-        control_id="SEC-API-001", frameworks=frozenset({"FastAPI"})
-    ),
-    "SEC-CICD-001": ControlCompatibility(
-        control_id="SEC-CICD-001", requires_github_workflow=True
-    ),
-    "SEC-CONFIG-001": ControlCompatibility(
-        control_id="SEC-CONFIG-001", languages=frozenset({"Python"})
-    ),
-    "SEC-CONFIG-002": ControlCompatibility(
-        control_id="SEC-CONFIG-002", languages=frozenset({"Python"})
-    ),
-    "SEC-DEP-001": ControlCompatibility(
-        control_id="SEC-DEP-001", languages=frozenset({"JavaScript", "Python", "TypeScript"})
-    ),
-    "SEC-DEP-VULN-001": ControlCompatibility(
-        control_id="SEC-DEP-VULN-001", languages=frozenset({"Python"})
-    ),
-    "SEC-NEXT-ENV-001": ControlCompatibility(
-        control_id="SEC-NEXT-ENV-001", frameworks=frozenset({"Next.js"})
-    ),
-    "SEC-NEXT-COOKIE-001": ControlCompatibility(
-        control_id="SEC-NEXT-COOKIE-001", frameworks=frozenset({"Next.js"})
-    ),
-    "SEC-NEXT-CORS-001": ControlCompatibility(
-        control_id="SEC-NEXT-CORS-001", frameworks=frozenset({"Next.js"})
-    ),
-    "SEC-SAST-001": ControlCompatibility(
-        control_id="SEC-SAST-001", languages=frozenset({"Python"})
-    ),
-    "SEC-SAST-SEMGREP-001": ControlCompatibility(
-        control_id="SEC-SAST-SEMGREP-001", languages=frozenset({"Python"})
-    ),
 }
 
 
@@ -164,15 +117,25 @@ def detect_project_profile(inventory: RepositoryInventory) -> ProjectProfile:
 
 
 def select_compatible_controls(
-    controls: Iterable[object], project_profile: ProjectProfile
+    controls: Iterable[object],
+    project_profile: ProjectProfile,
+    *,
+    registry: CapabilityRegistry | None = None,
 ) -> tuple[tuple[object, ...], tuple[ControlExecution, ...]]:
-    """Return runnable controls and explicit NOT_APPLICABLE executions for incompatible capabilities."""
+    """Return approved runnable controls and explicit non-applicability executions.
+
+    A control without exactly one registered capability is a construction error, not an implicit generic
+    capability. The registry remains metadata-only; it never constructs or executes a control.
+    """
+    active_registry = registry or load_builtin_capability_registry()
     runnable: list[object] = []
     non_applicable: list[ControlExecution] = []
     for control in controls:
         control_id = getattr(control, "control_id")
-        compatibility = _CAPABILITY_CATALOG.get(control_id)
-        reason = _non_applicability_reason(compatibility, project_profile)
+        definition = active_registry.definition_for_implementation(control_id)
+        if definition is None:
+            raise ValueError(f"No approved capability is registered for control: {control_id}")
+        reason = _non_applicability_reason(definition, project_profile)
         if reason is None:
             runnable.append(control)
             continue
@@ -186,7 +149,11 @@ def select_compatible_controls(
                 completed_at=now,
                 applicable=False,
                 message=reason,
-                metadata={"adaptive_profile": "deterministic"},
+                metadata={
+                    "adaptive_profile": "deterministic",
+                    "capability_id": definition.capability_id,
+                    "catalog_digest": active_registry.catalog_digest,
+                },
             )
         )
     return tuple(runnable), tuple(non_applicable)
@@ -225,17 +192,13 @@ def _coverage_gaps(languages: set[str], frameworks: set[str]) -> tuple[str, ...]
     return tuple(gaps)
 
 
-def _non_applicability_reason(
-    compatibility: ControlCompatibility | None, project_profile: ProjectProfile
-) -> str | None:
-    if compatibility is None:
-        return None
-    if compatibility.languages and not compatibility.languages.intersection(project_profile.languages):
-        supported = ", ".join(sorted(compatibility.languages))
+def _non_applicability_reason(definition, project_profile: ProjectProfile) -> str | None:
+    if definition.languages and not definition.languages.intersection(project_profile.languages):
+        supported = ", ".join(sorted(definition.languages))
         return f"Adaptive profile: this control requires one of [{supported}]."
-    if compatibility.frameworks and not compatibility.frameworks.intersection(project_profile.frameworks):
-        supported = ", ".join(sorted(compatibility.frameworks))
+    if definition.frameworks and not definition.frameworks.intersection(project_profile.frameworks):
+        supported = ", ".join(sorted(definition.frameworks))
         return f"Adaptive profile: this control requires one of [{supported}]."
-    if compatibility.requires_github_workflow and "framework:GitHub Actions" not in project_profile.signals:
+    if definition.requires_github_workflow and "framework:GitHub Actions" not in project_profile.signals:
         return "Adaptive profile: no GitHub Actions workflow was detected."
     return None

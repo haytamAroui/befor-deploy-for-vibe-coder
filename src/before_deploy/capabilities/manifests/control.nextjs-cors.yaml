@@ -1,0 +1,15 @@
+schema_version: 1
+id: control.native.nextjs-static-cors
+version: "0.1.0"
+implementation_id: SEC-NEXT-CORS-001
+kind: CONTROL
+title: Next.js credentialed wildcard CORS header check
+applies_when:
+  frameworks:
+    - Next.js
+security_domains:
+  - "Framework: Next.js"
+  - "Language: JavaScript"
+  - "Language: TypeScript"
+exclusions:
+  - Middleware, proxies, runtime headers, and dynamic configuration are not evaluated.

@@ -1,0 +1,11 @@
+schema_version: 1
+id: adapter.github-attestation-offline
+version: "0.1.0"
+implementation_id: SEC-PROVENANCE-001
+kind: ADAPTER
+title: Offline GitHub artifact-attestation verification adapter
+applies_when: {}
+security_domains:
+  - Release evidence
+exclusions:
+  - Requires explicit policy configuration and locally supplied artifact and attestation evidence.

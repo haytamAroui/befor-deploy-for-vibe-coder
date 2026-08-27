@@ -1,0 +1,11 @@
+schema_version: 1
+id: adapter.gitleaks-directory
+version: "0.1.0"
+implementation_id: SEC-SECRET-GITLEAKS-001
+kind: ADAPTER
+title: Isolated Gitleaks directory-scan adapter
+applies_when: {}
+security_domains:
+  - Secrets
+exclusions:
+  - Requires explicit policy configuration and does not scan Git history.

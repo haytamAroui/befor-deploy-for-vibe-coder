@@ -63,19 +63,26 @@ def render_markdown(result: ScanResult) -> str:
                 "|---|---|",
                 f"| Plan version | `{_clean(plan.plan_version)}` |",
                 f"| Profile version | `{_clean(plan.profile_version)}` |",
-                f"| Capability catalog version | `{_clean(plan.catalog_version)}` |",
+                f"| Capability catalog | `{_clean(plan.catalog_version)}` (`{_clean(plan.catalog_digest)}`) |",
+                f"| Policy provenance | `{_clean(plan.policy_name)}` (`{_clean(plan.policy_digest)}`) |",
                 f"| Evidence signals | {len(plan.evidence)} |",
             ]
         )
         selections = (*plan.control_selections, *plan.adapter_selections, *plan.skill_selections)
         lines.extend(["", "### Selected approved capabilities", ""])
         if selections:
-            lines.extend(["| Kind | Capability | Version | Evidence | Rationale |", "|---|---|---|---|---|"])
+            lines.extend(
+                [
+                    "| Kind | Capability | Implementation | Version | Evidence | Rationale |",
+                    "|---|---|---|---|---|---|",
+                ]
+            )
             for selection in selections:
                 lines.append(
-                    "| {kind} | `{capability}` | `{version}` | {evidence} | {rationale} |".format(
+                    "| {kind} | `{capability}` | `{implementation}` | `{version}` | {evidence} | {rationale} |".format(
                         kind=_clean(selection.kind),
                         capability=_clean(selection.capability_id),
+                        implementation=_clean(selection.implementation_id),
                         version=_clean(selection.capability_version),
                         evidence=_clean(", ".join(selection.evidence_ids) or "repository-wide"),
                         rationale=_clean(selection.rationale),

@@ -1,0 +1,13 @@
+schema_version: 1
+id: control.native.python-debug-config
+version: "0.1.0"
+implementation_id: SEC-CONFIG-001
+kind: CONTROL
+title: Python production debug configuration check
+applies_when:
+  languages:
+    - Python
+security_domains:
+  - "Language: Python"
+exclusions:
+  - Deployed effective configuration is not established.

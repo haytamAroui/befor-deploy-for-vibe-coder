@@ -6,6 +6,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Iterable
 
+from before_deploy.capabilities import load_builtin_capability_registry
 from before_deploy.controls.base import Control, ControlContext
 from before_deploy.coverage import audit_security_coverage
 from before_deploy.evidence import collect_repository_evidence, collect_requirements_evidence
@@ -45,12 +46,17 @@ class ScanOrchestrator:
             policy_name=profile.name,
         )
         project_profile = detect_project_profile(inventory)
+        registry = load_builtin_capability_registry()
         runnable_controls, non_applicable_executions = select_compatible_controls(
-            self._controls, project_profile
+            self._controls, project_profile, registry=registry
         )
         evidence = (*collect_repository_evidence(inventory, project_profile), *collect_requirements_evidence(inventory))
         security_analysis_plan = build_security_analysis_plan(
-            project_profile, evidence, runnable_controls
+            project_profile,
+            evidence,
+            runnable_controls,
+            manifest=manifest,
+            registry=registry,
         )
         waivers = load_waivers(waiver_path)
         context = ControlContext(
@@ -83,7 +89,12 @@ class ScanOrchestrator:
             executions.append(result.execution)
             findings.extend(result.findings)
 
-        coverage_audit = audit_security_coverage(security_analysis_plan, executions)
+        coverage_audit = audit_security_coverage(
+            security_analysis_plan,
+            project_profile,
+            executions,
+            registry=registry,
+        )
         evaluated_findings, decision = evaluate(
             manifest=manifest,
             executions=tuple(executions),

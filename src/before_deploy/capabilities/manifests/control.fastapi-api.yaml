@@ -1,0 +1,14 @@
+schema_version: 1
+id: control.native.fastapi-api
+version: "0.1.0"
+implementation_id: SEC-API-001
+kind: CONTROL
+title: FastAPI mutating-route authentication declaration check
+applies_when:
+  frameworks:
+    - FastAPI
+security_domains:
+  - API security
+  - "Framework: FastAPI"
+exclusions:
+  - Declared dependencies do not prove effective authorization.

@@ -60,13 +60,15 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
         "REQUIREMENT-PAYMENT",
         "REQUIREMENT-PERSONAL-DATA",
     } <= evidence_ids
-    assert {selection.capability_id for selection in plan.control_selections} >= {
+    assert {selection.implementation_id for selection in plan.control_selections} >= {
         "SEC-NEXT-ENV-001",
         "SEC-NEXT-COOKIE-001",
         "SEC-NEXT-CORS-001",
         "SEC-CICD-001",
         "SEC-DEP-001",
     }
+    assert all(selection.catalog_digest == plan.catalog_digest for selection in plan.control_selections)
+    assert all(selection.policy_digest == plan.policy_digest for selection in plan.control_selections)
     assert not plan.adapter_selections
     assert not plan.skill_selections
 

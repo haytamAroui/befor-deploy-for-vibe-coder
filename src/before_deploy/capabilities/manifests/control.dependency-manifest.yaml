@@ -1,0 +1,15 @@
+schema_version: 1
+id: control.native.dependency-manifest
+version: "0.1.0"
+implementation_id: SEC-DEP-001
+kind: CONTROL
+title: Dependency manifest and lockfile presence check
+applies_when:
+  languages:
+    - JavaScript
+    - Python
+    - TypeScript
+security_domains:
+  - Dependency manifests
+exclusions:
+  - Vulnerability analysis and unsupported package ecosystems are not covered.

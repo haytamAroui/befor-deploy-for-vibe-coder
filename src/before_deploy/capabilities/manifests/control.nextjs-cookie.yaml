@@ -1,0 +1,15 @@
+schema_version: 1
+id: control.native.nextjs-session-cookie
+version: "0.1.0"
+implementation_id: SEC-NEXT-COOKIE-001
+kind: CONTROL
+title: Next.js explicit unsafe session-cookie option check
+applies_when:
+  frameworks:
+    - Next.js
+security_domains:
+  - "Framework: Next.js"
+  - "Language: JavaScript"
+  - "Language: TypeScript"
+exclusions:
+  - Missing options, custom wrappers, and computed names are not inferred.

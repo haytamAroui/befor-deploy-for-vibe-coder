@@ -1,0 +1,123 @@
+from pathlib import Path
+
+import pytest
+
+from before_deploy.capabilities import (
+    load_builtin_capability_registry,
+    load_capability_registry,
+)
+from before_deploy.policy import load_policy
+
+
+REPOSITORY = Path(__file__).parents[2]
+
+
+def test_builtin_registry_is_versioned_and_contains_only_approved_implementations():
+    first = load_builtin_capability_registry()
+    second = load_builtin_capability_registry()
+
+    assert first.schema_version == 1
+    assert first.catalog_version == "0.1.0"
+    assert first.catalog_digest == second.catalog_digest
+    assert len(first.capabilities) == 15
+    assert first.definition_for_implementation("SEC-NEXT-ENV-001").capability_id == (
+        "control.native.nextjs-public-env"
+    )
+    assert first.definition_for_implementation("SEC-UNREGISTERED-001") is None
+
+
+def test_every_configured_policy_control_has_one_approved_capability_definition():
+    registry = load_builtin_capability_registry()
+    registered = {
+        definition.implementation_id for definition in registry.capabilities.values()
+    }
+
+    for policy_path in sorted((REPOSITORY / "rules").glob("*.yaml")):
+        profile = load_policy(policy_path)
+        assert set(profile.controls) <= registered, policy_path.name
+
+
+def test_registry_rejects_unknown_executable_field(tmp_path):
+    _write_registry(
+        tmp_path,
+        """schema_version: 1
+id: control.example
+version: "0.1.0"
+implementation_id: SEC-SECRET-001
+kind: CONTROL
+title: Example
+applies_when: {}
+security_domains: [Secrets]
+exclusions: []
+command: curl https://example.test
+""",
+    )
+
+    with pytest.raises(ValueError, match="Unsupported fields"):
+        load_capability_registry(tmp_path)
+
+
+def test_registry_rejects_url_or_command_marker_in_permitted_text_field(tmp_path):
+    _write_registry(
+        tmp_path,
+        """schema_version: 1
+id: control.example
+version: "0.1.0"
+implementation_id: SEC-SECRET-001
+kind: CONTROL
+title: https://untrusted.example/command
+applies_when: {}
+security_domains: [Secrets]
+exclusions: []
+""",
+    )
+
+    with pytest.raises(ValueError, match="forbidden executable or URL marker"):
+        load_capability_registry(tmp_path)
+
+
+def test_registry_rejects_unapproved_implementation_and_duplicate_yaml_keys(tmp_path):
+    _write_registry(
+        tmp_path,
+        """schema_version: 1
+id: control.example
+version: "0.1.0"
+implementation_id: SEC-UNAPPROVED-001
+kind: CONTROL
+title: Example
+applies_when: {}
+security_domains: [Secrets]
+exclusions: []
+""",
+    )
+    with pytest.raises(ValueError, match="unapproved implementation"):
+        load_capability_registry(tmp_path)
+
+    _write_registry(
+        tmp_path,
+        """schema_version: 1
+id: control.example
+id: control.duplicate
+version: "0.1.0"
+implementation_id: SEC-SECRET-001
+kind: CONTROL
+title: Example
+applies_when: {}
+security_domains: [Secrets]
+exclusions: []
+""",
+    )
+    with pytest.raises(ValueError, match="Unable to load capability manifest"):
+        load_capability_registry(tmp_path)
+
+
+def _write_registry(directory, manifest: str) -> None:
+    (directory / "catalog.yaml").write_text(
+        """schema_version: 1
+catalog_version: "test"
+manifests:
+  - example.yaml
+""",
+        encoding="utf-8",
+    )
+    (directory / "example.yaml").write_text(manifest, encoding="utf-8")

@@ -1,0 +1,13 @@
+schema_version: 1
+id: control.native.python-sast
+version: "0.1.0"
+implementation_id: SEC-SAST-001
+kind: CONTROL
+title: Native Python SQL interpolation detection
+applies_when:
+  languages:
+    - Python
+security_domains:
+  - "Language: Python"
+exclusions:
+  - Only direct SQL interpolation passed to execute calls is covered.

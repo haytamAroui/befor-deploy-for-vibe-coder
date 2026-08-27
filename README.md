@@ -11,11 +11,11 @@ The current release is a local and CI-ready Python CLI with deterministic adapti
 | Area | Current capability |
 |---|---|
 | **Repository evidence** | Deterministic inventory, repository digest, policy digest, Git revision when available, explicit scope limitations, and bounded repository/requirements evidence signals. |
-| **Adaptive planning** | Local profile plus a versioned `SecurityAnalysisPlan` that records approved compatible controls, explicitly policy-configured adapters, coverage expectations, exclusions, and traceable evidence. |
+| **Adaptive planning** | Local profile plus a strict packaged capability registry and versioned `SecurityAnalysisPlan` that records approved compatible controls, explicitly policy-configured adapters, catalog/policy provenance, coverage expectations, exclusions, and traceable evidence. |
 | **Native controls** | High-confidence secret patterns, selected Python SQL interpolation, FastAPI mutating-route authentication declarations, Python debug/CORS patterns, Next.js public-environment, session-cookie, and static-CORS checks, GitHub Actions hardening, dependency lockfile presence, and a release SBOM check. |
 | **External adapters** | Optional Gitleaks directory scan, Python Semgrep local-rule scan, Python dependency-vulnerability evidence, and offline provenance verification, each with bounded execution and redacted normalization. |
 | **Policy** | Versioned YAML profiles, explicit block/waiver/warn dispositions, tightly scoped expiry-bound waivers, and fail-closed control errors. |
-| **Reports** | Versioned JSON, Markdown, and SARIF 2.1.0 writers containing normalized findings, control health, adaptive profile, security analysis plan, and diagnostic coverage audit. |
+| **Reports** | Versioned JSON, Markdown, and SARIF 2.1.0 writers containing normalized findings, control health, adaptive profile, policy/catalog-bound security analysis plan, and diagnostic coverage audit. |
 | **CI behavior** | Machine-readable exit codes, a least-privilege frozen-`uv` CI gate, and a manual pinned external-scanner calibration workflow. |
 
 ## What it does not do
@@ -35,9 +35,9 @@ Every scan begins with a deterministic **Repository Evidence Collector** and **A
 | **Go, Rust, Java, Kotlin, Ruby, PHP, C#** | Retains generic secrets/CI/provenance controls and reports an explicit language-specific coverage gap. |
 | **Mixed-language repositories** | Detects each recognized language independently, retains compatible controls, and exposes all coverage gaps in JSON, Markdown, and SARIF reports. |
 
-These deterministic components are **not an AI release authority**. They cannot mutate policy, create waivers, suppress findings, execute project code, deploy, merge, or access values beyond the bounded repository scan scope. Documentation signals create coverage expectations only; they never prove implementation or affect `PASS`, `BLOCK`, `WAIVER_REQUIRED`, or `ERROR`. A future advisory AI may read normalized redacted reports, but it will remain read-only and cannot change the gate decision.
+These deterministic components are **not an AI release authority**. They cannot mutate policy, create waivers, suppress findings, execute project code, deploy, merge, or access values beyond the bounded repository scan scope. The packaged capability registry is non-executable: its strict manifests cannot carry commands, URLs, executable paths, arbitrary scanner arguments, or policy overrides. Documentation signals create coverage expectations only; they never prove implementation or affect `PASS`, `BLOCK`, `WAIVER_REQUIRED`, or `ERROR`. A future advisory AI may read normalized redacted reports, but it will remain read-only and cannot change the gate decision.
 
-For the detection catalog, control-selection rules, and advisory boundary, see [`docs/ADAPTIVE_PROJECT_PROFILING.md`](docs/ADAPTIVE_PROJECT_PROFILING.md). For the planning, evidence, and coverage contract, see [`docs/ADAPTIVE_PLANNING_FOUNDATION.md`](docs/ADAPTIVE_PLANNING_FOUNDATION.md).
+For the detection catalog, control-selection rules, and advisory boundary, see [`docs/ADAPTIVE_PROJECT_PROFILING.md`](docs/ADAPTIVE_PROJECT_PROFILING.md). For planning and evidence, see [`docs/ADAPTIVE_PLANNING_FOUNDATION.md`](docs/ADAPTIVE_PLANNING_FOUNDATION.md). For the registry schema, provenance, and coverage-state semantics, see [`docs/DECLARATIVE_CAPABILITY_REGISTRY.md`](docs/DECLARATIVE_CAPABILITY_REGISTRY.md).
 
 ## Quick start
 
@@ -129,8 +129,8 @@ Every completed CLI scan writes three redacted artifacts to `--output-dir`. The 
 
 | File | Intended use | Contents |
 |---|---|---|
-| `report.json` | Automation and future control-plane integrations. | Full normalized scan result, manifest, adaptive project profile, evidence identifiers, security analysis plan, diagnostic coverage audit, control executions, policy decision, findings, and waivers. |
-| `report.md` | Pull-request and release review. | Gate rationale, adaptive technology profile, approved plan selections, coverage expectations/audit, explicit exclusions, execution status, grouped findings, remediation guidance, waiver list, and limitations. |
+| `report.json` | Automation and future control-plane integrations. | Full normalized scan result, manifest, adaptive project profile, evidence identifiers, policy/catalog-bound security analysis plan, diagnostic coverage audit, control executions, policy decision, findings, and waivers. |
+| `report.md` | Pull-request and release review. | Gate rationale, adaptive technology profile, approved plan selections with implementation/policy/catalog provenance, coverage expectations/audit, explicit exclusions, execution status, grouped findings, remediation guidance, waiver list, and limitations. |
 | `report.sarif` | Code-scanning integrations. | SARIF 2.1.0-compatible rule/location information plus redacted profile, plan, and coverage-audit properties. |
 
 The scan manifest binds reports to the repository digest, policy digest, policy name, scan timestamps, bounded file count, and relevant Git revision. Before Deploy deliberately does **not** print raw secret values in its own normalized reports. If a secret detector reports a potential credential, rotate it through the relevant issuer and inspect access logs according to your incident procedure.
@@ -321,6 +321,6 @@ The project follows least privilege, isolated execution, explicit policy, fail-c
 
 ## Status and next steps
 
-The deterministic kernel, repository evidence collector, adaptive project profiler, versioned security analysis planner, diagnostic coverage auditor, report writers, isolated external adapters, dependency/provenance evidence foundation, manual scanner calibration workflow, release-evidence preparation script, and first Next.js/TypeScript static-control set are implemented and tested. A clean GitHub checkout has been verified to install, self-scan under the strict CI policy, produce JSON/Markdown/SARIF plan and coverage output, and pass the test suite. The next engineering priorities are reviewed declarative skill metadata, deeper Next.js Server Actions/middleware analysis, controls for additional ecosystems, broader dependency-vulnerability coverage, confirmed private-repository attestation eligibility, and only then tightly bounded read-only AI assistance.
+The deterministic kernel, repository evidence collector, adaptive project profiler, strict declarative capability registry, versioned security analysis planner, diagnostic coverage auditor, report writers, isolated external adapters, dependency/provenance evidence foundation, manual scanner calibration workflow, release-evidence preparation script, and first Next.js/TypeScript static-control set are implemented and tested. A clean GitHub checkout has been verified to install, self-scan under the strict CI policy, produce JSON/Markdown/SARIF policy-and-catalog provenance plus coverage output, and pass the test suite. The next engineering priorities are reviewed declarative skill metadata that resolves only to existing registry capabilities, deeper Next.js Server Actions/middleware analysis, controls for additional ecosystems, broader dependency-vulnerability coverage, confirmed private-repository attestation eligibility, and only then tightly bounded read-only AI assistance.
 
 For the design rationale and phased roadmap, see [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) and [`docs/DEEP_ANALYSIS_AND_BUILD_BLUEPRINT.md`](docs/DEEP_ANALYSIS_AND_BUILD_BLUEPRINT.md).

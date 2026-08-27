@@ -1,0 +1,14 @@
+schema_version: 1
+id: control.native.python-cors
+version: "0.1.0"
+implementation_id: SEC-CONFIG-002
+kind: CONTROL
+title: Python credentialed wildcard CORS check
+applies_when:
+  languages:
+    - Python
+security_domains:
+  - "Language: Python"
+  - "Framework: FastAPI"
+exclusions:
+  - Runtime proxy and cloud CORS configuration are not evaluated.

@@ -1,19 +1,21 @@
-"""Deterministic construction of a traceable security analysis plan."""
+"""Deterministic construction of a traceable plan from a strict capability registry."""
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
+from before_deploy.capabilities import CapabilityRegistry
+from before_deploy.capabilities.schema import CapabilityDefinition
 from before_deploy.models import (
     CapabilitySelection,
     CoverageExpectation,
     EvidenceSignal,
     ProjectProfile,
+    ScanManifest,
     SecurityAnalysisPlan,
 )
-from before_deploy.planning.catalog import ADAPTER_CONTROL_IDS, CATALOG_VERSION
 
-PLAN_VERSION = "0.1.0"
+PLAN_VERSION = "0.2.0"
 PROFILE_VERSION = "0.1.0"
 
 
@@ -21,91 +23,95 @@ def build_security_analysis_plan(
     project_profile: ProjectProfile,
     evidence: Iterable[EvidenceSignal],
     runnable_controls: Iterable[object],
+    *,
+    manifest: ScanManifest,
+    registry: CapabilityRegistry,
 ) -> SecurityAnalysisPlan:
-    """Build a versioned plan from approved, already-compatible controls only.
+    """Build a plan from already-compatible controls and registered metadata only.
 
-    The plan is descriptive. It cannot add controls, execute adapters, create waivers, or alter policy.
+    The planner cannot add a capability, discover a binary, alter policy, or execute an adapter. A
+    runnable implementation without exactly one approved registry definition is a fail-closed error.
     """
     ordered_evidence = tuple(sorted(evidence, key=lambda item: item.signal_id))
     evidence_ids = {item.signal_id for item in ordered_evidence}
-    selections = tuple(
-        _selection(control, project_profile, evidence_ids)
+    definitions = tuple(
+        _definition_for_control(control, registry)
         for control in sorted(runnable_controls, key=lambda item: getattr(item, "control_id"))
+    )
+    selections = tuple(
+        _selection(definition, manifest, registry, evidence_ids) for definition in definitions
     )
     control_selections = tuple(item for item in selections if item.kind == "CONTROL")
     adapter_selections = tuple(item for item in selections if item.kind == "ADAPTER")
-    coverage_expectations = _coverage_expectations(project_profile, ordered_evidence)
-    exclusions = tuple(
-        sorted(
-            {
-                *project_profile.coverage_gaps,
-                "Declarative skill packs are not loaded in this planning-foundation milestone.",
-                "External adapters are selected only when explicitly configured by policy.",
-            }
-        )
-    )
+    exclusions = _exclusions(project_profile, definitions)
     return SecurityAnalysisPlan(
         plan_version=PLAN_VERSION,
         profile_version=PROFILE_VERSION,
-        catalog_version=CATALOG_VERSION,
+        catalog_version=registry.catalog_version,
+        catalog_digest=registry.catalog_digest,
+        policy_name=manifest.policy_name,
+        policy_digest=manifest.policy_digest,
         evidence=ordered_evidence,
         control_selections=control_selections,
         adapter_selections=adapter_selections,
         skill_selections=(),
-        coverage_expectations=coverage_expectations,
+        coverage_expectations=_coverage_expectations(project_profile, ordered_evidence),
         exclusions=exclusions,
     )
 
 
+def _definition_for_control(control: object, registry: CapabilityRegistry) -> CapabilityDefinition:
+    implementation_id = getattr(control, "control_id")
+    definition = registry.definition_for_implementation(implementation_id)
+    if definition is None:
+        raise ValueError(f"No approved capability is registered for control: {implementation_id}")
+    return definition
+
+
 def _selection(
-    control: object,
-    project_profile: ProjectProfile,
+    definition: CapabilityDefinition,
+    manifest: ScanManifest,
+    registry: CapabilityRegistry,
     evidence_ids: set[str],
 ) -> CapabilitySelection:
-    control_id = getattr(control, "control_id")
     return CapabilitySelection(
-        capability_id=control_id,
-        capability_version=getattr(control, "control_version"),
-        kind="ADAPTER" if control_id in ADAPTER_CONTROL_IDS else "CONTROL",
-        rationale=_rationale(control_id, project_profile),
-        evidence_ids=_selection_evidence_ids(control_id, project_profile, evidence_ids),
+        capability_id=definition.capability_id,
+        capability_version=definition.version,
+        implementation_id=definition.implementation_id,
+        kind=definition.kind,
+        rationale=_rationale(definition),
+        policy_name=manifest.policy_name,
+        policy_digest=manifest.policy_digest,
+        catalog_digest=registry.catalog_digest,
+        evidence_ids=_selection_evidence_ids(definition, evidence_ids),
     )
 
 
-def _rationale(control_id: str, project_profile: ProjectProfile) -> str:
-    if control_id.startswith("SEC-NEXT-"):
-        return "Next.js framework evidence selected this approved static control."
-    if control_id == "SEC-API-001":
-        return "FastAPI framework evidence selected this approved route-declaration control."
-    if control_id in {"SEC-CONFIG-001", "SEC-CONFIG-002", "SEC-SAST-001", "SEC-DEP-VULN-001"}:
-        return "Python language evidence selected this approved control."
-    if control_id == "SEC-CICD-001":
-        return "GitHub Actions workflow evidence selected this approved workflow control."
-    if control_id == "SEC-DEP-001":
-        managers = ", ".join(project_profile.package_managers) or "supported dependency evidence"
-        return f"Package-manager evidence ({managers}) selected this approved manifest control."
-    return "The selected policy configured this repository-wide approved capability."
+def _rationale(definition: CapabilityDefinition) -> str:
+    conditions: list[str] = []
+    if definition.languages:
+        conditions.append("language evidence: " + ", ".join(sorted(definition.languages)))
+    if definition.frameworks:
+        conditions.append("framework evidence: " + ", ".join(sorted(definition.frameworks)))
+    if definition.requires_github_workflow:
+        conditions.append("GitHub Actions workflow evidence")
+    if not conditions:
+        conditions.append("repository-wide approved applicability")
+    return "Registry-selected capability based on " + "; ".join(conditions) + "."
 
 
 def _selection_evidence_ids(
-    control_id: str,
-    project_profile: ProjectProfile,
-    evidence_ids: set[str],
+    definition: CapabilityDefinition, evidence_ids: set[str]
 ) -> tuple[str, ...]:
     candidates = ["REPOSITORY-INVENTORY"]
-    if control_id.startswith("SEC-NEXT-"):
-        candidates.append("REPOSITORY-FRAMEWORK-NEXT-JS")
-    elif control_id == "SEC-API-001":
-        candidates.append("REPOSITORY-FRAMEWORK-FASTAPI")
-    elif control_id in {"SEC-CONFIG-001", "SEC-CONFIG-002", "SEC-SAST-001", "SEC-DEP-VULN-001"}:
-        candidates.append("REPOSITORY-LANGUAGE-PYTHON")
-    elif control_id == "SEC-CICD-001":
+    candidates.extend(
+        f"REPOSITORY-LANGUAGE-{_identifier(language)}" for language in definition.languages
+    )
+    candidates.extend(
+        f"REPOSITORY-FRAMEWORK-{_identifier(framework)}" for framework in definition.frameworks
+    )
+    if definition.requires_github_workflow:
         candidates.append("REPOSITORY-CI-GITHUB-ACTIONS")
-    elif control_id == "SEC-DEP-001":
-        candidates.extend(
-            f"REPOSITORY-PACKAGE-MANAGER-{_identifier(manager)}"
-            for manager in project_profile.package_managers
-        )
     return tuple(sorted(candidate for candidate in candidates if candidate in evidence_ids))
 
 
@@ -189,6 +195,19 @@ def _coverage_expectations(
                 )
             )
     return tuple(sorted(expectations, key=lambda item: item.domain))
+
+
+def _exclusions(
+    project_profile: ProjectProfile, definitions: tuple[CapabilityDefinition, ...]
+) -> tuple[str, ...]:
+    exclusions = set(project_profile.coverage_gaps)
+    for definition in definitions:
+        exclusions.update(
+            f"{definition.capability_id}: {exclusion}" for exclusion in definition.exclusions
+        )
+    exclusions.add("Declarative skill packs are not loaded in this registry milestone.")
+    exclusions.add("External adapters are selected only when explicitly configured by policy.")
+    return tuple(sorted(exclusions))
 
 
 def _identifier(value: str) -> str:

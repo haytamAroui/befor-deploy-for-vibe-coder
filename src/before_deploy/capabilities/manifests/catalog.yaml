@@ -1,0 +1,18 @@
+schema_version: 1
+catalog_version: "0.1.0"
+manifests:
+  - adapter.gitleaks.yaml
+  - adapter.pip-audit.yaml
+  - adapter.provenance.yaml
+  - adapter.semgrep.yaml
+  - control.dependency-manifest.yaml
+  - control.fastapi-api.yaml
+  - control.github-actions.yaml
+  - control.nextjs-cookie.yaml
+  - control.nextjs-cors.yaml
+  - control.nextjs-public-env.yaml
+  - control.python-config.yaml
+  - control.python-cors.yaml
+  - control.python-sast.yaml
+  - control.release-sbom.yaml
+  - control.secrets.yaml

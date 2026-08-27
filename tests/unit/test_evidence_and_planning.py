@@ -1,5 +1,7 @@
+from before_deploy.capabilities import load_builtin_capability_registry
 from before_deploy.evidence import collect_repository_evidence, collect_requirements_evidence
 from before_deploy.inventory import collect_inventory
+from before_deploy.models import ScanManifest, utc_now
 from before_deploy.planning import build_security_analysis_plan
 from before_deploy.project_profile import detect_project_profile
 
@@ -28,9 +30,27 @@ def test_planner_selects_only_provided_compatible_capabilities(tmp_path):
     profile = detect_project_profile(inventory)
     evidence = (*collect_repository_evidence(inventory, profile), *collect_requirements_evidence(inventory))
 
-    plan = build_security_analysis_plan(profile, evidence, runnable_controls=())
+    manifest = ScanManifest(
+        scan_id="test-scan",
+        repository_path=tmp_path.as_posix(),
+        repository_digest="repository-digest",
+        policy_digest="policy-digest",
+        policy_name="unit-test",
+        started_at=utc_now(),
+    )
+    registry = load_builtin_capability_registry()
+    plan = build_security_analysis_plan(
+        profile,
+        evidence,
+        runnable_controls=(),
+        manifest=manifest,
+        registry=registry,
+    )
 
     assert not plan.control_selections
     assert not plan.adapter_selections
     assert not plan.skill_selections
+    assert plan.policy_name == "unit-test"
+    assert plan.policy_digest == "policy-digest"
+    assert plan.catalog_digest == registry.catalog_digest
     assert "External adapters are selected only when explicitly configured by policy." in plan.exclusions
