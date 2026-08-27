@@ -1,0 +1,225 @@
+"""Deterministic repository technology profiling and control compatibility catalog."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Iterable
+
+from before_deploy.inventory import RepositoryInventory
+from before_deploy.models import ControlExecution, ExecutionStatus, ProjectProfile, utc_now
+
+_LANGUAGE_EXTENSIONS = {
+    ".cs": "C#",
+    ".go": "Go",
+    ".java": "Java",
+    ".js": "JavaScript",
+    ".jsx": "JavaScript",
+    ".kt": "Kotlin",
+    ".php": "PHP",
+    ".py": "Python",
+    ".rb": "Ruby",
+    ".rs": "Rust",
+    ".ts": "TypeScript",
+    ".tsx": "TypeScript",
+}
+
+_MANIFEST_LANGUAGES = {
+    "Cargo.toml": "Rust",
+    "Gemfile": "Ruby",
+    "composer.json": "PHP",
+    "go.mod": "Go",
+    "package.json": "JavaScript",
+    "pom.xml": "Java",
+    "pyproject.toml": "Python",
+}
+
+_PACKAGE_MANAGERS = {
+    "Cargo.lock": "cargo",
+    "Gemfile.lock": "bundler",
+    "composer.lock": "composer",
+    "package-lock.json": "npm",
+    "pnpm-lock.yaml": "pnpm",
+    "poetry.lock": "poetry",
+    "uv.lock": "uv",
+    "yarn.lock": "yarn",
+}
+
+_FRAMEWORK_MARKERS = {
+    "ASP.NET Core": ("Microsoft.AspNetCore",),
+    "Django": ("django",),
+    "Express": ("express",),
+    "FastAPI": ("fastapi",),
+    "Flask": ("flask",),
+    "Laravel": ("laravel",),
+    "NestJS": ("@nestjs/",),
+    "Next.js": ("next",),
+    "Rails": ("rails",),
+    "Spring": ("spring-boot", "org.springframework"),
+}
+
+
+@dataclass(frozen=True)
+class ControlCompatibility:
+    """One bounded applicability rule for a deterministic control."""
+
+    control_id: str
+    languages: frozenset[str] = frozenset()
+    frameworks: frozenset[str] = frozenset()
+    requires_github_workflow: bool = False
+
+
+_CAPABILITY_CATALOG = {
+    "SEC-API-001": ControlCompatibility(
+        control_id="SEC-API-001", frameworks=frozenset({"FastAPI"})
+    ),
+    "SEC-CICD-001": ControlCompatibility(
+        control_id="SEC-CICD-001", requires_github_workflow=True
+    ),
+    "SEC-CONFIG-001": ControlCompatibility(
+        control_id="SEC-CONFIG-001", languages=frozenset({"Python"})
+    ),
+    "SEC-CONFIG-002": ControlCompatibility(
+        control_id="SEC-CONFIG-002", languages=frozenset({"Python"})
+    ),
+    "SEC-DEP-001": ControlCompatibility(
+        control_id="SEC-DEP-001", languages=frozenset({"JavaScript", "Python", "TypeScript"})
+    ),
+    "SEC-DEP-VULN-001": ControlCompatibility(
+        control_id="SEC-DEP-VULN-001", languages=frozenset({"Python"})
+    ),
+    "SEC-SAST-001": ControlCompatibility(
+        control_id="SEC-SAST-001", languages=frozenset({"Python"})
+    ),
+    "SEC-SAST-SEMGREP-001": ControlCompatibility(
+        control_id="SEC-SAST-SEMGREP-001", languages=frozenset({"Python"})
+    ),
+}
+
+
+def detect_project_profile(inventory: RepositoryInventory) -> ProjectProfile:
+    """Classify bounded repository evidence using only extensions, manifests, and fixed markers."""
+    root_files = {path.relative_to(inventory.root).as_posix(): path for path in inventory.files}
+    languages: set[str] = set()
+    frameworks: set[str] = set()
+    package_managers: set[str] = set()
+    signals: dict[str, str] = {}
+
+    extension_counts: dict[str, int] = {}
+    for path in inventory.files:
+        suffix = path.suffix.lower()
+        language = _LANGUAGE_EXTENSIONS.get(suffix)
+        if language:
+            languages.add(language)
+            extension_counts[suffix] = extension_counts.get(suffix, 0) + 1
+    for extension, count in sorted(extension_counts.items()):
+        signals[f"extension:{extension}"] = str(count)
+
+    root_names = {Path(path).name for path in root_files}
+    for name, language in _MANIFEST_LANGUAGES.items():
+        if name in root_names:
+            languages.add(language)
+            signals[f"manifest:{name}"] = "1"
+    for name, manager in _PACKAGE_MANAGERS.items():
+        if name in root_names:
+            package_managers.add(manager)
+            signals[f"lockfile:{name}"] = "1"
+    if any(path.endswith(".csproj") for path in root_files):
+        languages.add("C#")
+        signals["manifest:*.csproj"] = "1"
+    if any(Path(path).name.startswith("build.gradle") for path in root_files):
+        languages.add("Java")
+        signals["manifest:build.gradle*"] = "1"
+    if any(
+        path.startswith(".github/workflows/") and Path(path).suffix in {".yaml", ".yml"}
+        for path in root_files
+    ):
+        signals["framework:GitHub Actions"] = "1"
+
+    candidate_text = _bounded_marker_text(root_files)
+    for framework, markers in _FRAMEWORK_MARKERS.items():
+        if any(marker in candidate_text for marker in markers):
+            frameworks.add(framework)
+            signals[f"framework:{framework}"] = "1"
+    if "Next.js" in frameworks and "TypeScript" not in languages:
+        languages.add("JavaScript")
+
+    coverage_gaps = _coverage_gaps(languages, frameworks)
+    return ProjectProfile(
+        languages=tuple(sorted(languages)),
+        frameworks=tuple(sorted(frameworks)),
+        package_managers=tuple(sorted(package_managers)),
+        signals=dict(sorted(signals.items())),
+        coverage_gaps=coverage_gaps,
+    )
+
+
+def select_compatible_controls(
+    controls: Iterable[object], project_profile: ProjectProfile
+) -> tuple[tuple[object, ...], tuple[ControlExecution, ...]]:
+    """Return runnable controls and explicit NOT_APPLICABLE executions for incompatible capabilities."""
+    runnable: list[object] = []
+    non_applicable: list[ControlExecution] = []
+    for control in controls:
+        control_id = getattr(control, "control_id")
+        compatibility = _CAPABILITY_CATALOG.get(control_id)
+        reason = _non_applicability_reason(compatibility, project_profile)
+        if reason is None:
+            runnable.append(control)
+            continue
+        now = utc_now()
+        non_applicable.append(
+            ControlExecution(
+                control_id=control_id,
+                control_version=getattr(control, "control_version"),
+                status=ExecutionStatus.NOT_APPLICABLE,
+                started_at=now,
+                completed_at=now,
+                applicable=False,
+                message=reason,
+                metadata={"adaptive_profile": "deterministic"},
+            )
+        )
+    return tuple(runnable), tuple(non_applicable)
+
+
+def _bounded_marker_text(root_files: dict[str, Path]) -> str:
+    markers: list[str] = []
+    preferred = {"package.json", "pyproject.toml", "pom.xml", "composer.json", "Gemfile"}
+    for relative_path, path in sorted(root_files.items()):
+        if Path(relative_path).name not in preferred and path.suffix.lower() not in {".py", ".ts", ".js"}:
+            continue
+        try:
+            markers.append(path.read_text(encoding="utf-8", errors="ignore")[:200_000].lower())
+        except OSError:
+            continue
+    return "\n".join(markers)
+
+
+def _coverage_gaps(languages: set[str], frameworks: set[str]) -> tuple[str, ...]:
+    gaps: list[str] = []
+    for language in sorted(languages - {"JavaScript", "Python", "TypeScript"}):
+        gaps.append(f"No language-specific controls are currently installed for {language}.")
+    if "Next.js" in frameworks:
+        gaps.append("Next.js is detected, but no Next.js-specific AST controls are currently installed.")
+    for framework in sorted(frameworks - {"FastAPI", "Next.js", "GitHub Actions"}):
+        gaps.append(f"{framework} is detected, but no framework-specific controls are currently installed.")
+    if not languages:
+        gaps.append("No supported language signal was detected; only generic controls can provide coverage.")
+    return tuple(gaps)
+
+
+def _non_applicability_reason(
+    compatibility: ControlCompatibility | None, project_profile: ProjectProfile
+) -> str | None:
+    if compatibility is None:
+        return None
+    if compatibility.languages and not compatibility.languages.intersection(project_profile.languages):
+        supported = ", ".join(sorted(compatibility.languages))
+        return f"Adaptive profile: this control requires one of [{supported}]."
+    if compatibility.frameworks and not compatibility.frameworks.intersection(project_profile.frameworks):
+        supported = ", ".join(sorted(compatibility.frameworks))
+        return f"Adaptive profile: this control requires one of [{supported}]."
+    if compatibility.requires_github_workflow and "framework:GitHub Actions" not in project_profile.signals:
+        return "Adaptive profile: no GitHub Actions workflow was detected."
+    return None

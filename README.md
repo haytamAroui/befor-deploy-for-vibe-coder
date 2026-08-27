@@ -6,7 +6,7 @@
 
 ## What it does today
 
-The current release is a local and CI-ready Python CLI. It supports self-contained native controls and an opt-in foundation for isolated Gitleaks and Semgrep adapters. It records control health as well as findings, so an unavailable required scanner is an explicit `ERROR`, never a pass.
+The current release is a local and CI-ready Python CLI with deterministic adaptive project profiling. It supports self-contained native controls and an opt-in foundation for isolated Gitleaks and Semgrep adapters. It records control health as well as findings, so an unavailable required scanner is an explicit `ERROR`, never a pass.
 
 | Area | Current capability |
 |---|---|
@@ -21,7 +21,22 @@ The current release is a local and CI-ready Python CLI. It supports self-contain
 
 Before Deploy is **not** a compliance-certification service, a penetration-test replacement, a guarantee that a deployed system is secure, or an autonomous deployment tool. A green result means that the selected controls completed against the declared repository scope; it does not prove absence of vulnerabilities, operational misconfiguration, or regulatory compliance.
 
-The tool now provides a **foundation** for Python dependency vulnerability evidence and offline GitHub artifact-attestation verification through a separate release profile. It does not yet install/calibrate those external tools in project CI, scan non-Python package ecosystems, verify runtime cloud configuration, generate artifacts/attestations, or perform automatic remediation.
+The tool now provides a **foundation** for Python dependency vulnerability evidence and offline GitHub artifact-attestation verification through a separate release profile. It does not yet make the external tools a standard protected-branch release gate, scan non-Python package ecosystems for known vulnerabilities, verify runtime cloud configuration, generate signed attestations in this private repository without confirmed eligibility, or perform automatic remediation.
+
+## Adaptive project profiling
+
+Every scan now begins with a deterministic **Adaptive Project Agent**. It profiles the bounded repository by file extensions, root manifests, lockfiles, and fixed framework markers. It then runs only controls that can produce meaningful evidence for the detected technology and records incompatible configured controls as `NOT_APPLICABLE` rather than silently omitting them.
+
+| Detected technology | Current adaptive behavior |
+|---|---|
+| **Python / FastAPI** | Enables existing Python AST, configuration, FastAPI-route, dependency, and release-evidence capabilities where the selected policy includes them. |
+| **JavaScript / TypeScript / Next.js** | Retains generic controls, GitHub Actions checks, and lockfile evidence; reports the absence of Next.js-specific AST controls. |
+| **Go, Rust, Java, Kotlin, Ruby, PHP, C#** | Retains generic secrets/CI/provenance controls and reports an explicit language-specific coverage gap. |
+| **Mixed-language repositories** | Detects each recognized language independently, retains compatible controls, and exposes all coverage gaps in JSON, Markdown, and SARIF reports. |
+
+The agent is **not an AI release authority**. It has no policy, waiver, deployment, merge, or code-execution permission. It only profiles visible repository evidence and selects compatible deterministic controls. A future advisory AI may read the normalized profile and redacted reports, but it will remain read-only and cannot change the gate decision.
+
+For the full detection catalog, control-selection rules, and advisory boundary, see [`docs/ADAPTIVE_PROJECT_PROFILING.md`](docs/ADAPTIVE_PROJECT_PROFILING.md).
 
 ## Quick start
 

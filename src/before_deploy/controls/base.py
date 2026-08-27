@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Protocol
 
 from before_deploy.inventory import RepositoryInventory
-from before_deploy.models import ControlExecution, Finding
+from before_deploy.models import ControlExecution, Finding, ProjectProfile
 
 
 @dataclass(frozen=True)
@@ -16,6 +16,7 @@ class ControlContext:
 
     repository_root: Path
     inventory: RepositoryInventory
+    project_profile: ProjectProfile | None = None
     public_fastapi_routes: frozenset[tuple[str, str]] = frozenset()
 
 

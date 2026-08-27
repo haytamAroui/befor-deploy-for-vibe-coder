@@ -157,6 +157,17 @@ class PolicyDecision:
 
 
 @dataclass(frozen=True)
+class ProjectProfile:
+    """Deterministic, redaction-safe technology and coverage profile for one repository."""
+
+    languages: tuple[str, ...]
+    frameworks: tuple[str, ...]
+    package_managers: tuple[str, ...]
+    signals: Mapping[str, str]
+    coverage_gaps: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class ScanResult:
     """Complete scan output shared by policy and report writers."""
 
@@ -165,6 +176,7 @@ class ScanResult:
     findings: tuple[Finding, ...]
     waivers: tuple[Waiver, ...]
     decision: PolicyDecision
+    project_profile: ProjectProfile | None = None
 
 
 def utc_now() -> datetime:

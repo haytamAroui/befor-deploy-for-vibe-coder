@@ -15,6 +15,7 @@ from before_deploy.models import (
     utc_now,
 )
 from before_deploy.policy import PolicyProfile, evaluate, load_policy
+from before_deploy.project_profile import detect_project_profile, select_compatible_controls
 from before_deploy.waivers import load_waivers
 
 
@@ -40,16 +41,21 @@ class ScanOrchestrator:
             policy_path=policy_path,
             policy_name=profile.name,
         )
+        project_profile = detect_project_profile(inventory)
+        runnable_controls, non_applicable_executions = select_compatible_controls(
+            self._controls, project_profile
+        )
         waivers = load_waivers(waiver_path)
         context = ControlContext(
             repository_root=inventory.root,
             inventory=inventory,
+            project_profile=project_profile,
             public_fastapi_routes=profile.public_fastapi_routes,
         )
 
-        executions: list[ControlExecution] = []
+        executions: list[ControlExecution] = list(non_applicable_executions)
         findings = []
-        for control in self._controls:
+        for control in runnable_controls:
             started_at = utc_now()
             try:
                 result = control.run(context)
@@ -84,6 +90,7 @@ class ScanOrchestrator:
             findings=evaluated_findings,
             waivers=waivers,
             decision=decision,
+            project_profile=project_profile,
         )
 
 
