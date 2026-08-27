@@ -1,6 +1,6 @@
 # Security Domain + Control Catalog
 
-**Version:** 0.4.0
+**Version:** 0.5.0
 **Authority:** Informational only; it is not a policy profile, a scanner, a compliance assessment, or a release authority.
 
 ## Purpose and authority boundary
@@ -80,7 +80,7 @@ The catalog maps **only the twenty reviewed capability implementations already r
 |---|---|---|---|
 | `CONTROL-SECRETS-NATIVE-001` | `control.native.secrets` / `SEC-SECRET-001` | Secrets | Repository-wide bounded source patterns. |
 | `CONTROL-SECRETS-GITLEAKS-001` | `adapter.gitleaks-directory` / `SEC-SECRET-GITLEAKS-001` | Secrets | Explicit external policy configuration only. |
-| `CONTROL-INJECTION-PYTHON-001` | `control.native.python-sast` / `SEC-SAST-001` | Injection | Python AST direct SQL interpolation only. |
+| `CONTROL-INJECTION-PYTHON-001` | `control.native.python-sast` / `SEC-SAST-001` | Injection | Python AST direct SQL interpolation plus one local straight-line simple-name assignment into a standalone execute/executemany call; no branch, alias, import, object-state, or interprocedural analysis. |
 | `CONTROL-INJECTION-SEMGREP-001` | `adapter.semgrep-python-local` / `SEC-SAST-SEMGREP-001` | Injection | Explicit external policy configuration only. |
 | `CONTROL-API-FASTAPI-001` | `control.native.fastapi-api` / `SEC-API-001` | API security | Supported FastAPI mutating routes only. |
 | `CONTROL-CONFIG-PYTHON-DEBUG-001` | `control.native.python-debug-config` / `SEC-CONFIG-001` | Production configuration | Supported static Python/configuration sources. |

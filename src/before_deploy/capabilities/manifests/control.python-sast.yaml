@@ -1,13 +1,14 @@
 schema_version: 1
 id: control.native.python-sast
-version: "0.1.0"
+version: "0.2.0"
 implementation_id: SEC-SAST-001
 kind: CONTROL
-title: Native Python SQL interpolation detection
+title: Native Python SQL interpolation and local-flow detection
 applies_when:
   languages:
     - Python
 security_domains:
   - "Language: Python"
 exclusions:
-  - Only direct SQL interpolation passed to execute calls is covered.
+  - Direct SQL interpolation passed to execute calls and one local straight-line name assignment to a standalone execute/executemany call are covered.
+  - Branches, loops, try/with blocks, calls, imports, attributes, aliases, closures, globals, interprocedural flow, ORMs, and runtime values are excluded.

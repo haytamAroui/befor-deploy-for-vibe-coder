@@ -55,11 +55,11 @@ The backlog is ordered by evidence quality and safety of implementation, not by 
 
 | Priority | Candidate domain/control family | Preconditions | Explicit non-goal for the first iteration |
 |---|---|---|---|
-| 1 | Python variable-to-`execute` dataflow expansion. | Precision benchmark and controlled Semgrep/native implementation. | Whole-program dataflow or dynamic SQL correctness claims. |
-| 2 | FastAPI dynamic route review state. | Explicit diagnostic condition and policy treatment design. | Treating dynamic route construction as silently authenticated or clean. |
-| 3 | Container and IaC adapters. | Isolated preinstalled scanners, deterministic inputs, normalized output, and artifact fixtures. | Cloud-account inspection, deployment changes, or runtime IAM guarantees. |
-| 4 | Expand the Go snapshot through separately reviewed advisory boundaries. | Official-source verification, exact-version semantics, digest update, redaction review, and fixture matrix. | Live-database synchronization, arbitrary version ranges, reachability claims, or automatic remediation. |
-| 5 | Expand Next.js Server Action coverage through separate contracts. | Precision benchmarks, exported/inline action scope review, and secure/vulnerable/ambiguous fixtures. | Treating proxy/middleware, function names, or an absent finding as authorization proof. |
+| 1 | FastAPI dynamic route review state. | Explicit diagnostic condition and policy treatment design. | Treating dynamic route construction as silently authenticated or clean. |
+| 2 | Container and IaC adapters. | Isolated preinstalled scanners, deterministic inputs, normalized output, and artifact fixtures. | Cloud-account inspection, deployment changes, or runtime IAM guarantees. |
+| 3 | Expand the Go snapshot through separately reviewed advisory boundaries. | Official-source verification, exact-version semantics, digest update, redaction review, and fixture matrix. | Live-database synchronization, arbitrary version ranges, reachability claims, or automatic remediation. |
+| 4 | Expand Next.js Server Action coverage through separate contracts. | Precision benchmarks, exported/inline action scope review, and secure/vulnerable/ambiguous fixtures. | Treating proxy/middleware, function names, or an absent finding as authorization proof. |
+| 5 | Expand Python local SQL-flow coverage through separate contracts. | Precision benchmarks for aliases, branches, awaits, wrappers, and imports. | Whole-program dataflow, ORM safety, or treating an absent finding as secure SQL. |
 
 ## Advisory AI boundary
 

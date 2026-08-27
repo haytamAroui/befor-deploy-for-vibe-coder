@@ -20,7 +20,7 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.4.0"
+    assert catalog.catalog_version == "0.5.0"
     assert catalog.catalog_digest == second.catalog_digest
     assert len(catalog.domains) == 30
     assert len(catalog.controls) == 20

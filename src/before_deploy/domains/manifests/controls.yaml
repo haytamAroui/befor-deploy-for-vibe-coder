@@ -25,15 +25,15 @@ controls:
     references:
       - REF-OWASP-CICD
   - id: CONTROL-INJECTION-PYTHON-001
-    version: "0.1.0"
-    title: Python direct SQL interpolation detection
+    version: "0.2.0"
+    title: Python SQL interpolation and local-flow detection
     capability_id: control.native.python-sast
     implementation_id: SEC-SAST-001
     security_domains:
       - DOMAIN-INJECTION-001
-    detection_scope: Python AST detection of direct f-string, percent, or format interpolation passed to execute calls.
+    detection_scope: Python AST detection of direct f-string, percent, or format interpolation passed to execute calls, plus one local straight-line name assignment to a standalone execute or executemany call in the same lexical scope.
     exclusions:
-      - Interprocedural dataflow, ORMs, other injection families, and non-Python code are not covered.
+      - Branches, loops, try/with blocks, calls, imports, attributes, aliases, closures, globals, interprocedural dataflow, ORMs, runtime values, other injection families, and non-Python code are not covered.
     references: []
   - id: CONTROL-INJECTION-SEMGREP-001
     version: "0.1.0"

@@ -5,7 +5,7 @@ This catalog describes the deterministic native controls shipped in the first bu
 | Control | Default profile action | Evidence inspected | Milestone-1 detection boundary | Next adapter direction |
 |---|---|---|---|---|
 | `SEC-SECRET-001` | Block | Bounded text files in the working tree. | Private-key markers, selected provider token shapes, and high-confidence secret assignments. The suspected value is never written to reports. | Gitleaks with explicitly approved history scope. |
-| `SEC-SAST-001` | Block | Parseable Python source. | SQL f-string, `%` formatting, and `.format()` passed directly to `execute` or `executemany`. | Curated Semgrep and framework-specific AST rules. |
+| `SEC-SAST-001` | Block | Parseable Python source. | SQL f-string, `%` formatting, and `.format()` passed directly to `execute`/`executemany` or through one local straight-line simple-name assignment. It does not follow branches, aliases, calls, imports, object state, or interprocedural flow. | Curated Semgrep and framework-specific AST rules. |
 | `SEC-API-001` | Block | Parseable FastAPI routes and declared dependencies. | Mutating routes without a visible `Depends`/`Security` dependency or exact public-route allowlist entry. Dependency presence is not proof of correct authorization. | Dependency/data-flow and policy-aware route analysis. |
 | `SEC-CONFIG-001` | Block | Python and selected configuration files. | Explicit `DEBUG=True` or `DEBUG=true` declarations. It does not establish the deployed effective configuration. | Deployment and runtime evidence adapters. |
 | `SEC-CONFIG-002` | Block | FastAPI middleware calls and selected configuration files. | Wildcard origins combined with credentialed CORS. | Framework and runtime configuration adapters. |
