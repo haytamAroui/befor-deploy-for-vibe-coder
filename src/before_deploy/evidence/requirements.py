@@ -8,13 +8,21 @@ from pathlib import Path
 from before_deploy.inventory import RepositoryInventory
 from before_deploy.models import EvidenceKind, EvidenceSignal, Location
 
-EVIDENCE_VERSION = "0.1.0"
+EVIDENCE_VERSION = "0.2.0"
 MAX_DOCUMENT_CHARACTERS = 200_000
 
 _DOMAIN_PATTERNS = {
     "API": re.compile(r"\b(?:rest(?:ful)?\s+api|api\s+endpoint|graphql)\b", re.IGNORECASE),
     "AUTHENTICATION": re.compile(
         r"\b(?:authentication|login|sign[ -]?in|jwt|oauth(?:2)?|session\s+cookie)\b",
+        re.IGNORECASE,
+    ),
+    "AUTHORIZATION": re.compile(
+        r"\b(?:"
+        r"authori[sz](?:ation(?!\s+header\b)|e|es|ed|ing)"
+        r"|(?:role[- ]based\s+)?access\s+control"
+        r"|rbac|access\s+control\s+list|acl|permission[- ]based\s+access\s+control"
+        r")\b",
         re.IGNORECASE,
     ),
     "FILE-UPLOAD": re.compile(r"\b(?:file\s+upload|upload(?:ed|ing)?\s+file|attachment)\b", re.IGNORECASE),
@@ -28,6 +36,7 @@ _DOMAIN_PATTERNS = {
 _DOMAIN_TITLES = {
     "API": "API exposure",
     "AUTHENTICATION": "Authentication",
+    "AUTHORIZATION": "Authorization",
     "FILE-UPLOAD": "File upload",
     "PAYMENT": "Payment processing",
     "PERSONAL-DATA": "Personal data",

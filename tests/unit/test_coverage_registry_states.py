@@ -3,6 +3,7 @@ from pathlib import Path
 from before_deploy.controls.secrets import SecretDetectionControl
 from before_deploy.models import ControlExecution, ExecutionStatus, utc_now
 from before_deploy.orchestrator import ScanOrchestrator
+from before_deploy.reports import render_json, render_markdown, render_sarif
 
 
 def test_compatible_registered_capability_absent_from_policy_is_not_selected(tmp_path):
@@ -36,6 +37,26 @@ def test_selected_capability_execution_error_is_visible_in_coverage_but_does_not
 
     assert result.decision.outcome.value == "PASS"
     assert coverage[("DOMAIN-SECRETS-001", "Secrets and sensitive configuration")] == "ERROR"
+
+
+def test_authorization_requirement_signal_is_diagnostic_and_cannot_change_the_gate(tmp_path):
+    repository = tmp_path / "authorization-requirements"
+    repository.mkdir()
+    (repository / "README.md").write_text(
+        "The system requires role-based access control for sensitive-authority-token owners.\n",
+        encoding="utf-8",
+    )
+    policy = _policy(tmp_path / "secret-only.yaml", required=False, allow_errors=True)
+
+    result = ScanOrchestrator((SecretDetectionControl(),)).scan(repository, policy)
+
+    coverage = {item.domain: item.status.value for item in result.coverage_audit.assessments}
+    assert result.decision.outcome.value == "PASS"
+    assert result.findings == ()
+    assert coverage["Declared requirement: Authorization"] == "DECLARED_REVIEW_REQUIRED"
+    for report in (render_json(result), render_markdown(result), render_sarif(result)):
+        assert "Declared requirement: Authorization" in report
+        assert "sensitive-authority-token" not in report
 
 
 def _policy(path: Path, *, required: bool, allow_errors: bool) -> Path:
