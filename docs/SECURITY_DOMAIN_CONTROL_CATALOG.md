@@ -1,6 +1,6 @@
 # Security Domain + Control Catalog
 
-**Version:** 0.15.0
+**Version:** 0.16.0
 **Authority:** Informational only; it is not a policy profile, a scanner, a compliance assessment, or a release authority.
 
 ## Purpose and authority boundary

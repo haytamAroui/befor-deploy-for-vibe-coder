@@ -13,6 +13,7 @@ PHP_LARAVEL_COMPOSER_LOCK_POLICY_PATH = ROOT / "rules" / "php-laravel-composer-l
 RUST_CARGO_LOCK_POLICY_PATH = ROOT / "rules" / "rust-cargo-lock-policy.yaml"
 RUBY_RAILS_GEMFILE_LOCK_POLICY_PATH = ROOT / "rules" / "ruby-rails-gemfile-lock-policy.yaml"
 DOCKER_COMPOSE_PRIVILEGED_POLICY_PATH = ROOT / "rules" / "docker-compose-privileged-policy.yaml"
+FASTAPI_INPUT_VALIDATION_POLICY_PATH = ROOT / "rules" / "fastapi-input-validation-policy.yaml"
 
 
 def _scan(fixture_name: str):
@@ -51,6 +52,46 @@ def _scan_docker_compose_privileged(fixture_name: str):
     return ScanOrchestrator(controls).scan(
         ROOT / "fixtures" / fixture_name, DOCKER_COMPOSE_PRIVILEGED_POLICY_PATH
     )
+
+
+def _scan_fastapi_input_validation(fixture_name: str):
+    profile = load_policy(FASTAPI_INPUT_VALIDATION_POLICY_PATH)
+    controls = configured_controls(profile, native_controls())
+    return ScanOrchestrator(controls).scan(
+        ROOT / "fixtures" / fixture_name, FASTAPI_INPUT_VALIDATION_POLICY_PATH
+    )
+
+
+def test_fastapi_input_validation_vulnerable_fixture_blocks():
+    result = _scan_fastapi_input_validation("vulnerable_fastapi_input_validation")
+
+    assert result.decision.outcome == GateOutcome.BLOCK
+    assert {finding.rule_id for finding in result.findings} == {"SEC-API-INPUT-001"}
+    assert result.findings[0].evidence == {"artifact": "python", "issue": "untyped_fastapi_body"}
+
+
+def test_fastapi_input_validation_secure_fixture_passes_without_findings():
+    result = _scan_fastapi_input_validation("secure_fastapi_input_validation")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert result.findings == ()
+
+
+def test_fastapi_input_validation_ambiguous_fixture_is_not_applicable_without_conclusion():
+    result = _scan_fastapi_input_validation("fastapi_input_validation_ambiguous")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert result.findings == ()
+    execution = next(item for item in result.executions if item.control_id == "SEC-API-INPUT-001")
+    assert execution.status.value == "COMPLETED"
+
+
+def test_fastapi_input_validation_isolated_from_default_policy():
+    result = _scan("vulnerable_fastapi_input_validation")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert "SEC-API-INPUT-001" not in {finding.rule_id for finding in result.findings}
+    assert all(item.control_id != "SEC-API-INPUT-001" for item in result.executions)
 
 
 def test_vulnerable_fixture_blocks_for_expected_controls():

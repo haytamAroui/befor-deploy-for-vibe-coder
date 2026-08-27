@@ -60,6 +60,21 @@ controls:
       - Route path values, computed methods, APIRouter aliases/factories/registrations, prefix values, runtime registration, decorator aliases, business authorization, object-level access, and runtime middleware are not inferred.
     references:
       - REF-OWASP-API-2023
+  - id: CONTROL-API-FASTAPI-INPUT-001
+    version: "0.1.0"
+    title: FastAPI direct untyped mutating-body input check
+    capability_id: control.native.fastapi-input-validation
+    implementation_id: SEC-API-INPUT-001
+    security_domains:
+      - DOMAIN-INPUT-VALIDATION-001
+      - DOMAIN-API-SECURITY-001
+    detection_scope: Python AST check for bare dict or Any annotations on direct function parameters of literal mutating FastAPI route decorators.
+    exclusions:
+      - Bare annotations do not prove effective body binding or absence of runtime validation.
+      - Generic aliases, model aliases, dynamic annotations, inferred body sources, decorator aliases, factories, indirect parameters, and non-literal paths are not inferred.
+      - Schema semantics, normalization, size limits, business constraints, interprocedural flow, and runtime behavior are not covered.
+    references:
+      - REF-OWASP-API-2023
   - id: CONTROL-CONFIG-PYTHON-DEBUG-001
     version: "0.1.0"
     title: Python debug configuration check

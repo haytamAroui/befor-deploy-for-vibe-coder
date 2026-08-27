@@ -24,6 +24,7 @@ _FORBIDDEN_COMMAND_PREFIXES = ("bash -", "curl ", "pwsh -", "python -", "python3
 APPROVED_IMPLEMENTATION_IDS = frozenset(
     {
         "SEC-API-001",
+        "SEC-API-INPUT-001",
         "SEC-CICD-001",
         "SEC-CONFIG-001",
         "SEC-CONFIG-002",

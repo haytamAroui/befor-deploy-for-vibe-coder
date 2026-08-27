@@ -1,0 +1,17 @@
+schema_version: 1
+id: control.native.fastapi-input-validation
+version: "0.1.0"
+implementation_id: SEC-API-INPUT-001
+kind: CONTROL
+title: FastAPI direct untyped mutating-body input check
+applies_when:
+  frameworks:
+    - FastAPI
+security_domains:
+  - Input validation
+  - API security
+exclusions:
+  - Only bare dict or Any annotations on direct function parameters are inspected; generic aliases, model aliases, dynamic annotations, and inferred body sources are excluded.
+  - The control does not infer effective FastAPI body binding, schema semantics, runtime validation, normalization, size limits, or business constraints.
+  - Dynamic decorators, decorator aliases, route factories, indirect parameters, interprocedural flow, and non-literal route paths are excluded.
+  - The control never executes Python, FastAPI, application code, tests, builds, or network requests.
