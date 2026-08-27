@@ -29,7 +29,7 @@ _ADVISORY_ID = re.compile(r"^GO-\d{4}-\d{4,}$")
 _MODULE_NAME = re.compile(r"^[A-Za-z0-9._~+\-/]+$")
 _SNAPSHOT_ID = re.compile(r"^[A-Za-z0-9._-]+$")
 BUILTIN_SNAPSHOT_PATH = Path(__file__).with_name("data") / "go_vulnerability_snapshot.json"
-BUILTIN_SNAPSHOT_SHA256 = "c1f0945ae8ffa15695c5a981f3d8196e50743e5b30fdaa1d7fb6ccd947fdd1dc"
+BUILTIN_SNAPSHOT_SHA256 = "f9ad184e4f959eda8c94e2efa27f36684c8ad000fc4386a9640c174df0e62339"
 
 
 class GoVulnerabilitySnapshotControl:
@@ -42,7 +42,7 @@ class GoVulnerabilitySnapshotControl:
     """
 
     control_id = "SEC-GO-VULN-001"
-    control_version = "0.1.0"
+    control_version = "0.2.0"
 
     def __init__(
         self,

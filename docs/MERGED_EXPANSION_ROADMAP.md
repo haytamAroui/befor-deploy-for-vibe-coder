@@ -98,11 +98,11 @@ Correct factual drift between canonical documents and current code/manifests, be
 
 **Acceptance:** documentation links resolve; current capability/control counts match package manifests; no policy behavior, scanner configuration, or catalog placeholder is added.
 
-### Milestone 2 — One bounded Go advisory expansion
+### Milestone 2 — Completed bounded Go advisory expansion
 
-Extend `SEC-GO-VULN-001` by one reviewed offline advisory boundary only. The change must use a digest-pinned packaged source, exact root `go.mod` direct-version comparison, and static local parsing. It may not turn into a live OSV/GitHub lookup, arbitrary semver-range engine, package download, Go tool invocation, or reachability analysis.
+`SEC-GO-VULN-001` now includes reviewed `GO-2020-0001` for exact direct root `github.com/gin-gonic/gin` declarations before `v1.6.0`, alongside the existing x/text boundary. The snapshot remains digest-pinned package data, uses static local parsing, and adds affected/fixed/indirect Gin fixtures. It did not add a live OSV/GitHub lookup, arbitrary semver-range engine, package download, Go tool invocation, or reachability analysis.
 
-**Acceptance:** official-source review recorded; secure/vulnerable/fixed/unsupported fixtures; snapshot digest; redaction tests; changed findings remain policy-bound; default policy stays unchanged unless explicitly reviewed.
+**Delivered evidence:** official Go-database review recorded; affected/fixed/indirect regression fixtures; refreshed digest; redaction tests; unchanged policy selection boundary.
 
 ### Milestone 3 — Next.js Server Action precision increment
 

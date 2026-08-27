@@ -200,15 +200,15 @@ controls:
       - Nested modules, checksum contents, dependency resolution, and vulnerability status are not covered.
     references: []
   - id: CONTROL-SUPPLY-GO-VULNERABILITY-SNAPSHOT-001
-    version: "0.1.0"
+    version: "0.2.0"
     title: Offline Go dependency vulnerability snapshot check
     capability_id: control.native.go-vulnerability-snapshot
     implementation_id: SEC-GO-VULN-001
     security_domains:
       - DOMAIN-SUPPLY-CHAIN-001
-    detection_scope: Exact direct root go.mod dependency versions are compared with one packaged reviewed offline advisory snapshot.
+    detection_scope: Exact direct root go.mod dependency versions are compared with two packaged reviewed offline advisory boundaries.
     exclusions:
-      - This control has one reviewed advisory boundary and does not query a live vulnerability database.
+      - This control has two reviewed advisory boundaries and does not query a live vulnerability database.
       - Indirect dependencies, source reachability, replace directives, build tags, private modules, and remediation are not analyzed.
       - No network request, Go tool, scanner, target command, or target code execution is permitted.
     references: []

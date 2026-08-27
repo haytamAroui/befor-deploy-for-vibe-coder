@@ -1,6 +1,6 @@
 # Security Domain + Control Catalog
 
-**Version:** 0.7.0
+**Version:** 0.8.0
 **Authority:** Informational only; it is not a policy profile, a scanner, a compliance assessment, or a release authority.
 
 ## Purpose and authority boundary
@@ -91,7 +91,7 @@ The catalog maps **only the twenty-one reviewed capability implementations alrea
 | `CONTROL-SUPPLY-SBOM-001` | `control.native.release-sbom` / `SEC-RELEASE-001` | Software supply chain | SBOM presence/basic parseability only. |
 | `CONTROL-SUPPLY-PROVENANCE-001` | `adapter.github-attestation-offline` / `SEC-PROVENANCE-001` | Software supply chain | Explicit local artifact/bundle verification only. |
 | `CONTROL-SUPPLY-GO-MODULE-001` | `control.native.go-module-integrity` / `SEC-GO-MODULE-001` | Software supply chain | Root `go.mod` dependency declarations and root `go.sum` presence only. |
-| `CONTROL-SUPPLY-GO-VULNERABILITY-SNAPSHOT-001` | `control.native.go-vulnerability-snapshot` / `SEC-GO-VULN-001` | Software supply chain | Explicit Go snapshot policy; exact direct root dependency version against one packaged reviewed advisory boundary only. |
+| `CONTROL-SUPPLY-GO-VULNERABILITY-SNAPSHOT-001` | `control.native.go-vulnerability-snapshot` / `SEC-GO-VULN-001` | Software supply chain | Explicit Go snapshot policy; exact direct root dependency version against two packaged reviewed advisory boundaries only. |
 | `CONTROL-TRANSPORT-GO-TLS-001` | `control.native.go-tls-verification` / `SEC-GO-TLS-001` | Transport security | Direct literal `tls.Config{InsecureSkipVerify: true}` only. |
 | `CONTROL-GOSEC-STATIC-ANALYSIS-001` | `adapter.gosec-go-module` / `SEC-GOSEC-001` | Injection, SSRF, path traversal | Explicit external-adapters policy, preinstalled Gosec, fixed local/offline arguments, and normalized redacted report only. |
 | `CONTROL-CONTAINER-IAC-TRIVY-CONFIG-001` | `adapter.trivy-config-isolated` / `SEC-TRIVY-CONFIG-001` | Container security, infrastructure-as-code security | Explicit `trivy-config-policy.yaml` only; preinstalled version-verified Trivy 0.74.0, fixed offline misconfiguration-only arguments, isolated staged Dockerfile/Containerfile variants and Terraform `.tf`, and normalized redacted report only. |

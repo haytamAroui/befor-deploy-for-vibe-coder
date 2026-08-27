@@ -13,7 +13,7 @@ The built-in registry is shipped as package data under `src/before_deploy/capabi
 | Item | Current rule |
 |---|---|
 | Catalog schema | `1` |
-| Catalog version | `0.7.0` |
+| Catalog version | `0.8.0` |
 | Catalog digest | SHA-256 over canonical schema-approved semantic fields, not raw YAML formatting or source paths. |
 | Manifest source | Packaged, version-controlled YAML listed by `catalog.yaml`. |
 | Duplicate YAML mapping keys | Rejected. |

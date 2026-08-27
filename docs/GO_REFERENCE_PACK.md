@@ -10,7 +10,7 @@ The Go pack introduces three narrow native controls and one optional external ad
 |---|---|---|---|
 | `SEC-GO-MODULE-001` | Software supply chain | Require root `go.sum` only when root `go.mod` contains a direct or block-form `require` declaration. | Nested modules, checksum contents, dependency resolution, dependency vulnerabilities, and artifact integrity. |
 | `SEC-GO-TLS-001` | Transport security | Detect a direct `tls.Config` composite literal that explicitly sets `InsecureSkipVerify: true`. | Aliases, computed values, custom verification callbacks, non-Go TLS stacks, and runtime behavior. |
-| `SEC-GO-VULN-001` | Software supply chain | Compare exact direct root `go.mod` versions with one packaged, digest-pinned, reviewed advisory boundary derived from official Go database facts.[4] | Indirect dependencies, source reachability, build tags, `replace` directives, private modules, live-database freshness, remediation, and all network/tool execution.[5] |
+| `SEC-GO-VULN-001` | Software supply chain | Compare exact direct root `go.mod` versions with two packaged, digest-pinned, reviewed advisory boundaries derived from official Go database facts.[4] [5] | Indirect dependencies, source reachability, build tags, `replace` directives, private modules, live-database freshness, remediation, and all network/tool execution.[6] |
 | `SEC-GOSEC-001` | Injection, SSRF, path traversal | Optional, policy-configured local Gosec JSON adapter with fixed arguments and redacted normalized findings. | Installation, target-supplied commands/configuration, AI-fix mode, dependency download, remote configuration, and any coverage outside the upstream result. |
 
 ## Adapter execution boundary
@@ -29,12 +29,13 @@ The Go pack activates only concrete Go-related catalog mappings: software supply
 
 ## Fixture policy
 
-Every Go control/adaptor must retain secure, vulnerable, unsupported, and false-positive fixtures. The snapshot control has fixtures for an affected direct dependency, an unrelated dependency, a version at the fixed boundary, and a no-root-module non-applicability case; it also tests snapshot substitution and unsupported `replace` directives as explicit errors. Adapter tests use a fake preinstalled executable that produces an intentionally redacted-shaped JSON report; live scanner installation and network access are not part of the test suite.
+Every Go control/adaptor must retain secure, vulnerable, unsupported, and false-positive fixtures. The snapshot control has fixtures for affected direct `golang.org/x/text` and Gin dependencies, unrelated dependencies, versions at each fixed boundary, an indirect Gin declaration, and a no-root-module non-applicability case; it also tests snapshot substitution and unsupported `replace` directives as explicit errors. Adapter tests use a fake preinstalled executable that produces an intentionally redacted-shaped JSON report; live scanner installation and network access are not part of the test suite.
 
 ## References
 
 [1]: https://github.com/securego/gosec "securego/gosec README — scan modes, output formats, exit behavior, rule categories, suppression controls, and AI-fix options"
 [2]: https://go.dev/ref/mod "Go Modules Reference — module resolution and GOPROXY behavior"
 [3]: https://github.com/securego/gosec/releases "securego/gosec releases — v2.29.0"
-[4]: https://pkg.go.dev/vuln/GO-2021-0113 "Go Vulnerability Database — GO-2021-0113"
-[5]: https://go.dev/doc/security/vuln/database "Go Vulnerability Database format and update model"
+[4]: https://pkg.go.dev/vuln/GO-2020-0001 "Go Vulnerability Database — GO-2020-0001"
+[5]: https://pkg.go.dev/vuln/GO-2021-0113 "Go Vulnerability Database — GO-2021-0113"
+[6]: https://go.dev/doc/security/vuln/database "Go Vulnerability Database format and update model"

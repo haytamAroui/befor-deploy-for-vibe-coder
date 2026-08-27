@@ -17,7 +17,7 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     second = load_builtin_capability_registry()
 
     assert first.schema_version == 1
-    assert first.catalog_version == "0.7.0"
+    assert first.catalog_version == "0.8.0"
     assert first.catalog_digest == second.catalog_digest
     assert len(first.capabilities) == 21
     assert first.definition_for_implementation("SEC-NEXT-ENV-001").capability_id == (
@@ -26,9 +26,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     assert first.definition_for_implementation("SEC-GO-TLS-001").capability_id == (
         "control.native.go-tls-verification"
     )
-    assert first.definition_for_implementation("SEC-GO-VULN-001").capability_id == (
-        "control.native.go-vulnerability-snapshot"
-    )
+    go_snapshot = first.definition_for_implementation("SEC-GO-VULN-001")
+    assert go_snapshot.capability_id == "control.native.go-vulnerability-snapshot"
+    assert go_snapshot.version == "0.2.0"
     assert first.definition_for_implementation("SEC-NEXT-ACTION-001").capability_id == (
         "control.native.nextjs-server-action-local-guard"
     )
