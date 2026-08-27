@@ -10,6 +10,11 @@ external_tools:
     version: "8.30.1"
     timeout_seconds: 60
     max_report_bytes: 5000000
+  gosec:
+    executable: gosec
+    version: "v2.29.0"
+    timeout_seconds: 120
+    max_report_bytes: 5000000
   semgrep:
     executable: semgrep
     version: "1.175.0"
@@ -44,5 +49,14 @@ controls:
     required: true
     disposition: BLOCK
   SEC-DEP-001:
+    required: true
+    disposition: BLOCK
+  SEC-GO-MODULE-001:
+    required: true
+    disposition: BLOCK
+  SEC-GO-TLS-001:
+    required: true
+    disposition: BLOCK
+  SEC-GOSEC-001:
     required: true
     disposition: BLOCK

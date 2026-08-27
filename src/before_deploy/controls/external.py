@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Mapping
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,7 @@ class ExternalToolRunner:
         arguments: tuple[str, ...],
         cwd: Path,
         stdout_path: Path | None = None,
+        environment_overrides: Mapping[str, str] | None = None,
     ) -> ExternalToolRun:
         """Run a tool with a minimal environment and a bounded wall-clock timeout."""
         executable = _resolve_executable(config.executable)
@@ -74,6 +76,15 @@ class ExternalToolRunner:
 
         with tempfile.TemporaryDirectory(prefix="before-deploy-tool-home-") as tool_home:
             environment = _minimal_environment(Path(tool_home))
+            try:
+                environment.update(_validated_environment_overrides(environment_overrides))
+            except ValueError:
+                return ExternalToolRun(
+                    executable=executable,
+                    return_code=None,
+                    timed_out=False,
+                    error_kind="INVALID_ENVIRONMENT_OVERRIDE",
+                )
             try:
                 if stdout_path is None:
                     completed = subprocess.run(
@@ -139,6 +150,25 @@ def _resolve_executable(requested: str) -> str | None:
     if candidate.parent != Path("."):
         return candidate.resolve().as_posix() if candidate.is_file() else None
     return shutil.which(requested)
+
+
+_ALLOWED_ENVIRONMENT_OVERRIDES = frozenset(
+    {"GIT_TERMINAL_PROMPT", "GOFLAGS", "GONOSUMDB", "GOPROXY", "GOSUMDB"}
+)
+
+
+def _validated_environment_overrides(overrides: Mapping[str, str] | None) -> dict[str, str]:
+    """Allow only the fixed non-secret Go isolation flags used by reviewed adapters."""
+    if overrides is None:
+        return {}
+    validated: dict[str, str] = {}
+    for key, value in overrides.items():
+        if not isinstance(key, str) or key not in _ALLOWED_ENVIRONMENT_OVERRIDES:
+            raise ValueError("Invalid external-tool environment override key")
+        if not isinstance(value, str) or not value or "\x00" in value:
+            raise ValueError("Invalid external-tool environment override value")
+        validated[key] = value
+    return validated
 
 
 def _minimal_environment(tool_home: Path) -> dict[str, str]:

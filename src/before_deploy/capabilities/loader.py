@@ -29,6 +29,9 @@ APPROVED_IMPLEMENTATION_IDS = frozenset(
         "SEC-CONFIG-002",
         "SEC-DEP-001",
         "SEC-DEP-VULN-001",
+        "SEC-GO-MODULE-001",
+        "SEC-GO-TLS-001",
+        "SEC-GOSEC-001",
         "SEC-NEXT-COOKIE-001",
         "SEC-NEXT-CORS-001",
         "SEC-NEXT-ENV-001",
@@ -136,7 +139,7 @@ def _parse_definition(path: Path) -> CapabilityDefinition:
         raise ValueError(f"Capability {capability_id} applies_when must be a mapping")
     _reject_unknown_keys(
         applies_when,
-        {"languages", "frameworks", "requires_github_workflow"},
+        {"languages", "frameworks", "requires_github_workflow", "required_project_signals"},
         path,
     )
     requires_workflow = applies_when.get("requires_github_workflow", False)
@@ -151,6 +154,13 @@ def _parse_definition(path: Path) -> CapabilityDefinition:
         languages=frozenset(_string_tuple(applies_when.get("languages", []), "languages", path)),
         frameworks=frozenset(_string_tuple(applies_when.get("frameworks", []), "frameworks", path)),
         requires_github_workflow=requires_workflow,
+        required_project_signals=frozenset(
+            _string_tuple(
+                applies_when.get("required_project_signals", []),
+                "required_project_signals",
+                path,
+            )
+        ),
         security_domains=_string_tuple(raw.get("security_domains"), "security_domains", path),
         exclusions=_string_tuple(raw.get("exclusions"), "exclusions", path),
         source_path=path,
@@ -214,6 +224,7 @@ def _semantic_digest(catalog_version: str, definitions: object) -> str:
                 "languages": sorted(definition.languages),
                 "frameworks": sorted(definition.frameworks),
                 "requires_github_workflow": definition.requires_github_workflow,
+                "required_project_signals": sorted(definition.required_project_signals),
                 "security_domains": list(definition.security_domains),
                 "exclusions": list(definition.exclusions),
             }

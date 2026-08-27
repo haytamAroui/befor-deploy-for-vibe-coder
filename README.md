@@ -32,12 +32,13 @@ Every scan begins with a deterministic **Repository Evidence Collector** and **A
 |---|---|
 | **Python / FastAPI** | Enables existing Python AST, configuration, FastAPI-route, dependency, and release-evidence capabilities where the selected policy includes them. |
 | **JavaScript / TypeScript / Next.js** | Retains generic controls, GitHub Actions checks, and lockfile evidence; when Next.js is detected, adds direct public-env, explicit session-cookie, and static credentialed-CORS checks. |
-| **Go, Rust, Java, Kotlin, Ruby, PHP, C#** | Retains generic secrets/CI/provenance controls and reports an explicit language-specific coverage gap. |
+| **Go** | Adds root-module `go.sum` presence when dependencies are declared and direct `tls.Config{InsecureSkipVerify: true}` detection. The optional Gosec adapter supplies bounded static-analysis evidence only when the explicit external-adapters policy selects a preinstalled binary. |
+| **Rust, Java, Kotlin, Ruby, PHP, C#** | Retains generic secrets/CI/provenance controls and reports an explicit language-specific coverage gap. |
 | **Mixed-language repositories** | Detects each recognized language independently, retains compatible controls, and exposes all coverage gaps in JSON, Markdown, and SARIF reports. |
 
 These deterministic components are **not an AI release authority**. They cannot mutate policy, create waivers, suppress findings, execute project code, deploy, merge, or access values beyond the bounded repository scan scope. The packaged capability registry is non-executable: its strict manifests cannot carry commands, URLs, executable paths, arbitrary scanner arguments, or policy overrides. Documentation signals create coverage expectations only; they never prove implementation or affect `PASS`, `BLOCK`, `WAIVER_REQUIRED`, or `ERROR`. A future advisory AI may read normalized redacted reports, but it will remain read-only and cannot change the gate decision.
 
-For the detection catalog, control-selection rules, and advisory boundary, see [`docs/ADAPTIVE_PROJECT_PROFILING.md`](docs/ADAPTIVE_PROJECT_PROFILING.md). For planning and evidence, see [`docs/ADAPTIVE_PLANNING_FOUNDATION.md`](docs/ADAPTIVE_PLANNING_FOUNDATION.md). For the capability-registry schema, provenance, and coverage-state semantics, see [`docs/DECLARATIVE_CAPABILITY_REGISTRY.md`](docs/DECLARATIVE_CAPABILITY_REGISTRY.md). For the non-executable domain taxonomy, mapped controls, unavailable domains, and standards-reference boundary, see [`docs/SECURITY_DOMAIN_CONTROL_CATALOG.md`](docs/SECURITY_DOMAIN_CONTROL_CATALOG.md).
+For the detection catalog, control-selection rules, and advisory boundary, see [`docs/ADAPTIVE_PROJECT_PROFILING.md`](docs/ADAPTIVE_PROJECT_PROFILING.md). The Go reference pack, its adapter isolation, and its explicit exclusions are documented in [`docs/GO_REFERENCE_PACK.md`](docs/GO_REFERENCE_PACK.md). For planning and evidence, see [`docs/ADAPTIVE_PLANNING_FOUNDATION.md`](docs/ADAPTIVE_PLANNING_FOUNDATION.md). For the capability-registry schema, provenance, and coverage-state semantics, see [`docs/DECLARATIVE_CAPABILITY_REGISTRY.md`](docs/DECLARATIVE_CAPABILITY_REGISTRY.md). For the non-executable domain taxonomy, mapped controls, unavailable domains, and standards-reference boundary, see [`docs/SECURITY_DOMAIN_CONTROL_CATALOG.md`](docs/SECURITY_DOMAIN_CONTROL_CATALOG.md).
 
 ## Quick start
 
@@ -143,7 +144,7 @@ Policies are human-reviewable YAML files under `rules/`. A policy explicitly sel
 |---|---|---|
 | `rules/default-policy.yaml` | Local development and baseline assessment. | Runs the validated native controls. It is the recommended starting profile. |
 | `rules/strict-ci-policy.yaml` | Protected-branch CI. | Runs the native pre-deployment controls with every configured control required and fail-closed error behavior. |
-| `rules/external-adapters-policy.yaml` | A team has installed and calibrated the pinned Gitleaks and Semgrep binaries. | Replaces the bootstrap secret/SAST controls with required external adapters while retaining native FastAPI, configuration, CI, and dependency controls. |
+| `rules/external-adapters-policy.yaml` | A team has installed and calibrated the pinned Gitleaks, Semgrep, and Gosec binaries. | Replaces bootstrap secret/SAST controls with required external adapters. Gosec is explicitly selected only for detected root Go modules; it remains `NOT_APPLICABLE` outside that scope. |
 | `rules/strict-policy.yaml` | Release-evidence experimentation. | Includes the SBOM presence control. It remains separate for teams that are not yet supplying signed artifacts. |
 | `rules/release-evidence-policy.yaml` | A release candidate with exported Python dependencies, an SBOM, a local artifact, and a downloaded GitHub attestation bundle. | Requires core controls plus pip-audit vulnerability evidence, SBOM presence, and offline signed-attestation verification. |
 
@@ -199,20 +200,21 @@ Do not use waivers for missing binaries, invalid policy files, malformed scanner
 
 ## Optional external scanner profile
 
-The external profile is opt-in because third-party scanner output must be calibrated before it becomes a release authority. It activates isolated adapters for **Gitleaks 8.30.1** and **Semgrep 1.175.0**.
+The external profile is opt-in because third-party scanner output must be calibrated before it becomes a release authority. It activates isolated adapters for **Gitleaks 8.30.1**, **Gosec v2.29.0** (only for detected root Go modules), and **Semgrep 1.175.0**.
 
 ### Install and verify the scanners
 
-Install Gitleaks from its official release channel and Semgrep through your approved software distribution process. Verify the executable path and version before using the profile. For Semgrep, an isolated uv tool installation can be used:
+Install Gitleaks, Gosec, and Semgrep through your approved software-distribution process. Verify the executable path and version before using the profile. Do not install scanners from target repositories. For Semgrep, an isolated uv tool installation can be used:
 
 ```bash
 uv tool install "semgrep==1.175.0"
 semgrep --version
 
 gitleaks version
+gosec --version
 ```
 
-The policy declares the expected versions for traceability. Your team should pin the downloaded Gitleaks artifact or container digest through its own dependency-management process and ensure `gitleaks` and `semgrep` are available on `PATH` in the CI runner.
+The policy declares expected versions for traceability. Your team should pin downloaded scanner artifacts or container digests through its own dependency-management process and ensure `gitleaks`, `gosec`, and `semgrep` are available on `PATH` in the CI runner. The Gosec adapter uses only fixed arguments, ignores inline suppressions, disables module-network resolution with `GOPROXY=off`, and uses read-only module behavior; missing local dependencies are an explicit `ERROR`, not a download attempt.
 
 ### Run the external profile
 
@@ -222,7 +224,7 @@ uv run before-deploy scan /path/to/repository \
   --output-dir /tmp/before-deploy-external
 ```
 
-The adapters use fixed argument lists, a minimal child-process environment, temporary reports outside the scanned repository, bounded report size, and timeouts. They do not execute project code, enable Semgrep autofix, allow Semgrep local builds, use remote Semgrep registry rules, or retain raw Gitleaks secrets in Before Deploy reports.
+The adapters use fixed argument lists, a minimal child-process environment, temporary reports outside the scanned repository, bounded report size, and timeouts. They do not run target-supplied commands, enable Gosec AI-fix mode, enable Semgrep autofix, allow Semgrep local builds, use remote Semgrep registry rules, download Go modules, or retain raw Gitleaks secrets or Gosec source/details in Before Deploy reports.
 
 If either required binary is missing, times out, produces invalid JSON, or reports an internal scan error, the outcome is `ERROR` with exit code `20`. This is intentional fail-closed behavior.
 

@@ -37,6 +37,7 @@ _MANIFEST_LANGUAGES = {
 _PACKAGE_MANAGERS = {
     "Cargo.lock": "cargo",
     "Gemfile.lock": "bundler",
+    "go.sum": "go",
     "composer.lock": "composer",
     "package-lock.json": "npm",
     "pnpm-lock.yaml": "pnpm",
@@ -174,8 +175,13 @@ def _bounded_marker_text(root_files: dict[str, Path]) -> str:
 
 def _coverage_gaps(languages: set[str], frameworks: set[str]) -> tuple[str, ...]:
     gaps: list[str] = []
-    for language in sorted(languages - {"JavaScript", "Python", "TypeScript"}):
+    for language in sorted(languages - {"Go", "JavaScript", "Python", "TypeScript"}):
         gaps.append(f"No language-specific controls are currently installed for {language}.")
+    if "Go" in languages:
+        gaps.append(
+            "Go coverage is limited to root-module checksum presence, direct tls.Config InsecureSkipVerify literals, "
+            "and an opt-in isolated Gosec adapter; deep framework, dataflow, and runtime analysis are not installed."
+        )
     if "Next.js" in frameworks:
         gaps.append(
             "Next.js coverage is limited to direct public-env, explicit session-cookie, and static CORS checks; "
@@ -201,4 +207,7 @@ def _non_applicability_reason(definition, project_profile: ProjectProfile) -> st
         return f"Adaptive profile: this control requires one of [{supported}]."
     if definition.requires_github_workflow and "framework:GitHub Actions" not in project_profile.signals:
         return "Adaptive profile: no GitHub Actions workflow was detected."
+    missing_signals = sorted(definition.required_project_signals - set(project_profile.signals))
+    if missing_signals:
+        return "Adaptive profile: missing required project signals [" + ", ".join(missing_signals) + "]."
     return None

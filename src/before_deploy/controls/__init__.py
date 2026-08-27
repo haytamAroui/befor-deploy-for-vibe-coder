@@ -8,6 +8,7 @@ from before_deploy.controls.deployment_config import (
 )
 from before_deploy.controls.fastapi_routes import FastApiRouteAuthenticationControl
 from before_deploy.controls.github_actions import GitHubActionsSecurityControl
+from before_deploy.controls.go import GoModuleIntegrityControl, GoTLSVerificationControl
 from before_deploy.controls.injection import SqlInjectionControl
 from before_deploy.controls.nextjs import (
     NextPublicEnvironmentControl,
@@ -31,6 +32,8 @@ def native_controls() -> tuple[Control, ...]:
         NextStaticCorsControl(),
         GitHubActionsSecurityControl(),
         DependencyLockfileControl(),
+        GoModuleIntegrityControl(),
+        GoTLSVerificationControl(),
         CycloneDxSbomControl(),
     )
 
@@ -44,6 +47,8 @@ __all__ = [
     "DependencyLockfileControl",
     "FastApiRouteAuthenticationControl",
     "GitHubActionsSecurityControl",
+    "GoModuleIntegrityControl",
+    "GoTLSVerificationControl",
     "NextPublicEnvironmentControl",
     "NextSessionCookieControl",
     "NextStaticCorsControl",

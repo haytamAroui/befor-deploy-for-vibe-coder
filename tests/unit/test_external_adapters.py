@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from before_deploy.controls.base import ControlContext
@@ -169,3 +170,136 @@ time.sleep(2)
 
     assert result.execution.status == ExecutionStatus.ERROR
     assert result.execution.metadata["error_kind"] == "TIMEOUT"
+
+
+def test_gosec_adapter_uses_fixed_offline_arguments_and_redacts_upstream_source(tmp_path):
+    from before_deploy.controls.gosec import GosecControl
+
+    context = _context(tmp_path / "repository")
+    tool = _fake_tool(
+        tmp_path / "fake-gosec",
+        """
+import json
+import os
+import sys
+from pathlib import Path
+args = sys.argv[1:]
+Path('captured-gosec.json').write_text(json.dumps({
+    'args': args,
+    'environment': {key: os.environ.get(key) for key in ('GOFLAGS', 'GOPROXY', 'GOSUMDB', 'GONOSUMDB', 'GIT_TERMINAL_PROMPT')},
+}), encoding='utf-8')
+report_path = Path(args[args.index('-out') + 1])
+raw = 'never' + '-write-this-gosec-source-1234567890'
+report_path.write_text(json.dumps({
+    'Golang errors': '',
+    'Issues': [{
+        'rule_id': 'G204',
+        'severity': 'HIGH',
+        'confidence': 'HIGH',
+        'file': 'app.py',
+        'line': '1',
+        'cwe': {'id': '78'},
+        'details': raw,
+        'code': 'exec(' + raw + ')',
+    }],
+}), encoding='utf-8')
+raise SystemExit(0)
+""",
+    )
+
+    result = GosecControl(ExternalToolConfig(executable=tool.as_posix(), tool_version="v2.29.0")).run(
+        context
+    )
+    captured = json.loads((context.repository_root / "captured-gosec.json").read_text(encoding="utf-8"))
+    raw_value = "never" + "-write-this-gosec-source-1234567890"
+
+    assert result.execution.status == ExecutionStatus.COMPLETED
+    assert result.findings[0].location and result.findings[0].location.path == "app.py"
+    assert result.findings[0].evidence == {
+        "upstream_rule_id": "G204",
+        "upstream_severity": "HIGH",
+        "upstream_confidence": "HIGH",
+        "upstream_cwe_id": "78",
+    }
+    assert raw_value not in result.findings[0].message
+    assert "-fmt=json" in captured["args"]
+    assert "-no-fail" in captured["args"]
+    assert "-exclude-generated" in captured["args"]
+    assert "-nosec=true" in captured["args"]
+    assert "-nosec-require-rules" in captured["args"]
+    assert "-nosec-require-justification" in captured["args"]
+    assert "./..." in captured["args"]
+    assert {
+        "-ai-api-provider",
+        "-ai-api-key",
+        "-ai-base-url",
+        "-ai-skip-ssl",
+    }.isdisjoint(captured["args"])
+    assert captured["environment"] == {
+        "GOFLAGS": "-mod=readonly",
+        "GOPROXY": "off",
+        "GOSUMDB": "off",
+        "GONOSUMDB": "*",
+        "GIT_TERMINAL_PROMPT": "0",
+    }
+
+    from before_deploy.models import GateOutcome, PolicyDecision, ScanManifest, ScanResult, utc_now
+
+    now = utc_now()
+    scan_result = ScanResult(
+        manifest=ScanManifest(
+            scan_id="gosec-adapter-test",
+            repository_path=context.repository_root.as_posix(),
+            repository_digest="digest",
+            policy_digest="policy",
+            policy_name="external",
+            started_at=now,
+            completed_at=now,
+        ),
+        executions=(result.execution,),
+        findings=result.findings,
+        waivers=(),
+        decision=PolicyDecision(outcome=GateOutcome.BLOCK, reason_codes=("test",)),
+    )
+    assert raw_value not in render_json(scan_result)
+    assert raw_value not in render_markdown(scan_result)
+    assert raw_value not in render_sarif(scan_result)
+
+
+def test_gosec_reported_errors_are_not_treated_as_a_clean_scan(tmp_path):
+    from before_deploy.controls.gosec import GosecControl
+
+    context = _context(tmp_path / "repository")
+    tool = _fake_tool(
+        tmp_path / "fake-gosec-error",
+        """
+import json
+import sys
+from pathlib import Path
+args = sys.argv[1:]
+report_path = Path(args[args.index('-out') + 1])
+report_path.write_text(json.dumps({'Golang errors': {'error': 'compile failed'}, 'Issues': []}), encoding='utf-8')
+raise SystemExit(0)
+""",
+    )
+
+    result = GosecControl(ExternalToolConfig(executable=tool.as_posix())).run(context)
+
+    assert result.execution.status == ExecutionStatus.ERROR
+    assert result.execution.metadata["error_kind"] == "SCANNER_REPORTED_ERRORS"
+
+
+def test_external_runner_rejects_unapproved_environment_override(tmp_path):
+    from before_deploy.controls.external import ExternalToolRunner
+
+    context = _context(tmp_path / "repository")
+    tool = _fake_tool(tmp_path / "fake-tool", "raise SystemExit(0)\n")
+
+    outcome = ExternalToolRunner().run(
+        config=ExternalToolConfig(executable=tool.as_posix()),
+        arguments=(),
+        cwd=context.repository_root,
+        environment_overrides={"UNAPPROVED_OVERRIDE": "value"},
+    )
+
+    assert outcome.error_kind == "INVALID_ENVIRONMENT_OVERRIDE"

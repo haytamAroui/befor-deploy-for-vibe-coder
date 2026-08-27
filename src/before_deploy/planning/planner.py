@@ -119,6 +119,7 @@ def _selection_evidence_ids(
     )
     if definition.requires_github_workflow:
         candidates.append("REPOSITORY-CI-GITHUB-ACTIONS")
+    candidates.extend(definition.required_project_signals)
     return tuple(sorted(candidate for candidate in candidates if candidate in evidence_ids))
 
 

@@ -22,7 +22,8 @@ def test_detects_go_and_reports_language_specific_coverage_gap():
     assert profile.frameworks == ()
     assert profile.signals["manifest:go.mod"] == "1"
     assert profile.coverage_gaps == (
-        "No language-specific controls are currently installed for Go.",
+        "Go coverage is limited to root-module checksum presence, direct tls.Config InsecureSkipVerify literals, "
+        "and an opt-in isolated Gosec adapter; deep framework, dataflow, and runtime analysis are not installed.",
     )
 
 

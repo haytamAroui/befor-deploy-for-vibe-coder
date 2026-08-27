@@ -35,3 +35,9 @@ controls:
   SEC-DEP-001:
     required: true
     disposition: BLOCK
+  SEC-GO-MODULE-001:
+    required: true
+    disposition: BLOCK
+  SEC-GO-TLS-001:
+    required: true
+    disposition: BLOCK

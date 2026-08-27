@@ -1,13 +1,16 @@
 schema_version: 1
-catalog_version: "0.1.0"
+catalog_version: "0.2.0"
 manifests:
   - adapter.gitleaks.yaml
+  - adapter.gosec.yaml
   - adapter.pip-audit.yaml
   - adapter.provenance.yaml
   - adapter.semgrep.yaml
   - control.dependency-manifest.yaml
   - control.fastapi-api.yaml
   - control.github-actions.yaml
+  - control.go-module.yaml
+  - control.go-tls.yaml
   - control.nextjs-cookie.yaml
   - control.nextjs-cors.yaml
   - control.nextjs-public-env.yaml

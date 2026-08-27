@@ -10,6 +10,7 @@ from before_deploy.controls import native_controls
 from before_deploy.controls.dependency_audit import DependencyAuditControl
 from before_deploy.controls.external import ExternalToolConfig
 from before_deploy.controls.gitleaks import GitleaksControl
+from before_deploy.controls.gosec import GosecControl
 from before_deploy.controls.provenance import ProvenanceControl
 from before_deploy.controls.semgrep import SemgrepControl
 from before_deploy.models import GateOutcome
@@ -81,6 +82,20 @@ def _controls_for_profile(profile, policy_path: Path):
             raise ValueError("Policy enables Gitleaks but does not configure external_tools.gitleaks")
         controls.append(
             GitleaksControl(
+                ExternalToolConfig(
+                    executable=settings.executable,
+                    tool_version=settings.version,
+                    timeout_seconds=settings.timeout_seconds,
+                    max_report_bytes=settings.max_report_bytes,
+                )
+            )
+        )
+    if "SEC-GOSEC-001" in profile.controls:
+        settings = profile.tools.get("gosec")
+        if settings is None:
+            raise ValueError("Policy enables Gosec but does not configure external_tools.gosec")
+        controls.append(
+            GosecControl(
                 ExternalToolConfig(
                     executable=settings.executable,
                     tool_version=settings.version,

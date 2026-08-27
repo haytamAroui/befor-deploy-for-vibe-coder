@@ -1,0 +1,18 @@
+schema_version: 1
+id: adapter.gosec-go-module
+version: "0.1.0"
+implementation_id: SEC-GOSEC-001
+kind: ADAPTER
+title: Isolated Gosec Go static-analysis adapter
+applies_when:
+  languages:
+    - Go
+  required_project_signals:
+    - manifest:go.mod
+security_domains:
+  - DOMAIN-INJECTION-001
+  - DOMAIN-PATH-TRAVERSAL-001
+  - DOMAIN-SSRF-001
+exclusions:
+  - The adapter is opt-in and only runs a policy-configured preinstalled executable.
+  - No installation, AI-fix mode, remote tool configuration, dependency download, or target-supplied command is permitted.

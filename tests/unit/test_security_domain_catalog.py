@@ -20,10 +20,10 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.1.0"
+    assert catalog.catalog_version == "0.2.0"
     assert catalog.catalog_digest == second.catalog_digest
-    assert len(catalog.domains) == 28
-    assert len(catalog.controls) == 15
+    assert len(catalog.domains) == 30
+    assert len(catalog.controls) == 18
     assert catalog.domains["DOMAIN-SSRF-001"].title == "Server-side request forgery"
     assert {
         control.capability_id for control in catalog.controls.values()
@@ -34,7 +34,7 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     )
 
 
-def test_domain_catalog_is_informational_and_can_expose_unavailable_domain(tmp_path):
+def test_domain_catalog_is_informational_and_exposes_registry_mapping(tmp_path):
     catalog = load_builtin_security_domain_catalog()
     registry = load_builtin_capability_registry()
     from before_deploy.models import ProjectProfile
@@ -50,7 +50,9 @@ def test_domain_catalog_is_informational_and_can_expose_unavailable_domain(tmp_p
     active = catalog.domains_for_profile(profile, frozenset({"REQUIREMENT-EXTERNAL-URL-FETCH"}))
 
     assert [item.domain_id for item in active] == ["DOMAIN-SECRETS-001", "DOMAIN-SSRF-001"]
-    assert not catalog.controls_for_domain("DOMAIN-SSRF-001")
+    assert [item.capability_id for item in catalog.controls_for_domain("DOMAIN-SSRF-001")] == [
+        "adapter.gosec-go-module"
+    ]
     assert registry.definition_for_implementation("SEC-UNREGISTERED-001") is None
 
 

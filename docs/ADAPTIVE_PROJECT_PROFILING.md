@@ -30,7 +30,7 @@ A profile signal is evidence of repository makeup, not a claim that an applicati
 |---|---|---|
 | Python | `.py`, `pyproject.toml`, `requirements*.txt`, `uv.lock` | Native secret/SAST/config checks; FastAPI support when imported; pip-audit release evidence. |
 | TypeScript / JavaScript | `.ts`, `.tsx`, `.js`, `.jsx`, `package.json`, lockfiles | Cross-language secrets, CI, and lockfile evidence; generic TypeScript semantics remain outside the current scope. |
-| Go | `.go`, `go.mod` | Cross-language secrets and CI checks; coverage gap reports absence of Go-specific SAST/dependency-vulnerability adapter. |
+| Go | `.go`, `go.mod`, `go.sum` | Root-module `go.sum` presence when dependencies are declared, direct `tls.Config{InsecureSkipVerify: true}` detection, and an opt-in isolated Gosec adapter. Framework/dataflow/runtime analysis remains an explicit gap. |
 | Rust | `.rs`, `Cargo.toml` | Cross-language secrets and CI checks; coverage gap reports absence of Rust-specific SAST/dependency-vulnerability adapter. |
 | Java / Kotlin | `.java`, `.kt`, `pom.xml`, `build.gradle*` | Cross-language secrets and CI checks; coverage gap reports absence of JVM-specific adapters. |
 | Ruby | `.rb`, `Gemfile` | Cross-language secrets and CI checks; coverage gap reports absence of Ruby-specific adapters. |
@@ -48,6 +48,8 @@ The code maintains a fixed capability catalog. Each entry maps one control ident
 | Secrets / Gitleaks / provenance | Applicable to every repository with scan scope, regardless of language. |
 | GitHub Actions | Applicable only when a GitHub workflow file is visible. |
 | Lockfile evidence | Applicable to detected Python or Node/TypeScript/JavaScript dependency ecosystems. |
+| Go module integrity / direct TLS verification | Applicable only to a detected root Go module; module-sum presence and direct `tls.Config` literals only. |
+| Gosec adapter | Applicable only to a detected root Go module and only when an explicit external policy configures a preinstalled binary. |
 | Python SQL / production configuration / pip-audit | Applicable only to detected Python repositories. |
 | FastAPI route auth | Applicable only when FastAPI is detected. |
 | Local Semgrep adapter | Applicable only to detected Python because the initial checked-in rule pack is Python-only. |
@@ -58,7 +60,7 @@ When a policy selects a control but the profile identifies it as incompatible, t
 
 ## 5. Coverage-gap reporting
 
-Coverage gaps, Security Analysis Plans, and Coverage Audits are deterministic diagnostics, not security findings and not gate overrides. JSON, Markdown, and SARIF reports expose the selected approved capabilities, explicit exclusions, and `COVERED`, `PARTIAL`, `UNAVAILABLE`, `NOT_APPLICABLE`, or `DECLARED_REVIEW_REQUIRED` coverage states. A future policy may make named coverage gaps require a waiver, but that would be a separate, explicit policy decision.
+Coverage gaps, Security Analysis Plans, and Coverage Audits are deterministic diagnostics, not security findings and not gate overrides. JSON, Markdown, and SARIF reports expose the selected approved capabilities, explicit exclusions, and `COVERED`, `PARTIAL`, `UNAVAILABLE`, `NOT_SELECTED`, `NOT_APPLICABLE`, `DECLARED_REVIEW_REQUIRED`, or `ERROR` coverage states. A future policy may make named coverage gaps require a waiver, but that would be a separate, explicit policy decision.
 
 ## 6. Advisory-agent boundary
 
@@ -70,7 +72,8 @@ A future read-only advisory agent may consume only the normalized project profil
 |---|---|
 | FastAPI/Python repository | Detect Python and FastAPI; run Python/FastAPI-compatible controls; report no Python coverage gap. |
 | Next.js repository | Detect TypeScript/JavaScript and Next.js; run compatible cross-language and narrow static Next.js controls; report deferred Server Actions, middleware, and data-boundary coverage. |
-| Go/Rust/Java mixed repository | Detect each language deterministically; retain generic checks; record language-specific coverage gaps. |
+| Go repository | Detect Go and root-module evidence; run the two narrow native controls; report Gosec-backed injection, SSRF, and path-traversal coverage as `NOT_SELECTED` until an explicit adapter policy selects it. |
+| Rust/Java mixed repository | Detect each language deterministically; retain generic checks; record language-specific coverage gaps. |
 | Policy includes a Python-only control for a Go-only repository | Record `NOT_APPLICABLE` with a visible reason rather than silently dropping the control. |
 | Unknown files or no recognized technology | Preserve generic controls and report that no language-specific catalog match was found. |
 | Any repository | The policy engine remains the sole authority for `PASS`, `BLOCK`, `WAIVER_REQUIRED`, `ERROR`, and `NOT_EVALUATED`. |

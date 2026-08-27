@@ -1,0 +1,16 @@
+schema_version: 1
+id: control.native.go-tls-verification
+version: "0.1.0"
+implementation_id: SEC-GO-TLS-001
+kind: CONTROL
+title: Go direct TLS verification disablement check
+applies_when:
+  languages:
+    - Go
+  required_project_signals:
+    - manifest:go.mod
+security_domains:
+  - DOMAIN-TRANSPORT-SECURITY-001
+exclusions:
+  - Only direct tls.Config literals explicitly setting InsecureSkipVerify to true are detected.
+  - Aliases, computed values, custom verification, non-Go TLS stacks, and runtime behavior are not inferred.

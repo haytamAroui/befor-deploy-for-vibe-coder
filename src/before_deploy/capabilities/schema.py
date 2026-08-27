@@ -23,6 +23,7 @@ class CapabilityDefinition:
     languages: frozenset[str]
     frameworks: frozenset[str]
     requires_github_workflow: bool
+    required_project_signals: frozenset[str]
     security_domains: tuple[str, ...]
     exclusions: tuple[str, ...]
     source_path: Path
@@ -33,10 +34,9 @@ class CapabilityDefinition:
             return False
         if self.frameworks and not self.frameworks.intersection(project_profile.frameworks):
             return False
-        return not (
-            self.requires_github_workflow
-            and "framework:GitHub Actions" not in project_profile.signals
-        )
+        if self.requires_github_workflow and "framework:GitHub Actions" not in project_profile.signals:
+            return False
+        return self.required_project_signals.issubset(project_profile.signals)
 
 
 @dataclass(frozen=True)

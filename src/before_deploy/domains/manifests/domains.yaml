@@ -68,10 +68,12 @@ domains:
     description: Injection risks represented by individually scoped language and scanner controls.
     applies_when:
       languages:
+        - Go
         - Python
     references: []
     exclusions:
       - NoSQL, command, template, LDAP, XPath, XSS, and interprocedural dataflow are not covered by the native Python check.
+      - Go coverage remains limited to an opt-in Gosec adapter and its upstream rule scope.
   - id: DOMAIN-CORS-001
     version: "0.1.0"
     title: Cross-origin resource sharing
@@ -208,6 +210,7 @@ domains:
     description: Dependency, SBOM, and provenance evidence for supported ecosystems and policies.
     applies_when:
       languages:
+        - Go
         - JavaScript
         - Python
         - TypeScript
@@ -258,6 +261,8 @@ domains:
     category: APPLICATION_SECURITY
     description: User-influenced outbound request behavior requiring dedicated dataflow analysis.
     applies_when:
+      languages:
+        - Go
       evidence_signal_ids:
         - REQUIREMENT-EXTERNAL-URL-FETCH
     references:
@@ -333,3 +338,25 @@ domains:
     references: []
     exclusions:
       - Query plans, connection pools, cache behavior, and performance characteristics are not inferred.
+  - id: DOMAIN-TRANSPORT-SECURITY-001
+    version: "0.1.0"
+    title: Transport security
+    category: CONFIGURATION_SECURITY
+    description: Transport certificate-verification behavior in supported source configurations.
+    applies_when:
+      languages:
+        - Go
+    references: []
+    exclusions:
+      - Only direct Go tls.Config literals are currently inspected; custom verification and runtime transport configuration are not inferred.
+  - id: DOMAIN-PATH-TRAVERSAL-001
+    version: "0.1.0"
+    title: Path traversal protection
+    category: APPLICATION_SECURITY
+    description: Path construction and file access behavior requiring dedicated dataflow-aware analysis.
+    applies_when:
+      languages:
+        - Go
+    references: []
+    exclusions:
+      - Go coverage remains limited to an opt-in Gosec adapter and its upstream rule scope.

@@ -1,6 +1,6 @@
 # Security Domain + Control Catalog
 
-**Version:** 0.1.0
+**Version:** 0.2.0
 **Authority:** Informational only; it is not a policy profile, a scanner, a compliance assessment, or a release authority.
 
 ## Purpose and authority boundary
@@ -26,7 +26,7 @@ The catalog digest is a canonical SHA-256 digest over semantic metadata. The sca
 
 ## Security-domain taxonomy
 
-The first catalog contains the **twenty-one foundational categories** adapted from the reviewed checklist as a taxonomy only. It also contains seven separately named extensions where collapsing a distinct surface would obscure coverage limits. A domain marked **mapped** has at least one reviewed current control contract; an **unmapped** domain has no approved implementation and remains explicit in coverage output only when its bounded applicability condition is observed.
+The first catalog contains the **twenty-one foundational categories** adapted from the reviewed checklist as a taxonomy only. It also contains nine separately named extensions where collapsing a distinct surface would obscure coverage limits. A domain marked **mapped** has at least one reviewed current control contract; an **unmapped** domain has no approved implementation and remains explicit in coverage output only when its bounded applicability condition is observed.
 
 | ID | Domain | Current mapping posture | Present limitation |
 |---|---|---|---|
@@ -34,7 +34,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 | `DOMAIN-AUTHORIZATION-001` | Authorization | Unmapped | Object/function/property authorization, tenant isolation, and business logic require dedicated evidence-backed analysis. |
 | `DOMAIN-ENDPOINT-SECURITY-001` | Endpoint security | Unmapped | Endpoint inventory, runtime headers, request limits, and enforcement are not inferred. |
 | `DOMAIN-INPUT-VALIDATION-001` | Input validation | Unmapped | Schema validation and runtime normalization are not inferred. |
-| `DOMAIN-INJECTION-001` | Injection protection | Mapped | Native Python SQL interpolation and optional local Semgrep are narrow; most injection families remain out of scope. |
+| `DOMAIN-INJECTION-001` | Injection protection | Mapped | Native Python SQL interpolation, optional local Semgrep, and opt-in Gosec are narrow; most injection families remain out of scope. |
 | `DOMAIN-JWT-SECURITY-001` | JSON Web Token security | Unmapped | JWT presence, algorithms, token lifecycle, and key handling are not inferred. |
 | `DOMAIN-PASSWORD-SECURITY-001` | Password security | Unmapped | Password support and context-specific verifier policy are not inferred. |
 | `DOMAIN-RATE-LIMITING-001` | Rate limiting and resource consumption | Unmapped | Limits, business-flow controls, and enforcement location are not inferred. |
@@ -50,7 +50,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 | `DOMAIN-OBSERVABILITY-001` | Security observability | Unmapped | Logging content, retention, alerts, and production monitoring are not inferred. |
 | `DOMAIN-SECURITY-TESTING-001` | Security testing evidence | Unmapped | Test quantity and code-coverage percentages do not prove application security. |
 | `DOMAIN-PRODUCTION-CONFIGURATION-001` | Production configuration | Mapped | Static Python debug configuration does not determine effective deployed configuration. |
-| `DOMAIN-SUPPLY-CHAIN-001` | Software supply chain | Mapped | Existing controls provide limited dependency/SBOM/provenance evidence and do not establish a SLSA level. |
+| `DOMAIN-SUPPLY-CHAIN-001` | Software supply chain | Mapped | Existing controls provide limited Python/Node and Go module evidence plus limited SBOM/provenance evidence; they do not establish a SLSA level. |
 
 | Extension ID | Distinct extension | Current mapping posture | Present limitation |
 |---|---|---|---|
@@ -59,12 +59,14 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 | `DOMAIN-CICD-SECURITY-001` | CI/CD security | Mapped for selected GitHub Actions hardening checks | Does not inspect repository settings, runners, identities, or external CI platforms. |
 | `DOMAIN-CONTAINER-SECURITY-001` | Container security | Unmapped | Docker/Compose evidence only activates a visible gap; images and runtime posture are not inspected. |
 | `DOMAIN-IAC-SECURITY-001` | Infrastructure-as-code security | Unmapped | Terraform evidence only activates a visible gap; cloud state and IAM are not inspected. |
-| `DOMAIN-SSRF-001` | Server-side request forgery | Unmapped | Declared external URL fetching is not proof of an SSRF implementation or mitigation. |
+| `DOMAIN-SSRF-001` | Server-side request forgery | Mapped for opt-in Gosec on root Go modules | Declared external URL fetching is not proof of an SSRF implementation or mitigation; Gosec coverage is limited to upstream findings. |
 | `DOMAIN-PAYMENT-INTEGRATION-001` | Payment integration security | Unmapped | Payment declarations do not prove provider, webhook, or business-flow security. |
+| `DOMAIN-TRANSPORT-SECURITY-001` | Transport security | Mapped for direct Go TLS configuration | Only direct `tls.Config` literals disabling verification are checked; custom verification and runtime transport configuration are not inferred. |
+| `DOMAIN-PATH-TRAVERSAL-001` | Path traversal protection | Mapped for opt-in Gosec on root Go modules | Gosec coverage is limited to upstream findings; custom sanitization and runtime file-system behavior are not inferred. |
 
 ## Current control contracts
 
-The catalog maps **only the fifteen reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
+The catalog maps **only the eighteen reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
 
 | Control contract | Capability / implementation | Domain mapping | Selection boundary |
 |---|---|---|---|
@@ -80,6 +82,9 @@ The catalog maps **only the fifteen reviewed capability implementations already 
 | `CONTROL-SUPPLY-PIP-AUDIT-001` | `adapter.pip-audit-python` / `SEC-DEP-VULN-001` | Software supply chain | Explicit release-evidence policy only. |
 | `CONTROL-SUPPLY-SBOM-001` | `control.native.release-sbom` / `SEC-RELEASE-001` | Software supply chain | SBOM presence/basic parseability only. |
 | `CONTROL-SUPPLY-PROVENANCE-001` | `adapter.github-attestation-offline` / `SEC-PROVENANCE-001` | Software supply chain | Explicit local artifact/bundle verification only. |
+| `CONTROL-SUPPLY-GO-MODULE-001` | `control.native.go-module-integrity` / `SEC-GO-MODULE-001` | Software supply chain | Root `go.mod` dependency declarations and root `go.sum` presence only. |
+| `CONTROL-TRANSPORT-GO-TLS-001` | `control.native.go-tls-verification` / `SEC-GO-TLS-001` | Transport security | Direct literal `tls.Config{InsecureSkipVerify: true}` only. |
+| `CONTROL-GOSEC-STATIC-ANALYSIS-001` | `adapter.gosec-go-module` / `SEC-GOSEC-001` | Injection, SSRF, path traversal | Explicit external-adapters policy, preinstalled Gosec, fixed local/offline arguments, and normalized redacted report only. |
 | `CONTROL-NEXTJS-PUBLIC-ENV-001` | `control.native.nextjs-public-env` / `SEC-NEXT-ENV-001` | Secrets | Direct sensitive-looking public variable names only. |
 | `CONTROL-NEXTJS-SESSION-COOKIE-001` | `control.native.nextjs-session-cookie` / `SEC-NEXT-COOKIE-001` | Session security | Explicit unsafe static cookie-option combinations only. |
 | `CONTROL-NEXTJS-CORS-001` | `control.native.nextjs-static-cors` / `SEC-NEXT-CORS-001` | CORS | Static `next.config.*` header arrays only. |

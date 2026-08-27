@@ -173,3 +173,40 @@ controls:
     exclusions:
       - Dynamic headers, reverse proxies, CDNs, and runtime configuration are not covered.
     references: []
+  - id: CONTROL-SUPPLY-GO-MODULE-001
+    version: "0.1.0"
+    title: Go root-module checksum presence check
+    capability_id: control.native.go-module-integrity
+    implementation_id: SEC-GO-MODULE-001
+    security_domains:
+      - DOMAIN-SUPPLY-CHAIN-001
+    detection_scope: Root go.mod dependency declarations require a root go.sum checksum file.
+    exclusions:
+      - Nested modules, checksum contents, dependency resolution, and vulnerability status are not covered.
+    references: []
+  - id: CONTROL-TRANSPORT-GO-TLS-001
+    version: "0.1.0"
+    title: Go direct TLS verification disablement check
+    capability_id: control.native.go-tls-verification
+    implementation_id: SEC-GO-TLS-001
+    security_domains:
+      - DOMAIN-TRANSPORT-SECURITY-001
+    detection_scope: Direct tls.Config composite literals explicitly setting InsecureSkipVerify to true.
+    exclusions:
+      - Aliases, computed values, custom verification, non-Go TLS stacks, and runtime behavior are not inferred.
+    references: []
+  - id: CONTROL-GOSEC-STATIC-ANALYSIS-001
+    version: "0.1.0"
+    title: Isolated Gosec Go static-analysis adapter
+    capability_id: adapter.gosec-go-module
+    implementation_id: SEC-GOSEC-001
+    security_domains:
+      - DOMAIN-INJECTION-001
+      - DOMAIN-PATH-TRAVERSAL-001
+      - DOMAIN-SSRF-001
+    detection_scope: Policy-configured preinstalled Gosec JSON scan with fixed local arguments and normalized redacted findings.
+    exclusions:
+      - The adapter is opt-in; no installation, AI-fix mode, remote configuration, dependency download, or target-supplied command is permitted.
+      - Domain coverage is limited to the upstream Gosec findings emitted by the configured tool version.
+    references:
+      - REF-OWASP-API-2023

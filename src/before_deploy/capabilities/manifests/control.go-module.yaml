@@ -1,0 +1,16 @@
+schema_version: 1
+id: control.native.go-module-integrity
+version: "0.1.0"
+implementation_id: SEC-GO-MODULE-001
+kind: CONTROL
+title: Go root-module checksum presence check
+applies_when:
+  languages:
+    - Go
+  required_project_signals:
+    - manifest:go.mod
+security_domains:
+  - DOMAIN-SUPPLY-CHAIN-001
+exclusions:
+  - Only the root go.mod and go.sum presence are inspected.
+  - Nested modules, checksum contents, dependency resolution, and vulnerability status are not covered.
