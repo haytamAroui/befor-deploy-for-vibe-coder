@@ -59,6 +59,26 @@ def test_authorization_requirement_signal_is_diagnostic_and_cannot_change_the_ga
         assert "sensitive-authority-token" not in report
 
 
+def test_database_requirement_signal_is_diagnostic_and_cannot_change_the_gate(tmp_path):
+    repository = tmp_path / "database-requirements"
+    repository.mkdir()
+    (repository / "README.md").write_text(
+        "The service uses a database containing source-only-database-secret.\n",
+        encoding="utf-8",
+    )
+    policy = _policy(tmp_path / "secret-only.yaml", required=False, allow_errors=True)
+
+    result = ScanOrchestrator((SecretDetectionControl(),)).scan(repository, policy)
+
+    coverage = {item.domain: item.status.value for item in result.coverage_audit.assessments}
+    assert result.decision.outcome.value == "PASS"
+    assert result.findings == ()
+    assert coverage["Declared requirement: Database usage"] == "DECLARED_REVIEW_REQUIRED"
+    for report in (render_json(result), render_markdown(result), render_sarif(result)):
+        assert "Declared requirement: Database usage" in report
+        assert "source-only-database-secret" not in report
+
+
 def test_external_url_requirement_signal_is_diagnostic_and_cannot_change_the_gate(tmp_path):
     repository = tmp_path / "external-url-requirements"
     repository.mkdir()

@@ -8,7 +8,7 @@ from pathlib import Path
 from before_deploy.inventory import RepositoryInventory
 from before_deploy.models import EvidenceKind, EvidenceSignal, Location
 
-EVIDENCE_VERSION = "0.3.0"
+EVIDENCE_VERSION = "0.4.0"
 MAX_DOCUMENT_CHARACTERS = 200_000
 
 _DOMAIN_PATTERNS = {
@@ -32,6 +32,10 @@ _DOMAIN_PATTERNS = {
         r")\b",
         re.IGNORECASE,
     ),
+    "DATABASE": re.compile(
+        r"\b(?:database|data\s+store|persistence\s+layer|relational\s+database|document\s+database)\b",
+        re.IGNORECASE,
+    ),
     "FILE-UPLOAD": re.compile(r"\b(?:file\s+upload|upload(?:ed|ing)?\s+file|attachment)\b", re.IGNORECASE),
     "PAYMENT": re.compile(
         r"\b(?:payment(?:s|\s+processing)?|checkout|billing|subscription|stripe)\b",
@@ -45,6 +49,7 @@ _DOMAIN_TITLES = {
     "AUTHENTICATION": "Authentication",
     "AUTHORIZATION": "Authorization",
     "EXTERNAL-URL-FETCH": "External URL fetching",
+    "DATABASE": "Database usage",
     "FILE-UPLOAD": "File upload",
     "PAYMENT": "Payment processing",
     "PERSONAL-DATA": "Personal data",

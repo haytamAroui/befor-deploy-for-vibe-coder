@@ -50,7 +50,7 @@ def test_authorization_requirement_signal_is_bounded_to_supported_documents_and_
 
     assert [item.signal_id for item in evidence] == ["REQUIREMENT-AUTHORIZATION"]
     signal = evidence[0]
-    assert signal.signal_version == "0.3.0"
+    assert signal.signal_version == "0.4.0"
     assert signal.title == "Declared security domain: Authorization"
     assert signal.location.path == "docs/architecture.md"
     assert signal.location.start_line == 1
@@ -79,13 +79,42 @@ def test_external_url_requirement_signal_is_bounded_and_omits_document_values(tm
 
     assert [item.signal_id for item in evidence] == ["REQUIREMENT-EXTERNAL-URL-FETCH"]
     signal = evidence[0]
-    assert signal.signal_version == "0.3.0"
+    assert signal.signal_version == "0.4.0"
     assert signal.title == "Declared security domain: External URL fetching"
     assert signal.location.path == "docs/requirements.md"
     assert signal.location.start_line == 1
     assert signal.metadata == {"classification": "declared", "domain": "EXTERNAL-URL-FETCH"}
     assert "source-only-remote-target.invalid" not in signal.title
     assert "source-only-remote-target.invalid" not in signal.metadata.values()
+
+
+def test_database_requirement_signal_is_bounded_to_documents_and_omits_values(tmp_path):
+    (tmp_path / "README.md").write_text(
+        "The data password is source-only-secret-marker and the SQL client is configured.\n",
+        encoding="utf-8",
+    )
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "requirements.md").write_text(
+        "The service uses a relational database for account records.\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "notes.txt").write_text("Database usage is planned.\n", encoding="utf-8")
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "repository.py").write_text("database = connect()\n", encoding="utf-8")
+
+    evidence = collect_requirements_evidence(collect_inventory(tmp_path))
+
+    assert [item.signal_id for item in evidence] == ["REQUIREMENT-DATABASE"]
+    signal = evidence[0]
+    assert signal.signal_version == "0.4.0"
+    assert signal.title == "Declared security domain: Database usage"
+    assert signal.location.path == "docs/requirements.md"
+    assert signal.location.start_line == 1
+    assert signal.metadata == {"classification": "declared", "domain": "DATABASE"}
+    assert "source-only-secret-marker" not in signal.title
+    assert "source-only-secret-marker" not in signal.metadata.values()
 
 
 class _RegisteredSecretControl:
