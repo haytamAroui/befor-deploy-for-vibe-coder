@@ -52,6 +52,71 @@ def render_markdown(result: ScanResult) -> str:
             lines.extend(["", "### Coverage gaps", ""])
             lines.extend(f"- {_clean(gap)}" for gap in profile.coverage_gaps)
 
+    plan = result.security_analysis_plan
+    if plan is not None:
+        lines.extend(
+            [
+                "",
+                "## Security analysis plan",
+                "",
+                "| Field | Value |",
+                "|---|---|",
+                f"| Plan version | `{_clean(plan.plan_version)}` |",
+                f"| Profile version | `{_clean(plan.profile_version)}` |",
+                f"| Capability catalog version | `{_clean(plan.catalog_version)}` |",
+                f"| Evidence signals | {len(plan.evidence)} |",
+            ]
+        )
+        selections = (*plan.control_selections, *plan.adapter_selections, *plan.skill_selections)
+        lines.extend(["", "### Selected approved capabilities", ""])
+        if selections:
+            lines.extend(["| Kind | Capability | Version | Evidence | Rationale |", "|---|---|---|---|---|"])
+            for selection in selections:
+                lines.append(
+                    "| {kind} | `{capability}` | `{version}` | {evidence} | {rationale} |".format(
+                        kind=_clean(selection.kind),
+                        capability=_clean(selection.capability_id),
+                        version=_clean(selection.capability_version),
+                        evidence=_clean(", ".join(selection.evidence_ids) or "repository-wide"),
+                        rationale=_clean(selection.rationale),
+                    )
+                )
+        else:
+            lines.append("- No approved capabilities were selected.")
+        if plan.coverage_expectations:
+            lines.extend(["", "### Coverage expectations", ""])
+            lines.extend(["| Domain | Evidence | Rationale |", "|---|---|---|"])
+            for expectation in plan.coverage_expectations:
+                lines.append(
+                    "| {domain} | {evidence} | {rationale} |".format(
+                        domain=_clean(expectation.domain),
+                        evidence=_clean(", ".join(expectation.evidence_ids)),
+                        rationale=_clean(expectation.rationale),
+                    )
+                )
+        if plan.exclusions:
+            lines.extend(["", "### Plan exclusions", ""])
+            lines.extend(f"- {_clean(exclusion)}" for exclusion in plan.exclusions)
+
+    coverage_audit = result.coverage_audit
+    if coverage_audit is not None:
+        lines.extend(["", "## Coverage audit", ""])
+        lines.append(
+            "Coverage is diagnostic only. `COVERED` means the mapped selected capabilities completed; "
+            "it is not a claim of exhaustive analysis or a gate decision."
+        )
+        lines.extend(["", "| Domain | Status | Capabilities | Evidence | Rationale |", "|---|---|---|---|---|"])
+        for assessment in coverage_audit.assessments:
+            lines.append(
+                "| {domain} | **{status}** | {capabilities} | {evidence} | {rationale} |".format(
+                    domain=_clean(assessment.domain),
+                    status=_clean(assessment.status.value),
+                    capabilities=_clean(", ".join(assessment.capability_ids) or "—"),
+                    evidence=_clean(", ".join(assessment.evidence_ids) or "—"),
+                    rationale=_clean(assessment.rationale),
+                )
+            )
+
     lines.extend(["", "## Control execution", "", "| Control | Status | Version | Message |", "|---|---|---|---|"])
     for execution in sorted(result.executions, key=lambda item: item.control_id):
         lines.append(

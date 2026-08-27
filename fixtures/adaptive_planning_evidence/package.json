@@ -1,0 +1,7 @@
+{
+  "name": "adaptive-planning-evidence",
+  "private": true,
+  "dependencies": {
+    "next": "15.0.0"
+  }
+}

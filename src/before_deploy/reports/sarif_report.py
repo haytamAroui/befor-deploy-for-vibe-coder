@@ -50,7 +50,15 @@ def render_sarif(result: ScanResult) -> str:
                 "properties": {
                     "beforeDeployProjectProfile": (
                         to_primitive(result.project_profile) if result.project_profile else None
-                    )
+                    ),
+                    "beforeDeploySecurityAnalysisPlan": (
+                        to_primitive(result.security_analysis_plan)
+                        if result.security_analysis_plan
+                        else None
+                    ),
+                    "beforeDeployCoverageAudit": (
+                        to_primitive(result.coverage_audit) if result.coverage_audit else None
+                    ),
                 },
             }
         ],

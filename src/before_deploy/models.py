@@ -56,6 +56,24 @@ class GateOutcome(str, Enum):
     NOT_EVALUATED = "NOT_EVALUATED"
 
 
+class EvidenceKind(str, Enum):
+    """Provenance category for a bounded, redaction-safe evidence signal."""
+
+    REPOSITORY = "REPOSITORY"
+    REQUIREMENT = "REQUIREMENT"
+    INFRASTRUCTURE = "INFRASTRUCTURE"
+
+
+class CoverageStatus(str, Enum):
+    """Deterministic coverage state that cannot change a release outcome."""
+
+    COVERED = "COVERED"
+    PARTIAL = "PARTIAL"
+    UNAVAILABLE = "UNAVAILABLE"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    DECLARED_REVIEW_REQUIRED = "DECLARED_REVIEW_REQUIRED"
+
+
 @dataclass(frozen=True)
 class Location:
     """A redaction-safe source location."""
@@ -168,6 +186,72 @@ class ProjectProfile:
 
 
 @dataclass(frozen=True)
+class EvidenceSignal:
+    """A versioned, redaction-safe fact established from bounded repository evidence."""
+
+    signal_id: str
+    signal_version: str
+    kind: EvidenceKind
+    title: str
+    location: Location
+    metadata: Mapping[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class CapabilitySelection:
+    """One approved capability selected by a deterministic plan with traceable evidence."""
+
+    capability_id: str
+    capability_version: str
+    kind: str
+    rationale: str
+    evidence_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class CoverageExpectation:
+    """A security domain that should be assessed because of deterministic evidence."""
+
+    domain: str
+    rationale: str
+    evidence_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class SecurityAnalysisPlan:
+    """Versioned, deterministic selection record; it is not a release decision."""
+
+    plan_version: str
+    profile_version: str
+    catalog_version: str
+    evidence: tuple[EvidenceSignal, ...]
+    control_selections: tuple[CapabilitySelection, ...]
+    adapter_selections: tuple[CapabilitySelection, ...]
+    skill_selections: tuple[CapabilitySelection, ...]
+    coverage_expectations: tuple[CoverageExpectation, ...]
+    exclusions: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class CoverageAssessment:
+    """A transparent coverage state for one analysis domain."""
+
+    domain: str
+    status: CoverageStatus
+    rationale: str
+    capability_ids: tuple[str, ...] = ()
+    evidence_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class CoverageAudit:
+    """Versioned coverage output that cannot modify the deterministic gate decision."""
+
+    audit_version: str
+    assessments: tuple[CoverageAssessment, ...]
+
+
+@dataclass(frozen=True)
 class ScanResult:
     """Complete scan output shared by policy and report writers."""
 
@@ -177,6 +261,8 @@ class ScanResult:
     waivers: tuple[Waiver, ...]
     decision: PolicyDecision
     project_profile: ProjectProfile | None = None
+    security_analysis_plan: SecurityAnalysisPlan | None = None
+    coverage_audit: CoverageAudit | None = None
 
 
 def utc_now() -> datetime:
