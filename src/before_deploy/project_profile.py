@@ -175,10 +175,19 @@ def _bounded_marker_text(root_files: dict[str, Path]) -> str:
 
 def _coverage_gaps(languages: set[str], frameworks: set[str]) -> tuple[str, ...]:
     gaps: list[str] = []
-    for language in sorted(languages - {"Go", "JavaScript", "PHP", "Python", "TypeScript"}):
+    for language in sorted(
+        languages - {"Go", "JavaScript", "PHP", "Python", "Rust", "TypeScript"}
+    ):
         gaps.append(f"No language-specific controls are currently installed for {language}.")
     if "PHP" in languages and "Laravel" not in frameworks:
         gaps.append("No language-specific controls are currently installed for PHP.")
+    if "Rust" in languages:
+        gaps.append(
+            "Rust coverage is limited to an opt-in root Cargo.lock presence check for one direct Cargo.toml "
+            "non-empty dependencies table plus conventional src/main.rs binary shape; Cargo values, lock "
+            "contents, integrity, vulnerabilities, workspaces, custom targets, and Rust execution are not "
+            "analyzed."
+        )
     if "Go" in languages:
         gaps.append(
             "Go coverage is limited to root-module checksum presence, direct tls.Config InsecureSkipVerify literals, "

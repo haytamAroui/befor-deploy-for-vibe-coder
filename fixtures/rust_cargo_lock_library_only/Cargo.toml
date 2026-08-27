@@ -1,0 +1,6 @@
+[package]
+name = "library-fixture"
+version = "0.1.0"
+
+[dependencies]
+tokio = "1"

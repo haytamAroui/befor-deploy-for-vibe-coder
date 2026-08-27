@@ -1,0 +1,7 @@
+[package]
+name = "fixture"
+version = "0.1.0"
+
+[dependencies]
+tokio = "1"
+source_only_note = "do-not-report-cargo-value"

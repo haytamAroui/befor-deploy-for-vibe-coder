@@ -70,6 +70,7 @@ Each work item below is a **single incremental milestone**. A milestone may not 
 | Repository/profile/requirements evidence, planning, catalogs, coverage | Implemented | Diagnostic only; requirement evidence is not proof of implementation. |
 | Python/FastAPI controls | Implemented as bounded static checks and metadata-only dynamic-route review | No semantic authorization proof, whole-program data flow, effective-path derivation, runtime configuration, or exhaustive API security. |
 | PHP/Laravel Composer lockfile control | Implemented as one opt-in static root-file-presence form | No generic PHP coverage, Composer/lock integrity, value/constraint, vulnerability, dependency-resolution, configuration, or runtime assurance. |
+| Rust/Cargo lockfile control | Implemented as one opt-in conventional binary static root-file-presence form | No generic Rust coverage, Cargo/lock integrity, value/constraint, vulnerability, dependency-resolution, library/workspace/custom-target, configuration, or runtime assurance. |
 | Next.js controls | Implemented as bounded static checks | Middleware/proxy is structural metadata only; local guard markers are not authorization proof. |
 | Go controls and offline advisory snapshot | Implemented within a narrow boundary | No live advisory database, reachability, indirect dependency resolution, or broad Go assurance. |
 | Existing external adapters | Implemented and opt-in | They are not standard protected-branch gates without an explicit policy choice and calibration. |
@@ -129,21 +130,15 @@ Canonical planning and registry documentation now reflects the registered, opt-i
 
 **Delivered boundary:** the finding does not expose dependency values or manifest content. Presence of a root lockfile alone satisfies the check; its content, integrity, freshness, dependency resolution, relationship to the manifest, vulnerabilities, repositories, signatures, hashes, `require-dev`, nested projects, PHP extensions, Laravel configuration, and runtime behavior remain excluded. The control never executes PHP, Composer, Artisan, scripts, builds, installations, updates, resolvers, or network operations. Secure, vulnerable, incomplete, malformed-manifest, default-policy-isolation, redaction, package, and catalog-contract tests accompany the control.
 
-### Milestone 7 — One additional language ecosystem, selected by evidence quality
+### Milestone 7 — Completed Rust/Cargo conventional-binary lockfile increment
 
-Start one non-Python/non-JavaScript/non-PHP ecosystem only when a high-confidence bounded control can be specified without execution. The preferred order is determined by the availability of safe static evidence, not language popularity:
+`SEC-RUST-CARGO-LOCK-001` now covers exactly one static Rust application form: root `Cargo.toml`, a direct non-empty `dependencies` table, and conventional root-relative `src/main.rs`. Under its dedicated opt-in policy only, a missing root `Cargo.lock` creates a normalized supply-chain finding. Cargo documents the distinct purposes of `Cargo.toml` and `Cargo.lock`, recommends committing the lockfile when in doubt, and documents `src/main.rs` as a conventional binary source path.[8] [9]
 
-1. **Rust**: one `Cargo.toml`/`Cargo.lock` integrity or static source pattern control without invoking Cargo.
-2. **Java/Kotlin or C#**: one manifest/configuration or static source control with a precise parser boundary.
-3. **Ruby**: one `Gemfile`/`Gemfile.lock` evidence control with a strict root-form and policy-selection boundary.
-
-CodeQL is not a prerequisite and remains deferred while its build model conflicts with target-code and dependency-execution boundaries.
-
-**Acceptance:** one language, one control family, one contract, one policy activation path, one fixture matrix. Do not mark the language generically “supported.”
+**Delivered boundary:** the finding does not expose dependency names, values, or manifest content. Root lockfile presence alone satisfies the check; lockfile contents, integrity, freshness, dependency resolution, manifest consistency, vulnerabilities, registries, git dependencies, target-specific dependencies, dev/build dependencies, features, workspaces, libraries, `src/bin`, configured targets, toolchains, and runtime behavior remain excluded. The control never executes Cargo, rustc, Rust code, scripts, builds, tests, resolvers, downloads, registries, or network operations. Secure, vulnerable, library-only, malformed-manifest, default-policy-isolation, redaction, package, and catalog-contract tests accompany the control.
 
 ### Milestone 8 — Ecosystem-specific dependency evidence
 
-Add dependency capabilities one ecosystem at a time, each with a declared input, offline/packaged advisory evidence if vulnerabilities are evaluated, and no resolver invocation. Potential paths include Node lockfile integrity, Rust lock evidence, Composer lock evidence, or JVM lock/manifest presence. Each remains inside `DOMAIN-SUPPLY-CHAIN-001` but receives a unique contract and explicit limitations.
+Add dependency capabilities one ecosystem at a time, each with a declared input, offline/packaged advisory evidence if vulnerabilities are evaluated, and no resolver invocation. Potential paths include Node lockfile integrity, Ruby lock evidence, or JVM lock/manifest presence. Composer and conventional-binary Cargo root lockfile presence are already separate delivered bounded contracts; neither should silently broaden. Each remains inside `DOMAIN-SUPPLY-CHAIN-001` but receives a unique contract and explicit limitations.
 
 **Acceptance:** exact supported input formats; deterministic ordering; lock/manifests and advisory boundaries clearly distinguished; no registry request, installation, build, or source-reachability assertion.
 
@@ -228,3 +223,5 @@ No individual control is complete unless it has a stable implementation ID, capa
 [5]: https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-for-compiled-languages "GitHub Docs — CodeQL for compiled languages"
 [6]: https://getcomposer.org/doc/01-basic-usage.md "Composer — Basic usage"
 [7]: https://laravel.com/docs/12.x/installation "Laravel — Installation"
+[8]: https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html "Cargo Book — Cargo.toml vs Cargo.lock"
+[9]: https://doc.rust-lang.org/cargo/reference/cargo-targets.html "Cargo Book — Cargo targets"

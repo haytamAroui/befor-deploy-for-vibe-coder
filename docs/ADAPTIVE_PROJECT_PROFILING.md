@@ -31,7 +31,7 @@ A profile signal is evidence of repository makeup, not a claim that an applicati
 | Python | `.py`, `pyproject.toml`, `requirements*.txt`, `uv.lock` | Native secret/SAST/config checks; FastAPI static route checks and dynamic-route review metadata when imported; pip-audit release evidence. |
 | TypeScript / JavaScript | `.ts`, `.tsx`, `.js`, `.jsx`, `package.json`, lockfiles | Cross-language secrets, CI, and lockfile evidence; generic TypeScript semantics remain outside the current scope. |
 | Go | `.go`, `go.mod`, `go.sum` | Root-module `go.sum` presence when dependencies are declared, direct `tls.Config{InsecureSkipVerify: true}` detection, one opt-in offline version snapshot, and an opt-in isolated Gosec adapter. Framework/dataflow/live-database/runtime analysis remains an explicit gap. |
-| Rust | `.rs`, `Cargo.toml` | Cross-language secrets and CI checks; coverage gap reports absence of Rust-specific SAST/dependency-vulnerability adapter. |
+| Rust | `.rs`, `Cargo.toml` | Cross-language secrets and CI checks. The separate opt-in Cargo lockfile capability is compatible only with one root conventional `src/main.rs` binary form; libraries, workspaces, custom targets, contents, and Rust execution remain outside scope. |
 | Java / Kotlin | `.java`, `.kt`, `pom.xml`, `build.gradle*` | Cross-language secrets and CI checks; coverage gap reports absence of JVM-specific adapters. |
 | Ruby | `.rb`, `Gemfile` | Cross-language secrets and CI checks; coverage gap reports absence of Ruby-specific adapters. |
 | PHP | `.php`, `composer.json` | Cross-language secrets and CI checks. When the fixed `laravel` marker is observed, the separate opt-in Laravel Composer lockfile capability is compatible; generic PHP remains an explicit coverage gap. |
@@ -49,6 +49,7 @@ The code maintains a fixed capability catalog. Each entry maps one control ident
 | GitHub Actions | Applicable only when a GitHub workflow file is visible. |
 | Lockfile evidence | Applicable to detected Python or Node/TypeScript/JavaScript dependency ecosystems. |
 | Go module integrity / direct TLS verification | Applicable only to a detected root Go module; module-sum presence and direct `tls.Config` literals only. |
+| Rust Cargo lockfile | Applicable only when Rust is detected and only selected by the dedicated policy. The control requires one root `Cargo.toml` direct non-empty `dependencies` table plus conventional root-relative `src/main.rs`, then checks only root `Cargo.lock` presence. |
 | Gosec adapter | Applicable only to a detected root Go module and only when an explicit external policy configures a preinstalled binary. |
 | Python direct/local SQL, separately opt-in one-alias SQL, production configuration, and pip-audit | Applicable only to detected Python repositories; each SQL contract has a separate bounded scope. |
 | FastAPI route auth and dynamic review | Applicable only when FastAPI is detected. Static mutation routes may create ordinary findings; dynamic path/method structures and the direct top-level non-literal `APIRouter(prefix=...)` form used by that same router name create execution metadata only. No prefix value or effective path is derived. |
@@ -73,6 +74,7 @@ A future read-only advisory agent may consume only the normalized project profil
 |---|---|
 | FastAPI/Python repository | Detect Python and FastAPI; run selected Python/FastAPI-compatible controls, expose the separate opt-in one-alias SQL control, and report no Python coverage gap. |
 | PHP/Laravel repository | Detect PHP and Laravel from bounded manifest/source markers; select the Composer lockfile control only through its dedicated policy and retain the explicit limits on values, lock contents, dependency integrity, vulnerabilities, and runtime behavior. |
+| Rust conventional binary repository | Detect Rust from bounded manifest/source markers; select the Cargo lockfile control only through its dedicated policy and retain the explicit limits on values, lock contents, dependency integrity, vulnerabilities, libraries, workspaces, custom targets, and runtime behavior. |
 | Next.js repository | Detect TypeScript/JavaScript and Next.js; run compatible cross-language controls, narrow static controls, and separately selected module-level and named-inline Server Action local-guard-marker checks; report deferred proxy/middleware, arrow-action, semantic authorization, and data-boundary coverage. |
 | Go repository | Detect Go and root-module evidence; run selected module/TLS controls, expose the separately opt-in offline snapshot control, and report Gosec-backed injection, SSRF, and path-traversal coverage as `NOT_SELECTED` until an explicit adapter policy selects it. |
 | Rust/Java mixed repository | Detect each language deterministically; retain generic checks; record language-specific coverage gaps. |

@@ -118,6 +118,18 @@ controls:
       - Composer values and constraints, require-dev, transitive dependencies, repositories, signatures, hashes, vulnerabilities, nested projects, monorepos, symlinks, PHP extensions, Laravel configuration, runtime behavior, and target command execution are not covered.
       - composer.lock presence is evidence only; its contents, integrity, freshness, dependency resolution, and relationship to composer.json are not inspected.
     references: []
+  - id: CONTROL-SUPPLY-RUST-CARGO-LOCK-001
+    version: "0.1.0"
+    title: Conventional Rust binary root Cargo lockfile presence check
+    capability_id: control.native.rust-cargo-lock
+    implementation_id: SEC-RUST-CARGO-LOCK-001
+    security_domains:
+      - DOMAIN-SUPPLY-CHAIN-001
+    detection_scope: Root Cargo.toml direct non-empty dependencies table plus root-relative src/main.rs conventional binary form, checked only for root Cargo.lock presence.
+    exclusions:
+      - Libraries, workspaces, src/bin, custom/configured targets, nested projects, dev/build/target-specific dependencies, features, registries, git dependencies, vulnerability status, and target command execution are not covered.
+      - Cargo.lock presence is evidence only; its contents, integrity, freshness, dependency resolution, and relationship to Cargo.toml are not inspected.
+    references: []
   - id: CONTROL-SUPPLY-PIP-AUDIT-001
     version: "0.1.0"
     title: pip-audit Python dependency adapter

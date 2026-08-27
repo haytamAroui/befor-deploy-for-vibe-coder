@@ -47,7 +47,25 @@ def test_detects_multiple_unsupported_languages_with_distinct_gaps():
     assert profile.languages == ("Java", "Rust")
     assert profile.coverage_gaps == (
         "No language-specific controls are currently installed for Java.",
-        "No language-specific controls are currently installed for Rust.",
+        "Rust coverage is limited to an opt-in root Cargo.lock presence check for one direct Cargo.toml "
+        "non-empty dependencies table plus conventional src/main.rs binary shape; Cargo values, lock "
+        "contents, integrity, vulnerabilities, workspaces, custom targets, and Rust execution are not "
+        "analyzed.",
+    )
+
+
+def test_detects_rust_cargo_with_its_explicitly_limited_coverage_gap():
+    profile = detect_project_profile(collect_inventory(FIXTURES / "secure_rust_cargo_lock"))
+
+    assert profile.languages == ("Rust",)
+    assert profile.frameworks == ()
+    assert profile.package_managers == ("cargo",)
+    assert profile.signals["manifest:Cargo.toml"] == "1"
+    assert profile.coverage_gaps == (
+        "Rust coverage is limited to an opt-in root Cargo.lock presence check for one direct Cargo.toml "
+        "non-empty dependencies table plus conventional src/main.rs binary shape; Cargo values, lock "
+        "contents, integrity, vulnerabilities, workspaces, custom targets, and Rust execution are not "
+        "analyzed.",
     )
 
 

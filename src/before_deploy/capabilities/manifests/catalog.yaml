@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.12.0"
+catalog_version: "0.13.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -24,4 +24,5 @@ manifests:
   - control.python-sast.yaml
   - control.python-sql-single-alias.yaml
   - control.release-sbom.yaml
+  - control.rust-cargo-lock.yaml
   - control.secrets.yaml

@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 POLICY_PATH = ROOT / "rules" / "default-policy.yaml"
 SQL_SINGLE_ALIAS_POLICY_PATH = ROOT / "rules" / "python-sql-single-alias-policy.yaml"
 PHP_LARAVEL_COMPOSER_LOCK_POLICY_PATH = ROOT / "rules" / "php-laravel-composer-lock-policy.yaml"
+RUST_CARGO_LOCK_POLICY_PATH = ROOT / "rules" / "rust-cargo-lock-policy.yaml"
 
 
 def _scan(fixture_name: str):
@@ -23,6 +24,14 @@ def _scan_php_laravel_composer_lock(fixture_name: str):
     controls = configured_controls(profile, native_controls())
     return ScanOrchestrator(controls).scan(
         ROOT / "fixtures" / fixture_name, PHP_LARAVEL_COMPOSER_LOCK_POLICY_PATH
+    )
+
+
+def _scan_rust_cargo_lock(fixture_name: str):
+    profile = load_policy(RUST_CARGO_LOCK_POLICY_PATH)
+    controls = configured_controls(profile, native_controls())
+    return ScanOrchestrator(controls).scan(
+        ROOT / "fixtures" / fixture_name, RUST_CARGO_LOCK_POLICY_PATH
     )
 
 
@@ -157,6 +166,65 @@ def test_default_policy_does_not_implicitly_select_php_laravel_composer_lock_con
     }
     assert result.security_analysis_plan is not None
     assert "SEC-PHP-LARAVEL-COMPOSER-LOCK-001" not in {
+        item.implementation_id for item in result.security_analysis_plan.control_contract_selections
+    }
+
+
+def test_rust_cargo_lock_policy_blocks_only_on_the_bounded_missing_lockfile():
+    result = _scan_rust_cargo_lock("vulnerable_rust_cargo_lock")
+
+    assert result.decision.outcome == GateOutcome.BLOCK
+    assert {finding.rule_id for finding in result.findings} == {"SEC-RUST-CARGO-LOCK-001"}
+    assert result.project_profile is not None
+    assert result.project_profile.languages == ("Rust",)
+    execution = next(
+        item for item in result.executions if item.control_id == "SEC-RUST-CARGO-LOCK-001"
+    )
+    assert execution.status.value == "COMPLETED"
+    assert result.security_analysis_plan is not None
+    contract = next(
+        item
+        for item in result.security_analysis_plan.control_contract_selections
+        if item.implementation_id == "SEC-RUST-CARGO-LOCK-001"
+    )
+    assert contract.control_id == "CONTROL-SUPPLY-RUST-CARGO-LOCK-001"
+    assert contract.security_domain_ids == ("DOMAIN-SUPPLY-CHAIN-001",)
+    for report in (render_json(result), render_markdown(result), render_sarif(result)):
+        assert "SEC-RUST-CARGO-LOCK-001" in report
+        assert "tokio" not in report
+        assert "do-not-report-cargo-value" not in report
+
+
+def test_rust_cargo_lock_policy_handles_secure_library_and_invalid_fixtures():
+    secure = _scan_rust_cargo_lock("secure_rust_cargo_lock")
+    library = _scan_rust_cargo_lock("rust_cargo_lock_library_only")
+    malformed = _scan_rust_cargo_lock("rust_cargo_lock_malformed_manifest")
+
+    assert secure.decision.outcome == GateOutcome.PASS
+    assert not secure.findings
+    assert library.decision.outcome == GateOutcome.PASS
+    library_execution = next(
+        item for item in library.executions if item.control_id == "SEC-RUST-CARGO-LOCK-001"
+    )
+    assert library_execution.status.value == "NOT_APPLICABLE"
+    assert malformed.decision.outcome == GateOutcome.ERROR
+    assert not malformed.findings
+    malformed_execution = next(
+        item for item in malformed.executions if item.control_id == "SEC-RUST-CARGO-LOCK-001"
+    )
+    assert malformed_execution.status.value == "ERROR"
+    assert malformed_execution.metadata == {"error_kind": "CARGO_MANIFEST_INVALID"}
+    for report in (render_json(malformed), render_markdown(malformed), render_sarif(malformed)):
+        assert "source_only_invalid" not in report
+
+
+def test_default_policy_does_not_implicitly_select_rust_cargo_lock_control():
+    result = _scan("vulnerable_rust_cargo_lock")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert "SEC-RUST-CARGO-LOCK-001" not in {item.control_id for item in result.executions}
+    assert result.security_analysis_plan is not None
+    assert "SEC-RUST-CARGO-LOCK-001" not in {
         item.implementation_id for item in result.security_analysis_plan.control_contract_selections
     }
 

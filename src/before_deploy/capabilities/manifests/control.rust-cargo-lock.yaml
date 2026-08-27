@@ -1,0 +1,15 @@
+schema_version: 1
+id: control.native.rust-cargo-lock
+version: "0.1.0"
+implementation_id: SEC-RUST-CARGO-LOCK-001
+kind: CONTROL
+title: Conventional Rust binary root Cargo lockfile presence check
+applies_when:
+  languages:
+    - Rust
+security_domains:
+  - DOMAIN-SUPPLY-CHAIN-001
+exclusions:
+  - Only an inventory-included root Cargo.toml plus root-relative src/main.rs conventional binary form is considered.
+  - A direct non-empty dependencies table requires only root Cargo.lock presence; dependency values, lockfile contents, integrity, freshness, resolution, and manifest-lock consistency are not inspected.
+  - Libraries, workspaces, src/bin, custom or configured targets, nested projects, dev/build/target-specific dependencies, features, registries, git dependencies, vulnerabilities, provenance, toolchains, runtime behavior, and target command execution are excluded.
