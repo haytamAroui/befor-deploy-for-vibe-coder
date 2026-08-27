@@ -69,7 +69,7 @@ Current mapped coverage is intentionally modest: repository-wide secrets, Python
 
 ## 5. Reports and redaction
 
-The complete plan and audit are included in the canonical JSON report. Markdown exposes readable tables of selected capabilities, coverage expectations, exclusions, and audit states. SARIF stores the normalized plan and coverage audit under Before Deploy properties. None of these report paths include matching requirement text or raw source excerpts.
+The complete plan, audit, and normalized control executions are included in the canonical JSON report. Markdown exposes readable tables of selected capabilities, coverage expectations, exclusions, audit states, and execution metadata. SARIF stores the normalized plan, coverage audit, and control executions under Before Deploy properties. A structural review state in execution metadata is not a finding, coverage state, or gate input. None of these report paths include matching requirement text or raw source excerpts.
 
 For the taxonomy, control-contract mappings, reference boundary, and exact current coverage limits, see [`SECURITY_DOMAIN_CONTROL_CATALOG.md`](SECURITY_DOMAIN_CONTROL_CATALOG.md).
 

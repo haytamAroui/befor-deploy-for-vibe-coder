@@ -28,16 +28,16 @@ A profile signal is evidence of repository makeup, not a claim that an applicati
 
 | Technology | Deterministic signals | Initial control coverage |
 |---|---|---|
-| Python | `.py`, `pyproject.toml`, `requirements*.txt`, `uv.lock` | Native secret/SAST/config checks; FastAPI support when imported; pip-audit release evidence. |
+| Python | `.py`, `pyproject.toml`, `requirements*.txt`, `uv.lock` | Native secret/SAST/config checks; FastAPI static route checks and dynamic-route review metadata when imported; pip-audit release evidence. |
 | TypeScript / JavaScript | `.ts`, `.tsx`, `.js`, `.jsx`, `package.json`, lockfiles | Cross-language secrets, CI, and lockfile evidence; generic TypeScript semantics remain outside the current scope. |
-| Go | `.go`, `go.mod`, `go.sum` | Root-module `go.sum` presence when dependencies are declared, direct `tls.Config{InsecureSkipVerify: true}` detection, and an opt-in isolated Gosec adapter. Framework/dataflow/runtime analysis remains an explicit gap. |
+| Go | `.go`, `go.mod`, `go.sum` | Root-module `go.sum` presence when dependencies are declared, direct `tls.Config{InsecureSkipVerify: true}` detection, one opt-in offline version snapshot, and an opt-in isolated Gosec adapter. Framework/dataflow/live-database/runtime analysis remains an explicit gap. |
 | Rust | `.rs`, `Cargo.toml` | Cross-language secrets and CI checks; coverage gap reports absence of Rust-specific SAST/dependency-vulnerability adapter. |
 | Java / Kotlin | `.java`, `.kt`, `pom.xml`, `build.gradle*` | Cross-language secrets and CI checks; coverage gap reports absence of JVM-specific adapters. |
 | Ruby | `.rb`, `Gemfile` | Cross-language secrets and CI checks; coverage gap reports absence of Ruby-specific adapters. |
 | PHP | `.php`, `composer.json` | Cross-language secrets and CI checks; coverage gap reports absence of PHP-specific adapters. |
 | C# | `.cs`, `*.csproj` | Cross-language secrets and CI checks; coverage gap reports absence of .NET-specific adapters. |
 
-Framework signals include FastAPI, Django, Flask, Next.js, Express, NestJS, Spring, Rails, Laravel, and ASP.NET Core. Next.js has narrow static controls for direct public environment access, explicit session-cookie options, and static credentialed CORS. Other detected frameworks remain visible coverage gaps unless a dedicated control is stated.
+Framework signals include FastAPI, Django, Flask, Next.js, Express, NestJS, Spring, Rails, Laravel, and ASP.NET Core. FastAPI has static mutating-route dependency declarations plus non-decision dynamic-route review metadata. Next.js has narrow direct public-environment, session-cookie, static credentialed-CORS, and Server Action local-guard-marker controls. Other detected frameworks remain visible coverage gaps unless a dedicated control is stated.
 
 ## 4. Versioned capability catalog
 
@@ -51,9 +51,9 @@ The code maintains a fixed capability catalog. Each entry maps one control ident
 | Go module integrity / direct TLS verification | Applicable only to a detected root Go module; module-sum presence and direct `tls.Config` literals only. |
 | Gosec adapter | Applicable only to a detected root Go module and only when an explicit external policy configures a preinstalled binary. |
 | Python SQL / production configuration / pip-audit | Applicable only to detected Python repositories. |
-| FastAPI route auth | Applicable only when FastAPI is detected. |
+| FastAPI route auth and dynamic review | Applicable only when FastAPI is detected. Static mutation routes may create ordinary findings; dynamic path/method structures create execution metadata only. |
 | Local Semgrep adapter | Applicable only to detected Python because the initial checked-in rule pack is Python-only. |
-| Next.js public-env, session-cookie, and static CORS checks | Applicable only when Next.js is detected; direct/static patterns only. |
+| Next.js public-env, session-cookie, static CORS, and Server Action checks | Applicable only when Next.js is detected; direct/static patterns only. |
 | SBOM presence | Applicable to release profiles that declare the control, regardless of language. |
 
 When a policy selects a control but the profile identifies it as incompatible, the orchestrator records an explicit `NOT_APPLICABLE` execution containing the adaptation reason. It does **not** silently omit that control. Required controls are still errors when they are missing because of a construction/configuration fault, not when deterministic compatibility records a legitimate non-applicability decision.
@@ -71,7 +71,7 @@ A future read-only advisory agent may consume only the normalized project profil
 | Scenario | Required behavior |
 |---|---|
 | FastAPI/Python repository | Detect Python and FastAPI; run Python/FastAPI-compatible controls; report no Python coverage gap. |
-| Next.js repository | Detect TypeScript/JavaScript and Next.js; run compatible cross-language and narrow static Next.js controls; report deferred Server Actions, middleware, and data-boundary coverage. |
+| Next.js repository | Detect TypeScript/JavaScript and Next.js; run compatible cross-language controls, narrow static controls, and the module-level Server Action local-guard-marker check; report deferred middleware/proxy, inline-action, semantic authorization, and data-boundary coverage. |
 | Go repository | Detect Go and root-module evidence; run the two narrow native controls; report Gosec-backed injection, SSRF, and path-traversal coverage as `NOT_SELECTED` until an explicit adapter policy selects it. |
 | Rust/Java mixed repository | Detect each language deterministically; retain generic checks; record language-specific coverage gaps. |
 | Policy includes a Python-only control for a Go-only repository | Record `NOT_APPLICABLE` with a visible reason rather than silently dropping the control. |

@@ -47,15 +47,17 @@ controls:
       - This adapter is opt-in and remote registries, metrics, autofix, and local builds are disabled.
     references: []
   - id: CONTROL-API-FASTAPI-001
-    version: "0.1.0"
-    title: FastAPI mutating-route authentication declaration check
+    version: "0.2.0"
+    title: FastAPI static mutating-route declaration and dynamic-route review check
     capability_id: control.native.fastapi-api
     implementation_id: SEC-API-001
     security_domains:
       - DOMAIN-API-SECURITY-001
-    detection_scope: Python AST check for visible authentication dependencies on supported mutating FastAPI routes.
+    detection_scope: Python AST check for visible authentication dependencies on supported static mutating FastAPI routes, plus a structural review state for dynamic route paths or api_route methods.
     exclusions:
-      - Dynamic routes, business authorization, object-level access, and runtime middleware are not covered.
+      - Dependency presence is not proof of authorization correctness or runtime enforcement.
+      - Dynamic route review states are not findings and do not change a policy decision.
+      - Route path values, computed methods, runtime registration, decorator aliases, business authorization, object-level access, and runtime middleware are not inferred.
     references:
       - REF-OWASP-API-2023
   - id: CONTROL-CONFIG-PYTHON-DEBUG-001

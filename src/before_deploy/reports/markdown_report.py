@@ -149,14 +149,23 @@ def render_markdown(result: ScanResult) -> str:
                 )
             )
 
-    lines.extend(["", "## Control execution", "", "| Control | Status | Version | Message |", "|---|---|---|---|"])
+    lines.extend(
+        [
+            "",
+            "## Control execution",
+            "",
+            "| Control | Status | Version | Message | Metadata |",
+            "|---|---|---|---|---|",
+        ]
+    )
     for execution in sorted(result.executions, key=lambda item: item.control_id):
         lines.append(
-            "| `{control}` | {status} | `{version}` | {message} |".format(
+            "| `{control}` | {status} | `{version}` | {message} | {metadata} |".format(
                 control=_clean(execution.control_id),
                 status=_clean(execution.status.value),
                 version=_clean(execution.control_version),
                 message=_clean(execution.message or "—"),
+                metadata=_metadata_for(execution.metadata),
             )
         )
 
@@ -208,6 +217,14 @@ def render_markdown(result: ScanResult) -> str:
         ]
     )
     return "\n".join(lines)
+
+
+def _metadata_for(metadata: dict[str, str] | object) -> str:
+    if not isinstance(metadata, dict):
+        metadata = dict(metadata)
+    if not metadata:
+        return "—"
+    return _clean("; ".join(f"{key}={value}" for key, value in sorted(metadata.items())))
 
 
 def _location_for(finding: Finding) -> str:

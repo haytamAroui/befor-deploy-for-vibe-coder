@@ -4,6 +4,7 @@ from before_deploy.controls import native_controls
 from before_deploy.models import GateOutcome
 from before_deploy.orchestrator import ScanOrchestrator, configured_controls
 from before_deploy.policy import load_policy
+from before_deploy.reports import render_json, render_markdown, render_sarif
 
 ROOT = Path(__file__).resolve().parents[2]
 POLICY_PATH = ROOT / "rules" / "default-policy.yaml"
@@ -30,6 +31,25 @@ def test_vulnerable_fixture_blocks_for_expected_controls():
         "SEC-DEP-001",
     }.issubset(rule_ids)
     assert all("demo-secret-value" not in finding.message for finding in result.findings)
+
+
+def test_fastapi_dynamic_routes_emit_review_state_without_a_finding_or_gate_change():
+    result = _scan("fastapi_dynamic_route_review")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert not result.findings
+    execution = next(item for item in result.executions if item.control_id == "SEC-API-001")
+    assert execution.metadata == {
+        "dynamic_route_review_status": "REVIEW_REQUIRED",
+        "dynamic_route_review_count": "2",
+        "dynamic_route_review_locations": "app.py:8:DYNAMIC_PATH,app.py:13:DYNAMIC_METHODS",
+    }
+    for report in (render_json(result), render_markdown(result), render_sarif(result)):
+        assert "dynamic_route_review_status" in report
+        assert "REVIEW_REQUIRED" in report
+    markdown_report = render_markdown(result)
+    assert "`SEC-API-001` | COMPLETED" in markdown_report
+    assert "dynamic_route_review_locations=app.py:8:DYNAMIC_PATH,app.py:13:DYNAMIC_METHODS" in markdown_report
 
 
 def test_local_python_sql_flow_fixture_blocks_only_on_the_bounded_assignment_pattern():

@@ -20,6 +20,7 @@ from before_deploy.models import (
 _MUTATING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 _ROUTE_DECORATORS = {"get", "post", "put", "patch", "delete", "api_route"}
 _DEPENDENCY_NAMES = {"Depends", "Security"}
+_MAX_DYNAMIC_ROUTE_REVIEW_LOCATIONS = 50
 
 
 @dataclass(frozen=True)
@@ -30,16 +31,25 @@ class Route:
     authenticated: bool
 
 
+@dataclass(frozen=True)
+class DynamicRouteReviewState:
+    """A structural FastAPI route condition outside the static authentication contract."""
+
+    line: int
+    reason: str
+
+
 class FastApiRouteAuthenticationControl:
-    """Require a declared FastAPI dependency for mutating routes unless explicitly allowlisted."""
+    """Require declared dependencies on static mutating routes and report dynamic review states."""
 
     control_id = "SEC-API-001"
-    control_version = "0.1.0"
+    control_version = "0.2.0"
 
     def run(self, context: ControlContext) -> ControlResult:
         started_at = utc_now()
         python_files = [path for path in context.inventory.files if path.suffix == ".py"]
         routes: list[tuple[str, Route]] = []
+        dynamic_route_reviews: list[tuple[str, DynamicRouteReviewState]] = []
         fastapi_detected = False
 
         for path in python_files:
@@ -53,10 +63,11 @@ class FastApiRouteAuthenticationControl:
             for node in ast.walk(tree):
                 if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     continue
-                for route in _routes_for_function(node):
-                    routes.append((relative, route))
+                static_routes, review_states = _routes_for_function(node)
+                routes.extend((relative, route) for route in static_routes)
+                dynamic_route_reviews.extend((relative, state) for state in review_states)
 
-        if not fastapi_detected and not routes:
+        if not fastapi_detected and not routes and not dynamic_route_reviews:
             return ControlResult(
                 execution=ControlExecution(
                     control_id=self.control_id,
@@ -104,7 +115,11 @@ class FastApiRouteAuthenticationControl:
                 status=ExecutionStatus.COMPLETED,
                 started_at=started_at,
                 completed_at=utc_now(),
-                message=f"Evaluated {len(routes)} FastAPI route-method pairs.",
+                message=(
+                    f"Evaluated {len(routes)} static FastAPI route-method pairs; "
+                    f"recorded {len(dynamic_route_reviews)} dynamic route review states."
+                ),
+                metadata=_dynamic_route_review_metadata(dynamic_route_reviews),
             ),
             findings=tuple(findings),
         )
@@ -119,17 +134,26 @@ def _imports_fastapi(tree: ast.AST) -> bool:
     return False
 
 
-def _routes_for_function(node: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[Route, ...]:
+def _routes_for_function(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> tuple[tuple[Route, ...], tuple[DynamicRouteReviewState, ...]]:
     authenticated = _function_has_dependency(node)
     routes: list[Route] = []
+    review_states: list[DynamicRouteReviewState] = []
     for decorator in node.decorator_list:
         if not isinstance(decorator, ast.Call) or not isinstance(decorator.func, ast.Attribute):
             continue
         decorator_name = decorator.func.attr
         if decorator_name not in _ROUTE_DECORATORS:
             continue
-        path = _literal_path(decorator)
-        methods = _route_methods(decorator_name, decorator)
+        path = _literal_path_or_none(decorator)
+        if path is None:
+            review_states.append(DynamicRouteReviewState(line=decorator.lineno, reason="DYNAMIC_PATH"))
+            continue
+        methods = _route_methods_or_none(decorator_name, decorator)
+        if methods is None:
+            review_states.append(DynamicRouteReviewState(line=decorator.lineno, reason="DYNAMIC_METHODS"))
+            continue
         decorator_auth = _decorator_has_dependency(decorator)
         for method in methods:
             routes.append(
@@ -140,19 +164,17 @@ def _routes_for_function(node: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[
                     authenticated=authenticated or decorator_auth,
                 )
             )
-    return tuple(routes)
+    return tuple(routes), tuple(review_states)
 
 
-def _literal_path(decorator: ast.Call) -> str:
+def _literal_path_or_none(decorator: ast.Call) -> str | None:
     if not decorator.args or not isinstance(decorator.args[0], ast.Constant):
-        raise ValueError("FastAPI route path must be a static string for this control")
+        return None
     value = decorator.args[0].value
-    if not isinstance(value, str) or not value.startswith("/"):
-        raise ValueError("FastAPI route path must be a slash-prefixed static string")
-    return value
+    return value if isinstance(value, str) and value.startswith("/") else None
 
 
-def _route_methods(name: str, decorator: ast.Call) -> tuple[str, ...]:
+def _route_methods_or_none(name: str, decorator: ast.Call) -> tuple[str, ...] | None:
     if name in {"get", "post", "put", "patch", "delete"}:
         return (name.upper(),)
     for keyword in decorator.keywords:
@@ -160,10 +182,28 @@ def _route_methods(name: str, decorator: ast.Call) -> tuple[str, ...]:
             methods: list[str] = []
             for item in keyword.value.elts:
                 if not isinstance(item, ast.Constant) or not isinstance(item.value, str):
-                    raise ValueError("FastAPI api_route methods must be static strings")
+                    return None
                 methods.append(item.value.upper())
             return tuple(methods)
-    raise ValueError("FastAPI api_route must declare static methods")
+    return None
+
+
+def _dynamic_route_review_metadata(
+    reviews: list[tuple[str, DynamicRouteReviewState]],
+) -> dict[str, str]:
+    ordered = sorted({(path, state.line, state.reason) for path, state in reviews})
+    locations = tuple(
+        f"{path}:{line}:{reason}" for path, line, reason in ordered[:_MAX_DYNAMIC_ROUTE_REVIEW_LOCATIONS]
+    )
+    metadata = {
+        "dynamic_route_review_status": "REVIEW_REQUIRED" if ordered else "NOT_REQUIRED",
+        "dynamic_route_review_count": str(len(ordered)),
+    }
+    if locations:
+        metadata["dynamic_route_review_locations"] = ",".join(locations)
+    if len(ordered) > len(locations):
+        metadata["dynamic_route_review_locations_truncated"] = "true"
+    return metadata
 
 
 def _function_has_dependency(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:

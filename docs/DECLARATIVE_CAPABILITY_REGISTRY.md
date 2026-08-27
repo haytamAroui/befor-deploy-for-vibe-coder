@@ -70,7 +70,7 @@ The coverage auditor reads the capability registry, the separate domain/control 
 
 ## 5. Current capability boundary
 
-The initial catalog describes the current native secrets, Python SAST/configuration, FastAPI route, Next.js static environment/cookie/CORS, GitHub Actions, dependency-manifest, and SBOM controls. It also describes the existing Gitleaks, Semgrep, pip-audit, and offline provenance adapters. Adapter manifests never carry their executable, version pin, timeouts, paths, or arguments; these remain explicit policy and adapter-code concerns.
+The current catalog describes native secrets, Python SAST/configuration, FastAPI static routes plus dynamic-route review metadata, Next.js public-environment/cookie/CORS plus one Server Action local-guard-marker control, GitHub Actions, dependency-manifest, offline Go snapshot, and SBOM controls. It also describes the existing Gitleaks, Semgrep, pip-audit, Gosec, and offline provenance adapters. Adapter manifests never carry their executable, version pin, timeouts, paths, or arguments; these remain explicit policy and adapter-code concerns.
 
 ## 6. Adding a future capability
 

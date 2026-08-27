@@ -51,6 +51,7 @@ def render_sarif(result: ScanResult) -> str:
                     "beforeDeployProjectProfile": (
                         to_primitive(result.project_profile) if result.project_profile else None
                     ),
+                    "beforeDeployControlExecutions": to_primitive(result.executions),
                     "beforeDeploySecurityAnalysisPlan": (
                         to_primitive(result.security_analysis_plan)
                         if result.security_analysis_plan
