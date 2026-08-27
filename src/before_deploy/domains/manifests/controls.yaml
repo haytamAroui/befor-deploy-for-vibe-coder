@@ -266,3 +266,15 @@ controls:
       - Local guard markers do not prove authentication, authorization, ownership, tenancy, or policy correctness.
       - Middleware/proxy conventions, page-level checks, closures, runtime dataflow, reachability, and route coverage are not inferred.
     references: []
+  - id: CONTROL-INJECTION-PYTHON-SQL-SINGLE-ALIAS-001
+    version: "0.1.0"
+    title: Python SQL single local-name alias check
+    capability_id: control.native.python-sql-single-local-alias
+    implementation_id: SEC-SAST-SQL-ALIAS-001
+    security_domains:
+      - DOMAIN-INJECTION-001
+    detection_scope: One direct same-scope simple assignment from an already unsafe SQL query name to one alias name, followed by a standalone execute or executemany call whose first argument is that alias.
+    exclusions:
+      - Alias chains, branches, loops, try/with/match blocks, calls, imports, object attributes, subscripts, tuples, annotations, closures, globals, nonlocals, ORM behavior, parameter binding, reachability, and runtime input provenance are not covered.
+      - The control does not alter SEC-SAST-001 direct or single-local-assignment findings.
+    references: []

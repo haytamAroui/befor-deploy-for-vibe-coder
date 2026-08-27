@@ -50,7 +50,7 @@ The code maintains a fixed capability catalog. Each entry maps one control ident
 | Lockfile evidence | Applicable to detected Python or Node/TypeScript/JavaScript dependency ecosystems. |
 | Go module integrity / direct TLS verification | Applicable only to a detected root Go module; module-sum presence and direct `tls.Config` literals only. |
 | Gosec adapter | Applicable only to a detected root Go module and only when an explicit external policy configures a preinstalled binary. |
-| Python SQL / production configuration / pip-audit | Applicable only to detected Python repositories. |
+| Python direct/local SQL, separately opt-in one-alias SQL, production configuration, and pip-audit | Applicable only to detected Python repositories; each SQL contract has a separate bounded scope. |
 | FastAPI route auth and dynamic review | Applicable only when FastAPI is detected. Static mutation routes may create ordinary findings; dynamic path/method structures create execution metadata only. |
 | Local Semgrep adapter | Applicable only to detected Python because the initial checked-in rule pack is Python-only. |
 | Next.js public-env, session-cookie, static CORS, module-level Server Action, and named-inline Server Action checks | Applicable only when Next.js is detected; each control has a separate direct/static lexical scope. |
@@ -70,7 +70,7 @@ A future read-only advisory agent may consume only the normalized project profil
 
 | Scenario | Required behavior |
 |---|---|
-| FastAPI/Python repository | Detect Python and FastAPI; run Python/FastAPI-compatible controls; report no Python coverage gap. |
+| FastAPI/Python repository | Detect Python and FastAPI; run selected Python/FastAPI-compatible controls, expose the separate opt-in one-alias SQL control, and report no Python coverage gap. |
 | Next.js repository | Detect TypeScript/JavaScript and Next.js; run compatible cross-language controls, narrow static controls, and separately selected module-level and named-inline Server Action local-guard-marker checks; report deferred proxy/middleware, arrow-action, semantic authorization, and data-boundary coverage. |
 | Go repository | Detect Go and root-module evidence; run selected module/TLS controls, expose the separately opt-in offline snapshot control, and report Gosec-backed injection, SSRF, and path-traversal coverage as `NOT_SELECTED` until an explicit adapter policy selects it. |
 | Rust/Java mixed repository | Detect each language deterministically; retain generic checks; record language-specific coverage gaps. |

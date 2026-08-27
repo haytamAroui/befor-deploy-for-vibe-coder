@@ -20,10 +20,10 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.9.0"
+    assert catalog.catalog_version == "0.10.0"
     assert catalog.catalog_digest == second.catalog_digest
     assert len(catalog.domains) == 30
-    assert len(catalog.controls) == 22
+    assert len(catalog.controls) == 23
     assert catalog.domains["DOMAIN-SSRF-001"].title == "Server-side request forgery"
     assert {
         control.capability_id for control in catalog.controls.values()
@@ -43,6 +43,10 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert contract.control_id == "CONTROL-TRANSPORT-GO-TLS-001"
     assert contract.capability_id == "control.native.go-tls-verification"
     assert contract.security_domain_ids == ("DOMAIN-TRANSPORT-SECURITY-001",)
+    sql_alias_contract = catalog.control_for_implementation("SEC-SAST-SQL-ALIAS-001")
+    assert sql_alias_contract is not None
+    assert sql_alias_contract.control_id == "CONTROL-INJECTION-PYTHON-SQL-SINGLE-ALIAS-001"
+    assert sql_alias_contract.security_domain_ids == ("DOMAIN-INJECTION-001",)
     inline_action_contract = catalog.control_for_implementation("SEC-NEXT-INLINE-ACTION-001")
     assert inline_action_contract is not None
     assert inline_action_contract.control_id == "CONTROL-AUTHORIZATION-NEXT-INLINE-SERVER-ACTION-001"

@@ -1,0 +1,16 @@
+schema_version: 1
+id: control.native.python-sql-single-local-alias
+version: "0.1.0"
+implementation_id: SEC-SAST-SQL-ALIAS-001
+kind: CONTROL
+title: Python SQL single local-name alias check
+applies_when:
+  languages:
+    - Python
+security_domains:
+  - DOMAIN-INJECTION-001
+exclusions:
+  - Only one simple same-scope name-to-name assignment from an already unsafe f-string, percent-format, or string-format query is considered.
+  - Direct standalone execute or executemany calls, optionally directly awaited, are considered only when their first argument is the single alias name.
+  - Alias chains, branches, loops, try/with/match blocks, calls, imports, object attributes, subscripts, tuples, annotations, closures, globals, nonlocals, ORM behavior, parameter binding, reachability, and runtime input provenance are excluded.
+  - The control does not modify the direct or single-assignment contract of SEC-SAST-001.

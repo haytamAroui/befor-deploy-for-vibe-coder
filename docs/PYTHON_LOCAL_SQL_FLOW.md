@@ -23,7 +23,7 @@ The extension is deliberately small. It preserves the existing direct-pattern ev
 | Excluded construct | Boundary rationale |
 |---|---|
 | `if`, `for`, `while`, `try`, `with`, `match`, and other compound statements | The control does not reason about path conditions, loop state, exception paths, or context-manager behavior. A potential assignment inside a skipped compound statement is not followed. |
-| Aliases such as `alias = query` | The control follows only the original simple assignment name and does not propagate aliases. |
+| Aliases such as `alias = query` | The original control follows only the initial simple assignment name. One direct alias is handled only by separate `SEC-SAST-SQL-ALIAS-001`; alias chains remain excluded. |
 | Attributes, subscripts, tuple unpacking, globals, nonlocals, and object fields | The control does not model object or container state. |
 | Function calls, imports, closures, callbacks, returns, parameters, and interprocedural flow | The control does not resolve code across call boundaries or modules. |
 | Execute calls used as assignment values or nested in other expressions | Only standalone expression statements, including awaited standalone calls, are considered as local-flow sinks. |
@@ -36,4 +36,4 @@ The extension is deliberately small. It preserves the existing direct-pattern ev
 
 ## Fixture matrix
 
-The regression set includes direct f-string, percent-format, and `.format(...)` local assignments; an explicit safe reassignment; a conditional assignment; alias propagation; an assigned execute result; the existing direct-sink pattern; and integration fixtures for a vulnerable local flow, safe reassignment, and conditional ambiguity. The conditional fixture is intentionally clean because following branch state would exceed this first contract.
+The regression set includes direct f-string, percent-format, and `.format(...)` local assignments; an explicit safe reassignment; a conditional assignment; alias propagation; an assigned execute result; the existing direct-sink pattern; and integration fixtures for a vulnerable local flow, safe reassignment, and conditional ambiguity. A single direct alias is now exercised by separate `SEC-SAST-SQL-ALIAS-001`; alias chains and every other broader flow remain excluded. The conditional fixture is intentionally clean because following branch state would exceed this original contract.

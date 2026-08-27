@@ -110,11 +110,11 @@ Canonical planning and registry documentation now reflects the registered, opt-i
 
 **Delivered boundary:** arrow actions, module-level/exported actions, directives after executable code, aliases, wrappers, helpers, page-level checks, proxy/middleware, ownership, tenancy, closures, and runtime reachability remain excluded; execution metadata remains non-authoritative.
 
-### Milestone 4 — Python SQL local-flow precision increment
+### Milestone 4 — Completed Python SQL local-flow precision increment
 
-Choose one syntactic local-flow pattern from the current explicit exclusions — for example, a same-scope simple alias *or* a branch-free `await` wrapper — and implement it as a separate contract. The work must remain lexical, bounded, and transparent rather than becoming an unbounded interprocedural analyzer.
+`SEC-SAST-SQL-ALIAS-001` now covers one formerly excluded shape: a direct same-scope local name-to-name alias from an already unsafe SQL construction to a standalone `execute`/`executemany` sink. It has a separate implementation ID, capability, control contract, dedicated opt-in policy, and affected/parameterized/reassigned/excluded fixtures. It did not alter `SEC-SAST-001` or its historical finding fingerprints.
 
-**Acceptance:** individual control/contract/capability; secure/vulnerable/ambiguous/false-positive fixtures; a documented stop condition for branches, loops, try/with, calls, imports, object attributes, closures, globals, ORM behavior, and interprocedural flow.
+**Delivered boundary:** alias chains, branches, loops, `try`/`with`/`match` blocks, calls, imports, object attributes, subscripts, tuples, annotations, closures, globals, nonlocals, wrapped sinks, ORM behavior, parameter binding semantics, reachability, and runtime flow remain excluded. The next precision candidate must be a different one of these forms and receive its own separate contract.
 
 ### Milestone 5 — One additional language ecosystem, selected by evidence quality
 

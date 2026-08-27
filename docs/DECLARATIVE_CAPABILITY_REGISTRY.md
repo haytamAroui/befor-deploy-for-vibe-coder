@@ -13,7 +13,7 @@ The built-in registry is shipped as package data under `src/before_deploy/capabi
 | Item | Current rule |
 |---|---|
 | Catalog schema | `1` |
-| Catalog version | `0.9.0` |
+| Catalog version | `0.10.0` |
 | Catalog digest | SHA-256 over canonical schema-approved semantic fields, not raw YAML formatting or source paths. |
 | Manifest source | Packaged, version-controlled YAML listed by `catalog.yaml`. |
 | Duplicate YAML mapping keys | Rejected. |
@@ -70,7 +70,7 @@ The coverage auditor reads the capability registry, the separate domain/control 
 
 ## 5. Current capability boundary
 
-The current catalog describes native secrets, Python SAST/configuration, FastAPI static routes plus dynamic-route review metadata, Next.js public-environment/cookie/CORS plus separate module-level and named-inline Server Action local-guard-marker controls, GitHub Actions, dependency-manifest, offline Go snapshot, and SBOM controls. It also describes the existing Gitleaks, Semgrep, pip-audit, Gosec, offline provenance, and staged Trivy Dockerfile/Containerfile/Terraform configuration adapters. Adapter manifests never carry their executable, version pin, timeouts, paths, or arguments; these remain explicit policy and adapter-code concerns.
+The current catalog describes native secrets, Python direct/local SQL plus a separately opt-in one-alias SQL control and configuration, FastAPI static routes plus dynamic-route review metadata, Next.js public-environment/cookie/CORS plus separate module-level and named-inline Server Action local-guard-marker controls, GitHub Actions, dependency-manifest, offline Go snapshot, and SBOM controls. It also describes the existing Gitleaks, Semgrep, pip-audit, Gosec, offline provenance, and staged Trivy Dockerfile/Containerfile/Terraform configuration adapters. Adapter manifests never carry their executable, version pin, timeouts, paths, or arguments; these remain explicit policy and adapter-code concerns.
 
 ## 6. Adding a future capability
 

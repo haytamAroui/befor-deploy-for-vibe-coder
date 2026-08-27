@@ -41,6 +41,7 @@ APPROVED_IMPLEMENTATION_IDS = frozenset(
         "SEC-PROVENANCE-001",
         "SEC-RELEASE-001",
         "SEC-SAST-001",
+        "SEC-SAST-SQL-ALIAS-001",
         "SEC-SAST-SEMGREP-001",
         "SEC-SECRET-001",
         "SEC-SECRET-GITLEAKS-001",

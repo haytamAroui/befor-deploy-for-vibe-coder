@@ -10,7 +10,7 @@ from before_deploy.controls.fastapi_routes import FastApiRouteAuthenticationCont
 from before_deploy.controls.github_actions import GitHubActionsSecurityControl
 from before_deploy.controls.go import GoModuleIntegrityControl, GoTLSVerificationControl
 from before_deploy.controls.go_vulnerabilities import GoVulnerabilitySnapshotControl
-from before_deploy.controls.injection import SqlInjectionControl
+from before_deploy.controls.injection import SqlInjectionControl, SqlInjectionSingleLocalAliasControl
 from before_deploy.controls.nextjs import (
     NextInlineServerActionLocalGuardControl,
     NextPublicEnvironmentControl,
@@ -27,6 +27,7 @@ def native_controls() -> tuple[Control, ...]:
     return (
         SecretDetectionControl(),
         SqlInjectionControl(),
+        SqlInjectionSingleLocalAliasControl(),
         FastApiRouteAuthenticationControl(),
         ProductionDebugControl(),
         CredentialedWildcardCorsControl(),
@@ -63,5 +64,6 @@ __all__ = [
     "ProductionDebugControl",
     "SecretDetectionControl",
     "SqlInjectionControl",
+    "SqlInjectionSingleLocalAliasControl",
     "native_controls",
 ]

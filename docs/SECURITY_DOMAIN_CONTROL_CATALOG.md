@@ -1,6 +1,6 @@
 # Security Domain + Control Catalog
 
-**Version:** 0.9.0
+**Version:** 0.10.0
 **Authority:** Informational only; it is not a policy profile, a scanner, a compliance assessment, or a release authority.
 
 ## Purpose and authority boundary
@@ -42,7 +42,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 | `DOMAIN-AUTHORIZATION-001` | Authorization | Mapped for separate narrow Next.js module-level and named-inline Server Action guard-marker patterns | A local guard marker does not prove authentication, authorization, ownership, tenant isolation, proxy coverage, or policy correctness. |
 | `DOMAIN-ENDPOINT-SECURITY-001` | Endpoint security | Unmapped | Endpoint inventory, runtime headers, request limits, and enforcement are not inferred. |
 | `DOMAIN-INPUT-VALIDATION-001` | Input validation | Unmapped | Schema validation and runtime normalization are not inferred. |
-| `DOMAIN-INJECTION-001` | Injection protection | Mapped | Native Python SQL interpolation, optional local Semgrep, and opt-in Gosec are narrow; most injection families remain out of scope. |
+| `DOMAIN-INJECTION-001` | Injection protection | Mapped | Native Python direct/local SQL and separately opt-in one-alias SQL checks, optional local Semgrep, and opt-in Gosec are narrow; most injection families remain out of scope. |
 | `DOMAIN-JWT-SECURITY-001` | JSON Web Token security | Unmapped | JWT presence, algorithms, token lifecycle, and key handling are not inferred. |
 | `DOMAIN-PASSWORD-SECURITY-001` | Password security | Unmapped | Password support and context-specific verifier policy are not inferred. |
 | `DOMAIN-RATE-LIMITING-001` | Rate limiting and resource consumption | Unmapped | Limits, business-flow controls, and enforcement location are not inferred. |
@@ -74,13 +74,14 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 
 ## Current control contracts
 
-The catalog maps **only the twenty-two reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
+The catalog maps **only the twenty-three reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
 
 | Control contract | Capability / implementation | Domain mapping | Selection boundary |
 |---|---|---|---|
 | `CONTROL-SECRETS-NATIVE-001` | `control.native.secrets` / `SEC-SECRET-001` | Secrets | Repository-wide bounded source patterns. |
 | `CONTROL-SECRETS-GITLEAKS-001` | `adapter.gitleaks-directory` / `SEC-SECRET-GITLEAKS-001` | Secrets | Explicit external policy configuration only. |
 | `CONTROL-INJECTION-PYTHON-001` | `control.native.python-sast` / `SEC-SAST-001` | Injection | Python AST direct SQL interpolation plus one local straight-line simple-name assignment into a standalone execute/executemany call; no branch, alias, import, object-state, or interprocedural analysis. |
+| `CONTROL-INJECTION-PYTHON-SQL-SINGLE-ALIAS-001` | `control.native.python-sql-single-local-alias` / `SEC-SAST-SQL-ALIAS-001` | Injection | Separate opt-in one name-to-name alias from an already unsafe local SQL query to a standalone `execute`/`executemany` sink; alias chains, branches, calls, attributes, annotations, and wrapped sinks are excluded. |
 | `CONTROL-INJECTION-SEMGREP-001` | `adapter.semgrep-python-local` / `SEC-SAST-SEMGREP-001` | Injection | Explicit external policy configuration only. |
 | `CONTROL-API-FASTAPI-001` | `control.native.fastapi-api` / `SEC-API-001` | API security | Supported static FastAPI mutating routes plus structural `REVIEW_REQUIRED` metadata for dynamic paths or `api_route` methods; the metadata is neither a finding nor a gate input. |
 | `CONTROL-CONFIG-PYTHON-DEBUG-001` | `control.native.python-debug-config` / `SEC-CONFIG-001` | Production configuration | Supported static Python/configuration sources. |
