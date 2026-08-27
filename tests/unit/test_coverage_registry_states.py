@@ -59,6 +59,26 @@ def test_authorization_requirement_signal_is_diagnostic_and_cannot_change_the_ga
         assert "sensitive-authority-token" not in report
 
 
+def test_external_url_requirement_signal_is_diagnostic_and_cannot_change_the_gate(tmp_path):
+    repository = tmp_path / "external-url-requirements"
+    repository.mkdir()
+    (repository / "README.md").write_text(
+        "The service makes an outbound HTTP request to source-only-remote-target.invalid.\n",
+        encoding="utf-8",
+    )
+    policy = _policy(tmp_path / "secret-only.yaml", required=False, allow_errors=True)
+
+    result = ScanOrchestrator((SecretDetectionControl(),)).scan(repository, policy)
+
+    coverage = {item.domain: item.status.value for item in result.coverage_audit.assessments}
+    assert result.decision.outcome.value == "PASS"
+    assert result.findings == ()
+    assert coverage["Declared requirement: External URL fetching"] == "DECLARED_REVIEW_REQUIRED"
+    for report in (render_json(result), render_markdown(result), render_sarif(result)):
+        assert "Declared requirement: External URL fetching" in report
+        assert "source-only-remote-target.invalid" not in report
+
+
 def test_domain_coverage_is_partial_when_a_compatible_mapped_contract_is_not_selected(tmp_path):
     repository = tmp_path / "repository"
     repository.mkdir()

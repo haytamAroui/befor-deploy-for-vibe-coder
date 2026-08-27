@@ -152,11 +152,11 @@ Canonical planning and registry documentation now reflects the registered, opt-i
 
 The existing Trivy adapter remains separately bounded to Dockerfile/Containerfile and Terraform configuration staging and must not be interpreted as Compose coverage.
 
-### Milestone 10 — Completed authorization requirements-evidence increment
+### Milestone 10 — Completed requirements-evidence phrase-family increments
 
-Requirements evidence v0.2.0 now adds exactly one bounded phrase family, `REQUIREMENT-AUTHORIZATION`. It recognizes reviewed authorization/access-control terminology only in approved Markdown documentation and retains a fixed signal ID/category/title, constant metadata, relative path, and first line. The false-positive corpus excludes an HTTP `authorization header`, arbitrary notes, and application source; matching document prose and values are never retained.
+Requirements evidence v0.3.0 now includes two separately bounded phrase families: `REQUIREMENT-AUTHORIZATION` and `REQUIREMENT-EXTERNAL-URL-FETCH`. The latter recognizes reviewed external/remote URL/URI/resource retrieval and outbound HTTP-request terminology only in approved Markdown documentation. It retains a fixed signal ID/category/title, constant metadata, relative path, and first line. The false-positive corpus excludes HTTP `authorization header`, bare documentation URLs, hyperlinks, webhook delivery, arbitrary notes, and application source; matching document prose and values are never retained.
 
-**Delivered boundary:** the signal can create only `DECLARED_REVIEW_REQUIRED` coverage visibility for the existing authorization domain. It cannot select a capability, control, adapter, scanner, tool, policy, or waiver; cannot create or suppress a finding; and cannot change the deterministic `PASS`, `BLOCK`, `WAIVER_REQUIRED`, `ERROR`, or `NOT_EVALUATED` outcome. It does not parse Markdown semantics, infer authorization implementation/correctness, inspect routes/data flows/identity providers/runtime systems, execute target material, or access a network. Future phrase families remain separate bounded increments.
+**Delivered boundary:** either signal can create only `DECLARED_REVIEW_REQUIRED` coverage visibility for its existing domain. The external-URL signal is not an SSRF control: it does not retrieve, resolve, validate, or request a URL; trace request dataflow; inspect routes, identity providers, or runtime systems; or establish external access or SSRF exposure. Neither signal can select a capability, control, adapter, scanner, tool, policy, or waiver; create or suppress a finding; or change the deterministic `PASS`, `BLOCK`, `WAIVER_REQUIRED`, `ERROR`, or `NOT_EVALUATED` outcome. Future phrase families remain separate bounded increments.
 
 ### Milestone 11 — Completed control-level and domain-level coverage refinement
 

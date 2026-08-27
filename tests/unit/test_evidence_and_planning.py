@@ -50,13 +50,42 @@ def test_authorization_requirement_signal_is_bounded_to_supported_documents_and_
 
     assert [item.signal_id for item in evidence] == ["REQUIREMENT-AUTHORIZATION"]
     signal = evidence[0]
-    assert signal.signal_version == "0.2.0"
+    assert signal.signal_version == "0.3.0"
     assert signal.title == "Declared security domain: Authorization"
     assert signal.location.path == "docs/architecture.md"
     assert signal.location.start_line == 1
     assert signal.metadata == {"classification": "declared", "domain": "AUTHORIZATION"}
     assert "sensitive-authority-token" not in signal.title
     assert "sensitive-authority-token" not in signal.metadata.values()
+
+
+def test_external_url_requirement_signal_is_bounded_and_omits_document_values(tmp_path):
+    (tmp_path / "README.md").write_text(
+        "Reference: https://documentation.example.invalid. Webhook delivery is supported.\n",
+        encoding="utf-8",
+    )
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "requirements.md").write_text(
+        "The service must fetch an external URL from source-only-remote-target.invalid.\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "notes.txt").write_text("Retrieve a remote URL.\n", encoding="utf-8")
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "client.py").write_text("fetch_external_url = object()\n", encoding="utf-8")
+
+    evidence = collect_requirements_evidence(collect_inventory(tmp_path))
+
+    assert [item.signal_id for item in evidence] == ["REQUIREMENT-EXTERNAL-URL-FETCH"]
+    signal = evidence[0]
+    assert signal.signal_version == "0.3.0"
+    assert signal.title == "Declared security domain: External URL fetching"
+    assert signal.location.path == "docs/requirements.md"
+    assert signal.location.start_line == 1
+    assert signal.metadata == {"classification": "declared", "domain": "EXTERNAL-URL-FETCH"}
+    assert "source-only-remote-target.invalid" not in signal.title
+    assert "source-only-remote-target.invalid" not in signal.metadata.values()
 
 
 class _RegisteredSecretControl:
