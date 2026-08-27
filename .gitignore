@@ -1,36 +1,57 @@
+```
 # Python
 __pycache__/
 *.py[cod]
-*.egg-info/
-.venv/
-venv/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-
-# Node.js
-node_modules/
-.next/
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
 dist/
-/coverage/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Local environment and secrets
-.env
-.env.*
-!.env.example
-*.pem
-*.key
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
 
-# Sentinel local outputs
-.sentinel/
-/reports/
-/artifacts/
-*.sarif
-*.cdx.json
-
-# Operating system and editor files
-.DS_Store
+# IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+.coverage
+coverage/
+htmlcov/
+
+# Testing
+.pytest_cache/
+.mypy_cache/
+
+# Environment variables
+.env
+.env.local
+*.env.*
+```
