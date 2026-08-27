@@ -98,7 +98,7 @@ Par conséquent, ce contrôle ne démontre pas la sécurité d’une image, l’
 
 ## Tests de sécurité du contrat
 
-`tests/unit/test_trivy_config_adapter.py` utilise uniquement des exécutables factices. Il vérifie le contrôle de version, la liste d’arguments, l’environnement minimal, l’absence d’analyse de la racine cible, la mise en scène limitée, la neutralisation d’inline ignore, l’ignorance de `.trivyignore`, la normalisation Dockerfile et Terraform, la redaction JSON/Markdown/SARIF, l’absence de binaire, le délai, le rapport malformé et la fuite de chemin. Aucun test ne lance Trivy réel, ne télécharge un bundle de contrôles ou une base, et n’exécute le code applicatif d’un fixture.
+`tests/unit/test_trivy_config_adapter.py` utilise uniquement des exécutables factices. Il vérifie le contrôle de version, la liste d’arguments, l’environnement minimal, l’absence d’analyse de la racine cible, la mise en scène limitée, la neutralisation d’inline ignore, l’ignorance de `.trivyignore`, la normalisation Dockerfile et Terraform, la redaction JSON/Markdown/SARIF, l’absence de binaire, le délai, le rapport malformé et la fuite de chemin. Le corpus [`fixtures/trivy_config_calibration/`](../fixtures/trivy_config_calibration/) ajoute des entrées statiques sûres, vulnérables, ambiguës, avec suppression cible et hors périmètre; `tests/unit/test_trivy_calibration_fixtures.py` vérifie seulement leur périmètre et leur mise en scène. Aucun test ne lance Trivy réel, ne télécharge un bundle de contrôles ou une base, et n’exécute le code applicatif d’un fixture. La calibration réelle air-gap et toute adoption en branche protégée restent une revue humaine distincte.
 
 ## Références
 

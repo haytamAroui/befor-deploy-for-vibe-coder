@@ -1,0 +1,2 @@
+FROM cgr.dev/chainguard/static:latest@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+USER 65532:65532
