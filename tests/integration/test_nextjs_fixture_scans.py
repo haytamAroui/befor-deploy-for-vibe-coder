@@ -221,14 +221,14 @@ def test_vulnerable_go_fixture_blocks_on_native_module_and_tls_controls():
     assert result.project_profile.languages == ("Go",)
 
 
-def test_secure_go_fixture_passes_with_native_coverage_and_gosec_not_selected():
+def test_secure_go_fixture_passes_with_partial_supply_coverage_and_gosec_not_selected():
     result = _scan("secure_go_security")
 
     assert result.decision.outcome.value == "PASS"
     assert not {finding.rule_id for finding in result.findings if finding.rule_id.startswith("SEC-GO-")}
     assert result.coverage_audit is not None
     coverage = {item.domain_id: item.status.value for item in result.coverage_audit.assessments}
-    assert coverage["DOMAIN-SUPPLY-CHAIN-001"] == "COVERED"
+    assert coverage["DOMAIN-SUPPLY-CHAIN-001"] == "PARTIAL"
     assert coverage["DOMAIN-TRANSPORT-SECURITY-001"] == "COVERED"
     assert coverage["DOMAIN-INJECTION-001"] == "NOT_SELECTED"
     assert coverage["DOMAIN-PATH-TRAVERSAL-001"] == "NOT_SELECTED"

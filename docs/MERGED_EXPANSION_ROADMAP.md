@@ -158,11 +158,11 @@ Requirements evidence v0.2.0 now adds exactly one bounded phrase family, `REQUIR
 
 **Delivered boundary:** the signal can create only `DECLARED_REVIEW_REQUIRED` coverage visibility for the existing authorization domain. It cannot select a capability, control, adapter, scanner, tool, policy, or waiver; cannot create or suppress a finding; and cannot change the deterministic `PASS`, `BLOCK`, `WAIVER_REQUIRED`, `ERROR`, or `NOT_EVALUATED` outcome. It does not parse Markdown semantics, infer authorization implementation/correctness, inspect routes/data flows/identity providers/runtime systems, execute target material, or access a network. Future phrase families remain separate bounded increments.
 
-### Milestone 11 — Control-level and domain-level coverage refinement
+### Milestone 11 — Completed control-level and domain-level coverage refinement
 
-Continue coverage visibility using the existing semantic states. A domain may become `PARTIAL` when several implemented scoped contracts cover distinct sub-surfaces, but reports must state the individual contract boundaries. Do not introduce a global score or conflate the absence of an implementation with a secure result.
+Coverage audit v0.4.0 now treats each active domain as the set of its **compatible mapped contracts**. A domain is `COVERED` only when every compatible mapped capability is selected by the active policy and completed. When a selected and completed subset leaves another compatible contract outside the policy, the domain is `PARTIAL`; a selected non-error incomplete capability remains `PARTIAL`, and a selected execution error remains `ERROR`.
 
-**Acceptance:** coverage changes are fully diagnostic; tests demonstrate no change to policy outcomes merely from catalog/coverage metadata; all report formats explain state and exclusions.
+**Delivered boundary:** this is a diagnostic classification only. The refinement neither selects a control nor adapter, runs a tool, changes a contract/catalog/policy/waiver, creates or suppresses a finding, or alters `PASS`, `BLOCK`, `WAIVER_REQUIRED`, `ERROR`, or `NOT_EVALUATED`. Regression tests cover a one-of-two compatible Secrets-contract selection (`PARTIAL`), a complete two-contract selection (`COVERED`), and unchanged passing policy outcomes. No global score, secure verdict, exhaustive-domain claim, or runtime evidence is introduced.
 
 ### Milestone 12 — Optional external/runtime evidence, separate architecture
 

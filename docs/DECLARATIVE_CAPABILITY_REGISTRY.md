@@ -13,7 +13,7 @@ The built-in registry is shipped as package data under `src/before_deploy/capabi
 | Item | Current rule |
 |---|---|
 | Catalog schema | `1` |
-| Catalog version | `0.10.0` |
+| Catalog version | `0.15.0` |
 | Catalog digest | SHA-256 over canonical schema-approved semantic fields, not raw YAML formatting or source paths. |
 | Manifest source | Packaged, version-controlled YAML listed by `catalog.yaml`. |
 | Duplicate YAML mapping keys | Rejected. |
@@ -56,12 +56,12 @@ Every `SecurityAnalysisPlan` includes policy name/digest, capability-catalog ver
 
 ## 4. Coverage semantics
 
-The coverage auditor reads the capability registry, the separate domain/control catalog, and observed execution statuses. It is diagnostic only.
+The coverage auditor v0.4.0 reads the capability registry, the separate domain/control catalog, and observed execution statuses. It is diagnostic only. A domain with more than one compatible mapped capability cannot be called `COVERED` merely because one selected contract completed.
 
 | Status | Exact meaning |
 |---|---|
-| `COVERED` | All selected registered capabilities mapped to the domain completed. This means only that the approved scoped checks ran; it is not a claim of exhaustive security assurance. |
-| `PARTIAL` | One or more selected mapped capabilities did not complete, without an execution error. |
+| `COVERED` | Every compatible registered capability mapped to the domain is selected by the active policy and completed. This means only that the approved scoped checks ran; it is not a claim of exhaustive security assurance. |
+| `PARTIAL` | A selected mapped capability did not complete without an execution error, **or** a selected and completed subset leaves another compatible mapped capability absent from the active policy. |
 | `ERROR` | A selected mapped capability returned an execution error. This is distinct from findings and remains visible even if a non-required policy allows the final gate to pass. |
 | `UNAVAILABLE` | No approved registry capability covers the observed domain. |
 | `NOT_SELECTED` | A compatible approved registry capability exists, but the active policy did not select its implementation. |

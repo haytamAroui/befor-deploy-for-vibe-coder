@@ -59,6 +59,46 @@ def test_authorization_requirement_signal_is_diagnostic_and_cannot_change_the_ga
         assert "sensitive-authority-token" not in report
 
 
+def test_domain_coverage_is_partial_when_a_compatible_mapped_contract_is_not_selected(tmp_path):
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    policy = _secrets_policy(tmp_path / "native-only.yaml", "SEC-SECRET-001")
+
+    result = ScanOrchestrator((SecretDetectionControl(),)).scan(repository, policy)
+
+    coverage = {
+        item.domain_id: item
+        for item in result.coverage_audit.assessments
+        if item.domain_id == "DOMAIN-SECRETS-001"
+    }
+    assessment = coverage["DOMAIN-SECRETS-001"]
+    assert result.decision.outcome.value == "PASS"
+    assert result.findings == ()
+    assert assessment.status.value == "PARTIAL"
+    assert assessment.rationale == (
+        "At least one compatible mapped capability was absent from the active policy selection."
+    )
+
+
+def test_domain_coverage_is_complete_when_all_compatible_mapped_contracts_complete(tmp_path):
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    policy = _secrets_policy(
+        tmp_path / "native-and-gitleaks.yaml",
+        "SEC-SECRET-001",
+        "SEC-SECRET-GITLEAKS-001",
+    )
+
+    result = ScanOrchestrator((SecretDetectionControl(), _CompletedGitleaksControl())).scan(
+        repository, policy
+    )
+
+    coverage = {item.domain_id: item.status.value for item in result.coverage_audit.assessments}
+    assert result.decision.outcome.value == "PASS"
+    assert result.findings == ()
+    assert coverage["DOMAIN-SECRETS-001"] == "COVERED"
+
+
 def _policy(path: Path, *, required: bool, allow_errors: bool) -> Path:
     path.write_text(
         "\n".join(
@@ -76,6 +116,48 @@ def _policy(path: Path, *, required: bool, allow_errors: bool) -> Path:
         encoding="utf-8",
     )
     return path
+
+
+def _secrets_policy(path: Path, *control_ids: str) -> Path:
+    lines = [
+        "schema_version: 1",
+        "profile: coverage-contract-test",
+        "allow_nonrequired_control_errors: true",
+        "controls:",
+    ]
+    for control_id in control_ids:
+        lines.extend(
+            [
+                f"  {control_id}:",
+                "    required: false",
+                "    disposition: BLOCK",
+            ]
+        )
+    lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return path
+
+
+class _CompletedGitleaksControl:
+    control_id = "SEC-SECRET-GITLEAKS-001"
+    control_version = "test"
+
+    def run(self, context):
+        now = utc_now()
+        return type(
+            "ControlResult",
+            (),
+            {
+                "execution": ControlExecution(
+                    control_id=self.control_id,
+                    control_version=self.control_version,
+                    status=ExecutionStatus.COMPLETED,
+                    started_at=now,
+                    completed_at=now,
+                ),
+                "findings": (),
+            },
+        )()
 
 
 class _ErrorSecretControl:

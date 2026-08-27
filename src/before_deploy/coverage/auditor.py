@@ -15,7 +15,7 @@ from before_deploy.models import (
     SecurityAnalysisPlan,
 )
 
-AUDIT_VERSION = "0.3.0"
+AUDIT_VERSION = "0.4.0"
 
 
 def audit_security_coverage(
@@ -28,8 +28,9 @@ def audit_security_coverage(
 ) -> CoverageAudit:
     """Produce diagnostic coverage from reviewed catalogs and observed execution state.
 
-    Coverage never changes policy evaluation. ``NOT_SELECTED`` means a compatible registered capability
-    existed but was absent from the active policy selection; ``ERROR`` preserves a selected execution
+    Coverage never changes policy evaluation. ``NOT_SELECTED`` means no compatible registered capability
+    was selected. ``PARTIAL`` also records a selected and completed subset when another compatible mapped
+    capability is absent from the active policy selection. ``ERROR`` preserves a selected execution
     failure instead of collapsing it into a clean or merely partial outcome.
     """
     statuses = {getattr(item, "control_id"): getattr(item, "status") for item in executions}
@@ -79,11 +80,14 @@ def _assess(
             domain_id=expectation.domain_id,
         )
 
+    compatible_candidates = tuple(
+        definition for definition in candidates if definition.applies_to(project_profile)
+    )
     selected_definitions = tuple(
-        definition for definition in candidates if definition.capability_id in selected
+        definition for definition in compatible_candidates if definition.capability_id in selected
     )
     if not selected_definitions:
-        if any(definition.applies_to(project_profile) for definition in candidates):
+        if compatible_candidates:
             status = CoverageStatus.NOT_SELECTED
             rationale = "A compatible approved capability exists but the active policy did not select it."
         else:
@@ -105,8 +109,14 @@ def _assess(
         status = CoverageStatus.ERROR
         rationale = "At least one selected mapped capability returned an execution error."
     elif all(status == ExecutionStatus.COMPLETED for status in execution_statuses):
-        status = CoverageStatus.COVERED
-        rationale = "All selected, mapped capabilities completed; coverage remains scope-limited."
+        if len(selected_definitions) == len(compatible_candidates):
+            status = CoverageStatus.COVERED
+            rationale = "All compatible mapped capabilities completed; coverage remains scope-limited."
+        else:
+            status = CoverageStatus.PARTIAL
+            rationale = (
+                "At least one compatible mapped capability was absent from the active policy selection."
+            )
     else:
         status = CoverageStatus.PARTIAL
         rationale = "One or more selected mapped capabilities did not complete."
