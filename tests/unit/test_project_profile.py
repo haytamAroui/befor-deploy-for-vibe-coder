@@ -54,6 +54,33 @@ def test_detects_multiple_unsupported_languages_with_distinct_gaps():
     )
 
 
+def test_detects_rails_ruby_with_its_explicitly_limited_coverage_gap():
+    profile = detect_project_profile(collect_inventory(FIXTURES / "secure_ruby_rails_gemfile_lock"))
+
+    assert profile.languages == ("Ruby",)
+    assert profile.frameworks == ("Rails",)
+    assert profile.package_managers == ("bundler",)
+    assert profile.signals["manifest:Gemfile"] == "1"
+    assert profile.signals["framework:Rails"] == "1"
+    assert profile.coverage_gaps == (
+        "Rails coverage is limited to an opt-in root Gemfile.lock presence check for one unindented "
+        "literal rails gem declaration plus conventional config/application.rb application shape; Gemfile "
+        "values, lock contents, integrity, vulnerabilities, libraries, dynamic declarations, and Ruby "
+        "execution are not analyzed.",
+    )
+
+
+def test_generic_ruby_retains_an_explicit_language_specific_coverage_gap(tmp_path: Path):
+    (tmp_path / "Gemfile").write_text("gem 'other'\n", encoding="utf-8")
+    (tmp_path / "app.rb").write_text("puts 'fixture'\n", encoding="utf-8")
+
+    profile = detect_project_profile(collect_inventory(tmp_path))
+
+    assert profile.languages == ("Ruby",)
+    assert profile.frameworks == ()
+    assert profile.coverage_gaps == ("No language-specific controls are currently installed for Ruby.",)
+
+
 def test_detects_rust_cargo_with_its_explicitly_limited_coverage_gap():
     profile = detect_project_profile(collect_inventory(FIXTURES / "secure_rust_cargo_lock"))
 

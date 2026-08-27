@@ -11,6 +11,7 @@ POLICY_PATH = ROOT / "rules" / "default-policy.yaml"
 SQL_SINGLE_ALIAS_POLICY_PATH = ROOT / "rules" / "python-sql-single-alias-policy.yaml"
 PHP_LARAVEL_COMPOSER_LOCK_POLICY_PATH = ROOT / "rules" / "php-laravel-composer-lock-policy.yaml"
 RUST_CARGO_LOCK_POLICY_PATH = ROOT / "rules" / "rust-cargo-lock-policy.yaml"
+RUBY_RAILS_GEMFILE_LOCK_POLICY_PATH = ROOT / "rules" / "ruby-rails-gemfile-lock-policy.yaml"
 
 
 def _scan(fixture_name: str):
@@ -32,6 +33,14 @@ def _scan_rust_cargo_lock(fixture_name: str):
     controls = configured_controls(profile, native_controls())
     return ScanOrchestrator(controls).scan(
         ROOT / "fixtures" / fixture_name, RUST_CARGO_LOCK_POLICY_PATH
+    )
+
+
+def _scan_ruby_rails_gemfile_lock(fixture_name: str):
+    profile = load_policy(RUBY_RAILS_GEMFILE_LOCK_POLICY_PATH)
+    controls = configured_controls(profile, native_controls())
+    return ScanOrchestrator(controls).scan(
+        ROOT / "fixtures" / fixture_name, RUBY_RAILS_GEMFILE_LOCK_POLICY_PATH
     )
 
 
@@ -225,6 +234,61 @@ def test_default_policy_does_not_implicitly_select_rust_cargo_lock_control():
     assert "SEC-RUST-CARGO-LOCK-001" not in {item.control_id for item in result.executions}
     assert result.security_analysis_plan is not None
     assert "SEC-RUST-CARGO-LOCK-001" not in {
+        item.implementation_id for item in result.security_analysis_plan.control_contract_selections
+    }
+
+
+def test_ruby_rails_gemfile_lock_policy_blocks_only_on_the_bounded_missing_lockfile():
+    result = _scan_ruby_rails_gemfile_lock("vulnerable_ruby_rails_gemfile_lock")
+
+    assert result.decision.outcome == GateOutcome.BLOCK
+    assert {finding.rule_id for finding in result.findings} == {"SEC-RUBY-RAILS-GEMFILE-LOCK-001"}
+    assert result.project_profile is not None
+    assert result.project_profile.languages == ("Ruby",)
+    assert result.project_profile.frameworks == ("Rails",)
+    execution = next(
+        item
+        for item in result.executions
+        if item.control_id == "SEC-RUBY-RAILS-GEMFILE-LOCK-001"
+    )
+    assert execution.status.value == "COMPLETED"
+    assert result.security_analysis_plan is not None
+    contract = next(
+        item
+        for item in result.security_analysis_plan.control_contract_selections
+        if item.implementation_id == "SEC-RUBY-RAILS-GEMFILE-LOCK-001"
+    )
+    assert contract.control_id == "CONTROL-SUPPLY-RUBY-RAILS-GEMFILE-LOCK-001"
+    assert contract.security_domain_ids == ("DOMAIN-SUPPLY-CHAIN-001",)
+    for report in (render_json(result), render_markdown(result), render_sarif(result)):
+        assert "SEC-RUBY-RAILS-GEMFILE-LOCK-001" in report
+        assert "do-not-report-gemfile-value" not in report
+
+
+def test_ruby_rails_gemfile_lock_policy_handles_secure_and_indented_fixtures():
+    secure = _scan_ruby_rails_gemfile_lock("secure_ruby_rails_gemfile_lock")
+    indented = _scan_ruby_rails_gemfile_lock("ruby_rails_gemfile_lock_indented_declaration")
+
+    assert secure.decision.outcome == GateOutcome.PASS
+    assert not secure.findings
+    assert indented.decision.outcome == GateOutcome.PASS
+    indented_execution = next(
+        item
+        for item in indented.executions
+        if item.control_id == "SEC-RUBY-RAILS-GEMFILE-LOCK-001"
+    )
+    assert indented_execution.status.value == "NOT_APPLICABLE"
+
+
+def test_default_policy_does_not_implicitly_select_ruby_rails_gemfile_lock_control():
+    result = _scan("vulnerable_ruby_rails_gemfile_lock")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert "SEC-RUBY-RAILS-GEMFILE-LOCK-001" not in {
+        item.control_id for item in result.executions
+    }
+    assert result.security_analysis_plan is not None
+    assert "SEC-RUBY-RAILS-GEMFILE-LOCK-001" not in {
         item.implementation_id for item in result.security_analysis_plan.control_contract_selections
     }
 

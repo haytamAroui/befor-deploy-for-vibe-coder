@@ -71,6 +71,7 @@ Each work item below is a **single incremental milestone**. A milestone may not 
 | Python/FastAPI controls | Implemented as bounded static checks and metadata-only dynamic-route review | No semantic authorization proof, whole-program data flow, effective-path derivation, runtime configuration, or exhaustive API security. |
 | PHP/Laravel Composer lockfile control | Implemented as one opt-in static root-file-presence form | No generic PHP coverage, Composer/lock integrity, value/constraint, vulnerability, dependency-resolution, configuration, or runtime assurance. |
 | Rust/Cargo lockfile control | Implemented as one opt-in conventional binary static root-file-presence form | No generic Rust coverage, Cargo/lock integrity, value/constraint, vulnerability, dependency-resolution, library/workspace/custom-target, configuration, or runtime assurance. |
+| Ruby/Rails Gemfile lockfile control | Implemented as one opt-in conventional direct static root-file-presence form | No generic Ruby coverage, Gemfile/lock integrity, value/constraint, vulnerability, dependency-resolution, dynamic-declaration/group/library/nested-project, configuration, or runtime assurance. |
 | Next.js controls | Implemented as bounded static checks | Middleware/proxy is structural metadata only; local guard markers are not authorization proof. |
 | Go controls and offline advisory snapshot | Implemented within a narrow boundary | No live advisory database, reachability, indirect dependency resolution, or broad Go assurance. |
 | Existing external adapters | Implemented and opt-in | They are not standard protected-branch gates without an explicit policy choice and calibration. |
@@ -136,11 +137,11 @@ Canonical planning and registry documentation now reflects the registered, opt-i
 
 **Delivered boundary:** the finding does not expose dependency names, values, or manifest content. Root lockfile presence alone satisfies the check; lockfile contents, integrity, freshness, dependency resolution, manifest consistency, vulnerabilities, registries, git dependencies, target-specific dependencies, dev/build dependencies, features, workspaces, libraries, `src/bin`, configured targets, toolchains, and runtime behavior remain excluded. The control never executes Cargo, rustc, Rust code, scripts, builds, tests, resolvers, downloads, registries, or network operations. Secure, vulnerable, library-only, malformed-manifest, default-policy-isolation, redaction, package, and catalog-contract tests accompany the control.
 
-### Milestone 8 — Ecosystem-specific dependency evidence
+### Milestone 8 — Completed Ruby/Rails conventional direct Gemfile lockfile increment
 
-Add dependency capabilities one ecosystem at a time, each with a declared input, offline/packaged advisory evidence if vulnerabilities are evaluated, and no resolver invocation. Potential paths include Node lockfile integrity, Ruby lock evidence, or JVM lock/manifest presence. Composer and conventional-binary Cargo root lockfile presence are already separate delivered bounded contracts; neither should silently broaden. Each remains inside `DOMAIN-SUPPLY-CHAIN-001` but receives a unique contract and explicit limitations.
+`SEC-RUBY-RAILS-GEMFILE-LOCK-001` now covers exactly one static Rails application form: root `Gemfile`, an unindented literal `gem 'rails'` or `gem "rails"` declaration, and conventional root-relative `config/application.rb`. Under its dedicated opt-in policy only, a missing root `Gemfile.lock` creates a normalized supply-chain finding. Bundler documents `Gemfile.lock` as an exact dependency snapshot and distinguishes application lockfile practice from libraries; Rails lists `config/application.rb` as a standard application configuration location.[10] [11]
 
-**Acceptance:** exact supported input formats; deterministic ordering; lock/manifests and advisory boundaries clearly distinguished; no registry request, installation, build, or source-reachability assertion.
+**Delivered boundary:** the finding does not expose Gemfile values, arguments, or source text. Root lockfile presence alone satisfies the check; lockfile contents, integrity, freshness, dependency resolution, manifest consistency, vulnerabilities, provenance, groups, sources, conditional/indented declarations, parenthesized or dynamic calls, gemspecs, libraries, nested projects, Rails configuration, and runtime behavior remain excluded. The control never executes Ruby, Bundler, Rails, Gemfile code, scripts, builds, tests, resolvers, downloads, registries, or network operations. Secure, vulnerable, indented-declaration, unreadable-Gemfile, default-policy-isolation, redaction, package, and catalog-contract tests accompany the control.
 
 ### Milestone 9 — Infrastructure expansion, one artifact family at a time
 
@@ -225,3 +226,5 @@ No individual control is complete unless it has a stable implementation ID, capa
 [7]: https://laravel.com/docs/12.x/installation "Laravel — Installation"
 [8]: https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html "Cargo Book — Cargo.toml vs Cargo.lock"
 [9]: https://doc.rust-lang.org/cargo/reference/cargo-targets.html "Cargo Book — Cargo targets"
+[10]: https://guides.rubygems.org/dependency_management/ "RubyGems Guides — How to manage dependencies with Bundler"
+[11]: https://guides.rubyonrails.org/configuring.html "Rails Guides — Configuring Rails Applications"

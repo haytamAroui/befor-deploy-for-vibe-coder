@@ -176,11 +176,13 @@ def _bounded_marker_text(root_files: dict[str, Path]) -> str:
 def _coverage_gaps(languages: set[str], frameworks: set[str]) -> tuple[str, ...]:
     gaps: list[str] = []
     for language in sorted(
-        languages - {"Go", "JavaScript", "PHP", "Python", "Rust", "TypeScript"}
+        languages - {"Go", "JavaScript", "PHP", "Python", "Ruby", "Rust", "TypeScript"}
     ):
         gaps.append(f"No language-specific controls are currently installed for {language}.")
     if "PHP" in languages and "Laravel" not in frameworks:
         gaps.append("No language-specific controls are currently installed for PHP.")
+    if "Ruby" in languages and "Rails" not in frameworks:
+        gaps.append("No language-specific controls are currently installed for Ruby.")
     if "Rust" in languages:
         gaps.append(
             "Rust coverage is limited to an opt-in root Cargo.lock presence check for one direct Cargo.toml "
@@ -193,6 +195,13 @@ def _coverage_gaps(languages: set[str], frameworks: set[str]) -> tuple[str, ...]
             "Go coverage is limited to root-module checksum presence, direct tls.Config InsecureSkipVerify literals, "
             "one exact offline dependency-vulnerability snapshot, and an opt-in isolated Gosec adapter; deep "
             "framework, dataflow, live-database, and runtime analysis are not installed."
+        )
+    if "Rails" in frameworks:
+        gaps.append(
+            "Rails coverage is limited to an opt-in root Gemfile.lock presence check for one unindented "
+            "literal rails gem declaration plus conventional config/application.rb application shape; Gemfile "
+            "values, lock contents, integrity, vulnerabilities, libraries, dynamic declarations, and Ruby "
+            "execution are not analyzed."
         )
     if "Laravel" in frameworks:
         gaps.append(
@@ -210,7 +219,7 @@ def _coverage_gaps(languages: set[str], frameworks: set[str]) -> tuple[str, ...]
         gaps.append(
             "No language-specific JavaScript/TypeScript controls are installed without a detected Next.js framework."
         )
-    for framework in sorted(frameworks - {"FastAPI", "Laravel", "Next.js", "GitHub Actions"}):
+    for framework in sorted(frameworks - {"FastAPI", "Laravel", "Next.js", "Rails", "GitHub Actions"}):
         gaps.append(f"{framework} is detected, but no framework-specific controls are currently installed.")
     if not languages:
         gaps.append("No supported language signal was detected; only generic controls can provide coverage.")

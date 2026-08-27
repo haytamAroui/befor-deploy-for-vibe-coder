@@ -13,6 +13,7 @@ from before_deploy.controls.go_vulnerabilities import GoVulnerabilitySnapshotCon
 from before_deploy.controls.injection import SqlInjectionControl, SqlInjectionSingleLocalAliasControl
 from before_deploy.controls.php_laravel import LaravelComposerLockfileControl
 from before_deploy.controls.rust_cargo import RustCargoLockfileControl
+from before_deploy.controls.ruby_rails import RailsGemfileLockfileControl
 from before_deploy.controls.nextjs import (
     NextInlineServerActionLocalGuardControl,
     NextPublicEnvironmentControl,
@@ -42,6 +43,7 @@ def native_controls() -> tuple[Control, ...]:
         DependencyLockfileControl(),
         LaravelComposerLockfileControl(),
         RustCargoLockfileControl(),
+        RailsGemfileLockfileControl(),
         GoModuleIntegrityControl(),
         GoTLSVerificationControl(),
         CycloneDxSbomControl(),
@@ -59,6 +61,7 @@ __all__ = [
     "GitHubActionsSecurityControl",
     "LaravelComposerLockfileControl",
     "RustCargoLockfileControl",
+    "RailsGemfileLockfileControl",
     "GoModuleIntegrityControl",
     "GoTLSVerificationControl",
     "GoVulnerabilitySnapshotControl",

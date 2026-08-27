@@ -118,6 +118,18 @@ controls:
       - Composer values and constraints, require-dev, transitive dependencies, repositories, signatures, hashes, vulnerabilities, nested projects, monorepos, symlinks, PHP extensions, Laravel configuration, runtime behavior, and target command execution are not covered.
       - composer.lock presence is evidence only; its contents, integrity, freshness, dependency resolution, and relationship to composer.json are not inspected.
     references: []
+  - id: CONTROL-SUPPLY-RUBY-RAILS-GEMFILE-LOCK-001
+    version: "0.1.0"
+    title: Conventional Rails root Gemfile lockfile presence check
+    capability_id: control.native.ruby-rails-gemfile-lock
+    implementation_id: SEC-RUBY-RAILS-GEMFILE-LOCK-001
+    security_domains:
+      - DOMAIN-SUPPLY-CHAIN-001
+    detection_scope: Root unindented literal gem 'rails' or gem "rails" declaration plus root-relative config/application.rb, checked only for root Gemfile.lock presence.
+    exclusions:
+      - Indented or conditional declarations, parenthesized/dynamic calls, groups, sources, gemspecs, libraries, nested projects, version values, transitive dependencies, vulnerabilities, provenance, Rails configuration, runtime behavior, and target command execution are not covered.
+      - Gemfile.lock presence is evidence only; its contents, integrity, freshness, dependency resolution, and relationship to Gemfile are not inspected.
+    references: []
   - id: CONTROL-SUPPLY-RUST-CARGO-LOCK-001
     version: "0.1.0"
     title: Conventional Rust binary root Cargo lockfile presence check

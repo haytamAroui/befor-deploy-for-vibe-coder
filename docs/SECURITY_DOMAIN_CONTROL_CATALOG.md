@@ -1,6 +1,6 @@
 # Security Domain + Control Catalog
 
-**Version:** 0.13.0
+**Version:** 0.14.0
 **Authority:** Informational only; it is not a policy profile, a scanner, a compliance assessment, or a release authority.
 
 ## Purpose and authority boundary
@@ -58,7 +58,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 | `DOMAIN-OBSERVABILITY-001` | Security observability | Unmapped | Logging content, retention, alerts, and production monitoring are not inferred. |
 | `DOMAIN-SECURITY-TESTING-001` | Security testing evidence | Unmapped | Test quantity and code-coverage percentages do not prove application security. |
 | `DOMAIN-PRODUCTION-CONFIGURATION-001` | Production configuration | Mapped | Static Python debug configuration does not determine effective deployed configuration. |
-| `DOMAIN-SUPPLY-CHAIN-001` | Software supply chain | Mapped | Existing controls provide limited Python/Node and Go module evidence, one opt-in root Laravel Composer lockfile-presence form, one opt-in conventional Rust binary Cargo lockfile-presence form, one bounded Go dependency-vulnerability snapshot, plus limited SBOM/provenance evidence; they do not establish dependency integrity, vulnerability absence, or a SLSA level. |
+| `DOMAIN-SUPPLY-CHAIN-001` | Software supply chain | Mapped | Existing controls provide limited Python/Node and Go module evidence, one opt-in root Laravel Composer lockfile-presence form, one opt-in conventional Rust binary Cargo lockfile-presence form, one opt-in conventional Rails Gemfile lockfile-presence form, one bounded Go dependency-vulnerability snapshot, plus limited SBOM/provenance evidence; they do not establish dependency integrity, vulnerability absence, or a SLSA level. |
 
 | Extension ID | Distinct extension | Current mapping posture | Present limitation |
 |---|---|---|---|
@@ -74,7 +74,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 
 ## Current control contracts
 
-The catalog maps **only the twenty-five reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
+The catalog maps **only the twenty-six reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
 
 | Control contract | Capability / implementation | Domain mapping | Selection boundary |
 |---|---|---|---|
@@ -90,6 +90,7 @@ The catalog maps **only the twenty-five reviewed capability implementations alre
 | `CONTROL-SUPPLY-DEPENDENCY-MANIFEST-001` | `control.native.dependency-manifest` / `SEC-DEP-001` | Software supply chain | Supported Python/Node manifests and lockfiles only. |
 | `CONTROL-SUPPLY-PHP-LARAVEL-COMPOSER-LOCK-001` | `control.native.php-laravel-composer-lock` / `SEC-PHP-LARAVEL-COMPOSER-LOCK-001` | Software supply chain | Explicit `php-laravel-composer-lock-policy.yaml` only; a root JSON `composer.json` direct `require` object with exact `laravel/framework` key plus root `artisan` must have a root `composer.lock`. It does not parse values or lock contents, or execute PHP, Composer, or Artisan. |
 | `CONTROL-SUPPLY-RUST-CARGO-LOCK-001` | `control.native.rust-cargo-lock` / `SEC-RUST-CARGO-LOCK-001` | Software supply chain | Explicit `rust-cargo-lock-policy.yaml` only; a root `Cargo.toml` direct non-empty `dependencies` table plus conventional `src/main.rs` must have a root `Cargo.lock`. It does not parse values or lock content, infer libraries/workspaces/custom targets, or execute Cargo, rustc, or Rust code. |
+| `CONTROL-SUPPLY-RUBY-RAILS-GEMFILE-LOCK-001` | `control.native.ruby-rails-gemfile-lock` / `SEC-RUBY-RAILS-GEMFILE-LOCK-001` | Software supply chain | Explicit `ruby-rails-gemfile-lock-policy.yaml` only; a root unindented literal `gem 'rails'` or `gem "rails"` declaration plus conventional `config/application.rb` must have a root `Gemfile.lock`. It does not parse values or lock content, infer indented/dynamic declarations, groups, libraries, or nested projects, or execute Ruby, Bundler, or Rails. |
 | `CONTROL-SUPPLY-PIP-AUDIT-001` | `adapter.pip-audit-python` / `SEC-DEP-VULN-001` | Software supply chain | Explicit release-evidence policy only. |
 | `CONTROL-SUPPLY-SBOM-001` | `control.native.release-sbom` / `SEC-RELEASE-001` | Software supply chain | SBOM presence/basic parseability only. |
 | `CONTROL-SUPPLY-PROVENANCE-001` | `adapter.github-attestation-offline` / `SEC-PROVENANCE-001` | Software supply chain | Explicit local artifact/bundle verification only. |

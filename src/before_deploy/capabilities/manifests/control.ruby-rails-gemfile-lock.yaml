@@ -1,0 +1,17 @@
+schema_version: 1
+id: control.native.ruby-rails-gemfile-lock
+version: "0.1.0"
+implementation_id: SEC-RUBY-RAILS-GEMFILE-LOCK-001
+kind: CONTROL
+title: Conventional Rails root Gemfile lockfile presence check
+applies_when:
+  languages:
+    - Ruby
+  frameworks:
+    - Rails
+security_domains:
+  - DOMAIN-SUPPLY-CHAIN-001
+exclusions:
+  - Only an inventory-included root Gemfile with one unindented literal gem 'rails' or gem "rails" declaration and root-relative config/application.rb is considered.
+  - Root Gemfile.lock presence is the only positive evidence; its contents, integrity, freshness, dependency resolution, and relationship to Gemfile are not inspected.
+  - Indented or conditional declarations, parenthesized/dynamic calls, groups, sources, gemspecs, libraries, nested projects, version values, transitive dependencies, vulnerabilities, provenance, Rails configuration, runtime behavior, and target command execution are excluded.

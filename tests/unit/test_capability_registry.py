@@ -17,9 +17,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     second = load_builtin_capability_registry()
 
     assert first.schema_version == 1
-    assert first.catalog_version == "0.13.0"
+    assert first.catalog_version == "0.14.0"
     assert first.catalog_digest == second.catalog_digest
-    assert len(first.capabilities) == 25
+    assert len(first.capabilities) == 26
     assert first.definition_for_implementation("SEC-NEXT-ENV-001").capability_id == (
         "control.native.nextjs-public-env"
     )
@@ -50,6 +50,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     rust_cargo = first.definition_for_implementation("SEC-RUST-CARGO-LOCK-001")
     assert rust_cargo.capability_id == "control.native.rust-cargo-lock"
     assert rust_cargo.version == "0.1.0"
+    ruby_rails = first.definition_for_implementation("SEC-RUBY-RAILS-GEMFILE-LOCK-001")
+    assert ruby_rails.capability_id == "control.native.ruby-rails-gemfile-lock"
+    assert ruby_rails.version == "0.1.0"
     assert first.definition_for_implementation("SEC-UNREGISTERED-001") is None
 
 

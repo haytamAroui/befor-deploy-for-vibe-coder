@@ -1,0 +1,2 @@
+gem "rails", "8.1"
+source_only_note = "do-not-report-gemfile-value"
