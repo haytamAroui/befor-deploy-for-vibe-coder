@@ -1,6 +1,6 @@
 # Security Domain + Control Catalog
 
-**Version:** 0.6.0
+**Version:** 0.7.0
 **Authority:** Informational only; it is not a policy profile, a scanner, a compliance assessment, or a release authority.
 
 ## Purpose and authority boundary
@@ -65,8 +65,8 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 | `DOMAIN-API-SECURITY-001` | API security | Mapped for FastAPI route authentication declarations | Does not prove API inventory, authorization correctness, SSRF safety, or runtime configuration. |
 | `DOMAIN-SESSION-SECURITY-001` | Session security | Mapped for narrow Next.js cookie options | Does not infer custom cookie wrappers, expiry, token generation, or session lifecycle. |
 | `DOMAIN-CICD-SECURITY-001` | CI/CD security | Mapped for selected GitHub Actions hardening checks | Does not inspect repository settings, runners, identities, or external CI platforms. |
-| `DOMAIN-CONTAINER-SECURITY-001` | Container security | Unmapped | Docker/Compose evidence only activates a visible gap; images and runtime posture are not inspected. |
-| `DOMAIN-IAC-SECURITY-001` | Infrastructure-as-code security | Unmapped | Terraform evidence only activates a visible gap; cloud state and IAM are not inspected. |
+| `DOMAIN-CONTAINER-SECURITY-001` | Container security | Mapped for the opt-in staged Trivy Dockerfile/Containerfile configuration adapter | Images, Compose, registries, image execution, runtime posture, and deployed configuration are not inspected. |
+| `DOMAIN-IAC-SECURITY-001` | Infrastructure-as-code security | Mapped for the opt-in staged Trivy Terraform `.tf` configuration adapter | Plans, tfvars, modules, providers, state, computed values, cloud state, IAM, and deployment posture are not inspected. |
 | `DOMAIN-SSRF-001` | Server-side request forgery | Mapped for opt-in Gosec on root Go modules | Declared external URL fetching is not proof of an SSRF implementation or mitigation; Gosec coverage is limited to upstream findings. |
 | `DOMAIN-PAYMENT-INTEGRATION-001` | Payment integration security | Unmapped | Payment declarations do not prove provider, webhook, or business-flow security. |
 | `DOMAIN-TRANSPORT-SECURITY-001` | Transport security | Mapped for direct Go TLS configuration | Only direct `tls.Config` literals disabling verification are checked; custom verification and runtime transport configuration are not inferred. |
@@ -74,7 +74,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 
 ## Current control contracts
 
-The catalog maps **only the twenty reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
+The catalog maps **only the twenty-one reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
 
 | Control contract | Capability / implementation | Domain mapping | Selection boundary |
 |---|---|---|---|
@@ -94,6 +94,7 @@ The catalog maps **only the twenty reviewed capability implementations already r
 | `CONTROL-SUPPLY-GO-VULNERABILITY-SNAPSHOT-001` | `control.native.go-vulnerability-snapshot` / `SEC-GO-VULN-001` | Software supply chain | Explicit Go snapshot policy; exact direct root dependency version against one packaged reviewed advisory boundary only. |
 | `CONTROL-TRANSPORT-GO-TLS-001` | `control.native.go-tls-verification` / `SEC-GO-TLS-001` | Transport security | Direct literal `tls.Config{InsecureSkipVerify: true}` only. |
 | `CONTROL-GOSEC-STATIC-ANALYSIS-001` | `adapter.gosec-go-module` / `SEC-GOSEC-001` | Injection, SSRF, path traversal | Explicit external-adapters policy, preinstalled Gosec, fixed local/offline arguments, and normalized redacted report only. |
+| `CONTROL-CONTAINER-IAC-TRIVY-CONFIG-001` | `adapter.trivy-config-isolated` / `SEC-TRIVY-CONFIG-001` | Container security, infrastructure-as-code security | Explicit `trivy-config-policy.yaml` only; preinstalled version-verified Trivy 0.74.0, fixed offline misconfiguration-only arguments, isolated staged Dockerfile/Containerfile variants and Terraform `.tf`, and normalized redacted report only. |
 | `CONTROL-NEXTJS-PUBLIC-ENV-001` | `control.native.nextjs-public-env` / `SEC-NEXT-ENV-001` | Secrets | Direct sensitive-looking public variable names only. |
 | `CONTROL-AUTHORIZATION-NEXT-SERVER-ACTION-001` | `control.native.nextjs-server-action-local-guard` / `SEC-NEXT-ACTION-001` | Authorization | Module-level Server Action direct `db`/`prisma` mutation before a local guard marker; proxy/middleware is structural metadata only. |
 | `CONTROL-NEXTJS-SESSION-COOKIE-001` | `control.native.nextjs-session-cookie` / `SEC-NEXT-COOKIE-001` | Session security | Explicit unsafe static cookie-option combinations only. |

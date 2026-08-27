@@ -43,6 +43,7 @@ APPROVED_IMPLEMENTATION_IDS = frozenset(
         "SEC-SAST-SEMGREP-001",
         "SEC-SECRET-001",
         "SEC-SECRET-GITLEAKS-001",
+        "SEC-TRIVY-CONFIG-001",
     }
 )
 

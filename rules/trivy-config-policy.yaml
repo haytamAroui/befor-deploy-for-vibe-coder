@@ -1,0 +1,14 @@
+schema_version: 1
+profile: trivy-config-isolated
+allow_nonrequired_control_errors: false
+public_fastapi_routes: []
+external_tools:
+  trivy:
+    executable: trivy
+    version: "0.74.0"
+    timeout_seconds: 90
+    max_report_bytes: 2000000
+controls:
+  SEC-TRIVY-CONFIG-001:
+    required: true
+    disposition: BLOCK

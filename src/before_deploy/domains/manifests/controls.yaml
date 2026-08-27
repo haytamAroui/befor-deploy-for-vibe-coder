@@ -238,3 +238,18 @@ controls:
       - Domain coverage is limited to the upstream Gosec findings emitted by the configured tool version.
     references:
       - REF-OWASP-API-2023
+  - id: CONTROL-CONTAINER-IAC-TRIVY-CONFIG-001
+    version: "0.1.0"
+    title: Isolated Trivy Dockerfile and Terraform configuration adapter
+    capability_id: adapter.trivy-config-isolated
+    implementation_id: SEC-TRIVY-CONFIG-001
+    security_domains:
+      - DOMAIN-CONTAINER-SECURITY-001
+      - DOMAIN-IAC-SECURITY-001
+    detection_scope: Policy-configured preinstalled Trivy configuration scan of an isolated staged copy containing only inventory-included Dockerfile or Containerfile variants and Terraform .tf files, with fixed offline misconfiguration-only arguments and normalized redacted findings.
+    exclusions:
+      - This adapter is opt-in and reports NOT_APPLICABLE when no eligible staged artifact is present.
+      - Container images, Docker Compose, Kubernetes, Helm, CloudFormation, Terraform plans, tfvars, generated or excluded inputs, custom checks, target configuration, and target ignore files are not scanned.
+      - Terraform module fetching, cloud state, providers, computed values, runtime behavior, registry access, target code execution, target commands, remediation, and AI functionality are not inferred or performed.
+      - Target inline Trivy ignore directives are neutralized; only exact policy-bound Before Deploy waivers can alter the deterministic release decision.
+    references: []

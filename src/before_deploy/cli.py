@@ -14,6 +14,7 @@ from before_deploy.controls.gosec import GosecControl
 from before_deploy.controls.go_vulnerabilities import GoVulnerabilitySnapshotControl
 from before_deploy.controls.provenance import ProvenanceControl
 from before_deploy.controls.semgrep import SemgrepControl
+from before_deploy.controls.trivy_config import TrivyConfigControl
 from before_deploy.models import GateOutcome
 from before_deploy.orchestrator import ScanOrchestrator, configured_controls
 from before_deploy.policy import load_policy
@@ -107,6 +108,20 @@ def _controls_for_profile(profile, policy_path: Path):
         )
     if "SEC-GO-VULN-001" in profile.controls:
         controls.append(GoVulnerabilitySnapshotControl())
+    if "SEC-TRIVY-CONFIG-001" in profile.controls:
+        settings = profile.tools.get("trivy")
+        if settings is None:
+            raise ValueError("Policy enables Trivy configuration scanning but lacks external_tools.trivy")
+        controls.append(
+            TrivyConfigControl(
+                ExternalToolConfig(
+                    executable=settings.executable,
+                    tool_version=settings.version,
+                    timeout_seconds=settings.timeout_seconds,
+                    max_report_bytes=settings.max_report_bytes,
+                )
+            )
+        )
     if "SEC-DEP-VULN-001" in profile.controls:
         settings = profile.tools.get("pip_audit")
         if settings is None or profile.dependency_audit is None:

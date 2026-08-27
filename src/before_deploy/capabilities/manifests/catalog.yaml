@@ -1,11 +1,12 @@
 schema_version: 1
-catalog_version: "0.6.0"
+catalog_version: "0.7.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
   - adapter.pip-audit.yaml
   - adapter.provenance.yaml
   - adapter.semgrep.yaml
+  - adapter.trivy-config.yaml
   - control.dependency-manifest.yaml
   - control.fastapi-api.yaml
   - control.github-actions.yaml

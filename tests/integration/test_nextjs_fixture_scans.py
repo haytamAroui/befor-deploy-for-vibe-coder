@@ -88,7 +88,7 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
     )
     assert all(selection.detection_scope for selection in plan.control_contract_selections)
     assert all(selection.exclusions for selection in plan.control_contract_selections)
-    assert plan.security_domain_catalog_version == "0.6.0"
+    assert plan.security_domain_catalog_version == "0.7.0"
     assert plan.security_domain_catalog_digest
     assert not plan.adapter_selections
     assert not plan.skill_selections
@@ -98,14 +98,15 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
     assert result.coverage_audit.security_domain_catalog_digest == plan.security_domain_catalog_digest
     assert coverage["Framework: Next.js"] == "COVERED"
     assert coverage["CI/CD"] == "COVERED"
-    assert coverage["Container"] == "UNAVAILABLE"
-    assert coverage["Infrastructure as code"] == "UNAVAILABLE"
+    assert coverage["Container"] == "NOT_SELECTED"
+    assert coverage["Infrastructure as code"] == "NOT_SELECTED"
     assert coverage["Declared requirement: Authentication"] == "DECLARED_REVIEW_REQUIRED"
     assert coverage["Declared requirement: File upload"] == "DECLARED_REVIEW_REQUIRED"
     assert coverage_by_id["DOMAIN-SESSION-SECURITY-001"] == "COVERED"
     assert coverage_by_id["DOMAIN-FILE-UPLOAD-001"] == "UNAVAILABLE"
     assert coverage_by_id["DOMAIN-PAYMENT-INTEGRATION-001"] == "UNAVAILABLE"
-    assert coverage_by_id["DOMAIN-CONTAINER-SECURITY-001"] == "UNAVAILABLE"
+    assert coverage_by_id["DOMAIN-CONTAINER-SECURITY-001"] == "NOT_SELECTED"
+    assert coverage_by_id["DOMAIN-IAC-SECURITY-001"] == "NOT_SELECTED"
 
     json_report = render_json(result)
     markdown_report = render_markdown(result)

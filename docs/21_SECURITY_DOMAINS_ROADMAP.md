@@ -39,7 +39,7 @@ A domain does not become covered by its presence in this list. It appears as `UN
 | 1. Taxonomy | Versioned security-domain/control catalog with current mappings and explicit unmapped domains. | Informational only. | Complete: catalog v0.2.0 defines 21 foundational domains, 9 extensions, and maps only real controls. |
 | 2. Control decomposition | Small contracts such as authorization-object access, command injection, path traversal, or JWT algorithm validation. | A contract cannot run code or create a policy result. | Every contract has a stable ID, explicit scope/exclusions, an approved capability, and fixture-backed tests before it is mapped. |
 | 3. Technology mappings | Per-control language/framework applicability and evidence requirements. | Registry metadata cannot discover tools or select unconfigured scanners. | Each mapping points only to an existing implementation and has precise non-applicability behavior. |
-| 4. Scanner adapters | One bounded external adapter at a time. | Fixed arguments, isolated process, no secrets, controlled environment, report-size/time bounds, normalized redacted output, and policy opt-in. | Secure, vulnerable, malformed-report, missing-tool, timeout, and redaction tests pass. |
+| 4. Scanner adapters | One bounded external adapter at a time. | Fixed arguments, isolated process, no secrets, controlled environment, report-size/time bounds, normalized redacted output, and policy opt-in. | First container/IaC adapter complete: Trivy config staging, version verification, malformed-report, missing-tool, timeout, path-containment, suppression-neutralization, and redaction tests pass locally. |
 | 5. Fixture matrix | Secure, vulnerable, unsupported, and false-positive fixtures for every control. | Fixtures prove the stated detection contract—not comprehensive security. | Native and integration coverage exists before any policy profile makes the control a release gate. |
 | 6. Coverage calibration | Domain status semantics and exclusions tied to selected capabilities. | Coverage remains diagnostic unless a future reviewed policy explicitly uses it. | No percentage score, compliance claim, or implicit clean status is emitted. |
 
@@ -49,13 +49,15 @@ The repository now has a narrow Python/FastAPI pack, a narrow Next.js/TypeScript
 
 The Gosec adapter is a reference for future adapter work: it requires a policy-configured preinstalled executable, uses fixed arguments, disables module-network resolution, keeps modules read-only, ignores inline suppressions, and discards upstream source/details before generating a normalized finding. Gosec documents its own AST/SSA/taint-analysis coverage and JSON output modes; Before Deploy reports only the bounded upstream results it receives.[1]
 
+The first container/IaC adapter is now `SEC-TRIVY-CONFIG-001`. It is deliberately a small external boundary: a dedicated opt-in policy requires a preinstalled Trivy `0.74.0` binary, verifies that version, stages only inventory-included Dockerfile/Containerfile variants and Terraform `.tf` files, neutralizes inline Trivy ignores, omits target ignore/config/module inputs, and invokes Trivy with fixed misconfiguration-only offline arguments. It maps only normalized rule ID, severity, artifact category, staged-relative path, and positive line to the deterministic policy engine. Container images, Compose, Helm, Kubernetes, CloudFormation, Terraform plans/tfvars/modules/state, cloud accounts, runtime behavior, target code, downloads, and target-supplied scanner configuration remain outside this control.[2] [3]
+
 ## Prioritized next control families
 
 The backlog is ordered by evidence quality and safety of implementation, not by trying to add every domain at once.
 
 | Priority | Candidate domain/control family | Preconditions | Explicit non-goal for the first iteration |
 |---|---|---|---|
-| 1 | Container and IaC adapters. | Isolated preinstalled scanners, deterministic inputs, normalized output, and artifact fixtures. | Cloud-account inspection, deployment changes, or runtime IAM guarantees. |
+| 1 | Calibrate the isolated Trivy configuration adapter with a separately reviewed real-binary fixture corpus before any protected-branch adoption. | Pinned preinstalled binary, air-gapped runner verification, representative safe/vulnerable/ambiguous artifacts, and privacy review. | Container image scanning, cloud-account inspection, deployment changes, runtime IAM guarantees, or a claim of comprehensive IaC coverage. |
 | 2 | Expand the Go snapshot through separately reviewed advisory boundaries. | Official-source verification, exact-version semantics, digest update, redaction review, and fixture matrix. | Live-database synchronization, arbitrary version ranges, reachability claims, or automatic remediation. |
 | 3 | Expand Next.js Server Action coverage through separate contracts. | Precision benchmarks, exported/inline action scope review, and secure/vulnerable/ambiguous fixtures. | Treating proxy/middleware, function names, or an absent finding as authorization proof. |
 | 4 | Expand Python local SQL-flow coverage through separate contracts. | Precision benchmarks for aliases, branches, awaits, wrappers, and imports. | Whole-program dataflow, ORM safety, or treating an absent finding as secure SQL. |
@@ -68,3 +70,5 @@ A future AI may explain a normalized redacted report and suggest remediation for
 ## References
 
 [1]: https://github.com/securego/gosec "securego/gosec — documented Go AST, SSA, taint-analysis, JSON-output, and configuration behavior"
+[2]: https://trivy.dev/docs/latest/references/configuration/cli/trivy_config/ "Trivy — config command reference"
+[3]: https://trivy.dev/docs/latest/advanced/air-gap/ "Trivy — connectivity considerations and embedded checks"

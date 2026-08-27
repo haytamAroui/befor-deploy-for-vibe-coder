@@ -1,0 +1,19 @@
+schema_version: 1
+id: adapter.trivy-config-isolated
+version: "0.1.0"
+implementation_id: SEC-TRIVY-CONFIG-001
+kind: ADAPTER
+title: Isolated Trivy configuration scan adapter
+applies_when:
+  languages: []
+  frameworks: []
+  requires_github_workflow: false
+  required_project_signals: []
+security_domains:
+  - Container
+  - Infrastructure as code
+exclusions:
+  - This adapter is opt-in and returns NOT_APPLICABLE when no inventory-included Dockerfile, Containerfile, or Terraform file is present.
+  - Only staged Dockerfile or Containerfile variants and Terraform .tf files are scanned; Compose, images, Kubernetes, Helm, CloudFormation, plans, tfvars, and generated or excluded files are outside scope.
+  - No installation, target configuration, target ignore file, custom policy, module input, dependency download, registry access, target command, target code execution, runtime inspection, cloud-state inspection, or AI fix mode is permitted.
+  - Inline Trivy ignore directives are neutralized in the staged copy; only exact policy-bound Before Deploy waivers can alter the release decision.

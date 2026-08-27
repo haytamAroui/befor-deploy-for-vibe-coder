@@ -17,9 +17,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     second = load_builtin_capability_registry()
 
     assert first.schema_version == 1
-    assert first.catalog_version == "0.6.0"
+    assert first.catalog_version == "0.7.0"
     assert first.catalog_digest == second.catalog_digest
-    assert len(first.capabilities) == 20
+    assert len(first.capabilities) == 21
     assert first.definition_for_implementation("SEC-NEXT-ENV-001").capability_id == (
         "control.native.nextjs-public-env"
     )
@@ -31,6 +31,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     )
     assert first.definition_for_implementation("SEC-NEXT-ACTION-001").capability_id == (
         "control.native.nextjs-server-action-local-guard"
+    )
+    assert first.definition_for_implementation("SEC-TRIVY-CONFIG-001").capability_id == (
+        "adapter.trivy-config-isolated"
     )
     assert first.definition_for_implementation("SEC-UNREGISTERED-001") is None
 

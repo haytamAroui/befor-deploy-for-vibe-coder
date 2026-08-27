@@ -20,10 +20,10 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.6.0"
+    assert catalog.catalog_version == "0.7.0"
     assert catalog.catalog_digest == second.catalog_digest
     assert len(catalog.domains) == 30
-    assert len(catalog.controls) == 20
+    assert len(catalog.controls) == 21
     assert catalog.domains["DOMAIN-SSRF-001"].title == "Server-side request forgery"
     assert {
         control.capability_id for control in catalog.controls.values()
@@ -43,6 +43,13 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert contract.control_id == "CONTROL-TRANSPORT-GO-TLS-001"
     assert contract.capability_id == "control.native.go-tls-verification"
     assert contract.security_domain_ids == ("DOMAIN-TRANSPORT-SECURITY-001",)
+    trivy_contract = catalog.control_for_implementation("SEC-TRIVY-CONFIG-001")
+    assert trivy_contract is not None
+    assert trivy_contract.control_id == "CONTROL-CONTAINER-IAC-TRIVY-CONFIG-001"
+    assert trivy_contract.security_domain_ids == (
+        "DOMAIN-CONTAINER-SECURITY-001",
+        "DOMAIN-IAC-SECURITY-001",
+    )
     assert catalog.control_for_implementation("SEC-NOT-REGISTERED-001") is None
 
 
