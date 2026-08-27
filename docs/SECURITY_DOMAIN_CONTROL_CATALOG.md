@@ -1,6 +1,6 @@
 # Security Domain + Control Catalog
 
-**Version:** 0.2.0
+**Version:** 0.3.0
 **Authority:** Informational only; it is not a policy profile, a scanner, a compliance assessment, or a release authority.
 
 ## Purpose and authority boundary
@@ -58,7 +58,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 | `DOMAIN-OBSERVABILITY-001` | Security observability | Unmapped | Logging content, retention, alerts, and production monitoring are not inferred. |
 | `DOMAIN-SECURITY-TESTING-001` | Security testing evidence | Unmapped | Test quantity and code-coverage percentages do not prove application security. |
 | `DOMAIN-PRODUCTION-CONFIGURATION-001` | Production configuration | Mapped | Static Python debug configuration does not determine effective deployed configuration. |
-| `DOMAIN-SUPPLY-CHAIN-001` | Software supply chain | Mapped | Existing controls provide limited Python/Node and Go module evidence plus limited SBOM/provenance evidence; they do not establish a SLSA level. |
+| `DOMAIN-SUPPLY-CHAIN-001` | Software supply chain | Mapped | Existing controls provide limited Python/Node and Go module evidence, one bounded Go dependency-vulnerability snapshot, plus limited SBOM/provenance evidence; they do not establish a SLSA level. |
 
 | Extension ID | Distinct extension | Current mapping posture | Present limitation |
 |---|---|---|---|
@@ -74,7 +74,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 
 ## Current control contracts
 
-The catalog maps **only the eighteen reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
+The catalog maps **only the nineteen reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
 
 | Control contract | Capability / implementation | Domain mapping | Selection boundary |
 |---|---|---|---|
@@ -91,6 +91,7 @@ The catalog maps **only the eighteen reviewed capability implementations already
 | `CONTROL-SUPPLY-SBOM-001` | `control.native.release-sbom` / `SEC-RELEASE-001` | Software supply chain | SBOM presence/basic parseability only. |
 | `CONTROL-SUPPLY-PROVENANCE-001` | `adapter.github-attestation-offline` / `SEC-PROVENANCE-001` | Software supply chain | Explicit local artifact/bundle verification only. |
 | `CONTROL-SUPPLY-GO-MODULE-001` | `control.native.go-module-integrity` / `SEC-GO-MODULE-001` | Software supply chain | Root `go.mod` dependency declarations and root `go.sum` presence only. |
+| `CONTROL-SUPPLY-GO-VULNERABILITY-SNAPSHOT-001` | `control.native.go-vulnerability-snapshot` / `SEC-GO-VULN-001` | Software supply chain | Explicit Go snapshot policy; exact direct root dependency version against one packaged reviewed advisory boundary only. |
 | `CONTROL-TRANSPORT-GO-TLS-001` | `control.native.go-tls-verification` / `SEC-GO-TLS-001` | Transport security | Direct literal `tls.Config{InsecureSkipVerify: true}` only. |
 | `CONTROL-GOSEC-STATIC-ANALYSIS-001` | `adapter.gosec-go-module` / `SEC-GOSEC-001` | Injection, SSRF, path traversal | Explicit external-adapters policy, preinstalled Gosec, fixed local/offline arguments, and normalized redacted report only. |
 | `CONTROL-NEXTJS-PUBLIC-ENV-001` | `control.native.nextjs-public-env` / `SEC-NEXT-ENV-001` | Secrets | Direct sensitive-looking public variable names only. |

@@ -1,15 +1,16 @@
 # Go Reference Capability Pack
 
-**Status:** In implementation. This document defines the first scoped Go capability pack; it does not claim comprehensive Go security analysis, framework support, compliance, or release authority.
+**Status:** Implemented bounded Go capability pack. This document does not claim comprehensive Go security analysis, framework support, compliance, or release authority.
 
 ## Scope
 
-The initial Go pack introduces two narrow native controls and one optional external adapter. The deterministic policy engine remains the only component that can produce a release decision. Profiles may configure the adapter, but no capability manifest, requirement signal, project profile, or coverage state can activate an unconfigured scanner.
+The Go pack introduces three narrow native controls and one optional external adapter. The deterministic policy engine remains the only component that can produce a release decision. Profiles may configure the adapter or explicitly select a native evidence control, but no capability manifest, requirement signal, project profile, or coverage state can activate an unconfigured scanner.
 
 | Implementation | Security-domain mapping | Bounded purpose | Excluded from scope |
 |---|---|---|---|
 | `SEC-GO-MODULE-001` | Software supply chain | Require root `go.sum` only when root `go.mod` contains a direct or block-form `require` declaration. | Nested modules, checksum contents, dependency resolution, dependency vulnerabilities, and artifact integrity. |
 | `SEC-GO-TLS-001` | Transport security | Detect a direct `tls.Config` composite literal that explicitly sets `InsecureSkipVerify: true`. | Aliases, computed values, custom verification callbacks, non-Go TLS stacks, and runtime behavior. |
+| `SEC-GO-VULN-001` | Software supply chain | Compare exact direct root `go.mod` versions with one packaged, digest-pinned, reviewed advisory boundary derived from official Go database facts.[4] | Indirect dependencies, source reachability, build tags, `replace` directives, private modules, live-database freshness, remediation, and all network/tool execution.[5] |
 | `SEC-GOSEC-001` | Injection, SSRF, path traversal | Optional, policy-configured local Gosec JSON adapter with fixed arguments and redacted normalized findings. | Installation, target-supplied commands/configuration, AI-fix mode, dependency download, remote configuration, and any coverage outside the upstream result. |
 
 ## Adapter execution boundary
@@ -22,16 +23,18 @@ The initial optional policy pins Gosec **v2.29.0**, released by the upstream pro
 
 ## Domain and coverage boundary
 
-The Go pack activates only concrete Go-related catalog mappings: software supply chain, transport security, injection, SSRF, and path traversal. Native controls cover only the first two. Injection, SSRF, and path traversal have an approved but unselected Gosec adapter in standard profiles, so they report `NOT_SELECTED`; the explicit Go external-adapters profile can select Gosec. Any result remains limited by the upstream rule, tool version, source/build configuration, and local dependency availability.
+The Go pack activates only concrete Go-related catalog mappings: software supply chain, transport security, injection, SSRF, and path traversal. The native module, TLS, and snapshot controls map to the first two, but the snapshot does not establish dependency reachability or complete vulnerability coverage. Injection, SSRF, and path traversal have an approved but unselected Gosec adapter in standard profiles, so they report `NOT_SELECTED`; the explicit Go external-adapters profile can select Gosec. Any result remains limited by the upstream rule, tool version, source/build configuration, local dependency availability, and the exact snapshot boundary.
 
 > `COVERED` means that the selected mapped capability completed within its declared scope. It does not mean that Go code, its dependencies, production network posture, or any security domain is exhaustively secure.
 
 ## Fixture policy
 
-Every Go control/adaptor must retain secure, vulnerable, unsupported, and false-positive fixtures. Adapter tests use a fake preinstalled executable that produces an intentionally redacted-shaped JSON report; live scanner installation and network access are not part of the test suite.
+Every Go control/adaptor must retain secure, vulnerable, unsupported, and false-positive fixtures. The snapshot control has fixtures for an affected direct dependency, an unrelated dependency, a version at the fixed boundary, and a no-root-module non-applicability case; it also tests snapshot substitution and unsupported `replace` directives as explicit errors. Adapter tests use a fake preinstalled executable that produces an intentionally redacted-shaped JSON report; live scanner installation and network access are not part of the test suite.
 
 ## References
 
 [1]: https://github.com/securego/gosec "securego/gosec README — scan modes, output formats, exit behavior, rule categories, suppression controls, and AI-fix options"
 [2]: https://go.dev/ref/mod "Go Modules Reference — module resolution and GOPROXY behavior"
 [3]: https://github.com/securego/gosec/releases "securego/gosec releases — v2.29.0"
+[4]: https://pkg.go.dev/vuln/GO-2021-0113 "Go Vulnerability Database — GO-2021-0113"
+[5]: https://go.dev/doc/security/vuln/database "Go Vulnerability Database format and update model"

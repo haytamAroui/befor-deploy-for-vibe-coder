@@ -34,6 +34,7 @@ where = ["src"]
 [tool.setuptools.package-data]
 "before_deploy.capabilities" = ["manifests/*.yaml"]
 "before_deploy.domains" = ["manifests/*.yaml"]
+"before_deploy.controls" = ["data/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -11,6 +11,7 @@ from before_deploy.controls.dependency_audit import DependencyAuditControl
 from before_deploy.controls.external import ExternalToolConfig
 from before_deploy.controls.gitleaks import GitleaksControl
 from before_deploy.controls.gosec import GosecControl
+from before_deploy.controls.go_vulnerabilities import GoVulnerabilitySnapshotControl
 from before_deploy.controls.provenance import ProvenanceControl
 from before_deploy.controls.semgrep import SemgrepControl
 from before_deploy.models import GateOutcome
@@ -104,6 +105,8 @@ def _controls_for_profile(profile, policy_path: Path):
                 )
             )
         )
+    if "SEC-GO-VULN-001" in profile.controls:
+        controls.append(GoVulnerabilitySnapshotControl())
     if "SEC-DEP-VULN-001" in profile.controls:
         settings = profile.tools.get("pip_audit")
         if settings is None or profile.dependency_audit is None:

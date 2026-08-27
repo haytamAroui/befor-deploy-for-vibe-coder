@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.2.0"
+catalog_version: "0.3.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -11,6 +11,7 @@ manifests:
   - control.github-actions.yaml
   - control.go-module.yaml
   - control.go-tls.yaml
+  - control.go-vulnerability-snapshot.yaml
   - control.nextjs-cookie.yaml
   - control.nextjs-cors.yaml
   - control.nextjs-public-env.yaml

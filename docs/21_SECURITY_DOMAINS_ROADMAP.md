@@ -45,7 +45,7 @@ A domain does not become covered by its presence in this list. It appears as `UN
 
 ## Current implementation position
 
-The repository now has a narrow Python/FastAPI pack, a narrow Next.js/TypeScript pack, and the first Go reference pack. The Go pack contributes root-module checksum-presence evidence, direct Go TLS-verification disablement detection, and an optional Gosec adapter for selected injection, SSRF, and path-traversal evidence. It deliberately does not establish general Go framework, authorization, dataflow, runtime, dependency-vulnerability, or production-infrastructure coverage.
+The repository now has a narrow Python/FastAPI pack, a narrow Next.js/TypeScript pack, and the first Go reference pack. The Go pack contributes root-module checksum-presence evidence, direct Go TLS-verification disablement detection, one exact packaged offline dependency-vulnerability snapshot, and an optional Gosec adapter for selected injection, SSRF, and path-traversal evidence. The snapshot does not establish source reachability, indirect-dependency analysis, live-database freshness, general Go framework coverage, authorization, dataflow, runtime, or production-infrastructure coverage.
 
 The Gosec adapter is a reference for future adapter work: it requires a policy-configured preinstalled executable, uses fixed arguments, disables module-network resolution, keeps modules read-only, ignores inline suppressions, and discards upstream source/details before generating a normalized finding. Gosec documents its own AST/SSA/taint-analysis coverage and JSON output modes; Before Deploy reports only the bounded upstream results it receives.[1]
 
@@ -55,11 +55,11 @@ The backlog is ordered by evidence quality and safety of implementation, not by 
 
 | Priority | Candidate domain/control family | Preconditions | Explicit non-goal for the first iteration |
 |---|---|---|---|
-| 1 | Go dependency vulnerability evidence using an approved offline-safe source or bounded adapter. | Stable report schema, local evidence boundary, redaction plan, failure semantics, and fixtures. | Automatic downloading or remediation of Go modules. |
-| 2 | Next.js Server Actions and middleware boundary analysis. | Clear static AST-backed contract and secure/vulnerable/false-positive fixtures. | Claiming authorization correctness or runtime session assurance. |
-| 3 | Python variable-to-`execute` dataflow expansion. | Precision benchmark and controlled Semgrep/native implementation. | Whole-program dataflow or dynamic SQL correctness claims. |
-| 4 | FastAPI dynamic route review state. | Explicit diagnostic condition and policy treatment design. | Treating dynamic route construction as silently authenticated or clean. |
-| 5 | Container and IaC adapters. | Isolated preinstalled scanners, deterministic inputs, normalized output, and artifact fixtures. | Cloud-account inspection, deployment changes, or runtime IAM guarantees. |
+| 1 | Next.js Server Actions and middleware boundary analysis. | Clear static AST-backed contract and secure/vulnerable/false-positive fixtures. | Claiming authorization correctness or runtime session assurance. |
+| 2 | Python variable-to-`execute` dataflow expansion. | Precision benchmark and controlled Semgrep/native implementation. | Whole-program dataflow or dynamic SQL correctness claims. |
+| 3 | FastAPI dynamic route review state. | Explicit diagnostic condition and policy treatment design. | Treating dynamic route construction as silently authenticated or clean. |
+| 4 | Container and IaC adapters. | Isolated preinstalled scanners, deterministic inputs, normalized output, and artifact fixtures. | Cloud-account inspection, deployment changes, or runtime IAM guarantees. |
+| 5 | Expand the Go snapshot through separately reviewed advisory boundaries. | Official-source verification, exact-version semantics, digest update, redaction review, and fixture matrix. | Live-database synchronization, arbitrary version ranges, reachability claims, or automatic remediation. |
 
 ## Advisory AI boundary
 

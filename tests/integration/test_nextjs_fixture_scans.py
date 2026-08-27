@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from before_deploy.cli import _controls_for_profile
 from before_deploy.controls import native_controls
 from before_deploy.orchestrator import ScanOrchestrator, configured_controls
 from before_deploy.policy import load_policy
@@ -8,6 +9,7 @@ from before_deploy.reports import render_json, render_markdown, render_sarif
 
 REPOSITORY = Path(__file__).parents[2]
 POLICY_PATH = REPOSITORY / "rules" / "default-policy.yaml"
+GO_VULNERABILITY_POLICY_PATH = REPOSITORY / "rules" / "go-vulnerability-snapshot-policy.yaml"
 FIXTURES = REPOSITORY / "fixtures"
 
 
@@ -86,7 +88,7 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
     )
     assert all(selection.detection_scope for selection in plan.control_contract_selections)
     assert all(selection.exclusions for selection in plan.control_contract_selections)
-    assert plan.security_domain_catalog_version == "0.2.0"
+    assert plan.security_domain_catalog_version == "0.3.0"
     assert plan.security_domain_catalog_digest
     assert not plan.adapter_selections
     assert not plan.skill_selections
@@ -121,6 +123,36 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
     assert "JWT-backed login sessions" not in json_report
     assert "JWT-backed login sessions" not in markdown_report
     assert "JWT-backed login sessions" not in sarif_report
+
+
+def test_default_policy_does_not_implicitly_select_the_go_vulnerability_snapshot():
+    result = _scan("vulnerable_go_vulnerability_snapshot")
+
+    assert result.decision.outcome.value == "PASS"
+    assert "SEC-GO-VULN-001" not in {execution.control_id for execution in result.executions}
+    assert result.security_analysis_plan is not None
+    assert "SEC-GO-VULN-001" not in {
+        selection.implementation_id
+        for selection in result.security_analysis_plan.control_contract_selections
+    }
+
+
+def test_go_vulnerability_snapshot_policy_blocks_only_on_normalized_offline_evidence():
+    profile = load_policy(GO_VULNERABILITY_POLICY_PATH)
+    controls = configured_controls(profile, _controls_for_profile(profile, GO_VULNERABILITY_POLICY_PATH))
+    result = ScanOrchestrator(controls).scan(
+        FIXTURES / "vulnerable_go_vulnerability_snapshot", GO_VULNERABILITY_POLICY_PATH
+    )
+
+    assert result.decision.outcome.value == "BLOCK"
+    assert {finding.rule_id for finding in result.findings} == {"SEC-GO-VULN-001"}
+    assert result.security_analysis_plan is not None
+    assert {
+        selection.control_id for selection in result.security_analysis_plan.control_contract_selections
+    } >= {"CONTROL-SUPPLY-GO-VULNERABILITY-SNAPSHOT-001"}
+    execution = next(item for item in result.executions if item.control_id == "SEC-GO-VULN-001")
+    assert execution.status.value == "COMPLETED"
+    assert execution.metadata["evidence_source"] == "packaged_offline_go_vulnerability_snapshot"
 
 
 def test_vulnerable_go_fixture_blocks_on_native_module_and_tls_controls():

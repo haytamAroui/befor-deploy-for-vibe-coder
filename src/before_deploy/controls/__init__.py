@@ -9,6 +9,7 @@ from before_deploy.controls.deployment_config import (
 from before_deploy.controls.fastapi_routes import FastApiRouteAuthenticationControl
 from before_deploy.controls.github_actions import GitHubActionsSecurityControl
 from before_deploy.controls.go import GoModuleIntegrityControl, GoTLSVerificationControl
+from before_deploy.controls.go_vulnerabilities import GoVulnerabilitySnapshotControl
 from before_deploy.controls.injection import SqlInjectionControl
 from before_deploy.controls.nextjs import (
     NextPublicEnvironmentControl,
@@ -49,6 +50,7 @@ __all__ = [
     "GitHubActionsSecurityControl",
     "GoModuleIntegrityControl",
     "GoTLSVerificationControl",
+    "GoVulnerabilitySnapshotControl",
     "NextPublicEnvironmentControl",
     "NextSessionCookieControl",
     "NextStaticCorsControl",
