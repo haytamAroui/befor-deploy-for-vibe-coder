@@ -20,10 +20,10 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.8.0"
+    assert catalog.catalog_version == "0.9.0"
     assert catalog.catalog_digest == second.catalog_digest
     assert len(catalog.domains) == 30
-    assert len(catalog.controls) == 21
+    assert len(catalog.controls) == 22
     assert catalog.domains["DOMAIN-SSRF-001"].title == "Server-side request forgery"
     assert {
         control.capability_id for control in catalog.controls.values()
@@ -43,6 +43,10 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert contract.control_id == "CONTROL-TRANSPORT-GO-TLS-001"
     assert contract.capability_id == "control.native.go-tls-verification"
     assert contract.security_domain_ids == ("DOMAIN-TRANSPORT-SECURITY-001",)
+    inline_action_contract = catalog.control_for_implementation("SEC-NEXT-INLINE-ACTION-001")
+    assert inline_action_contract is not None
+    assert inline_action_contract.control_id == "CONTROL-AUTHORIZATION-NEXT-INLINE-SERVER-ACTION-001"
+    assert inline_action_contract.security_domain_ids == ("DOMAIN-AUTHORIZATION-001",)
     go_snapshot_contract = catalog.control_for_implementation("SEC-GO-VULN-001")
     assert go_snapshot_contract is not None
     assert go_snapshot_contract.control_id == "CONTROL-SUPPLY-GO-VULNERABILITY-SNAPSHOT-001"

@@ -92,11 +92,11 @@ A human-approved, independently provisioned Trivy `0.74.0` binary must be used o
 
 The resulting human approval record is external operational evidence. It does not change the adapter’s source contract or policy authority. [3]
 
-### Milestone 1 — Documentation and contract hygiene
+### Milestone 1 — Completed documentation and contract hygiene
 
-Correct factual drift between canonical documents and current code/manifests, beginning with the capability-registry guide’s legacy wording that says Trivy is unregistered. Add a short authoritative matrix distinguishing **implemented**, **implemented but opt-in**, **prepared for real calibration**, and **not implemented**.
+Canonical planning and registry documentation now reflects the registered, opt-in Trivy adapter, its staged Dockerfile/Containerfile/Terraform boundary, and the fixed applicability predicates. Documentation also states that coverage is diagnostic-only and cannot become an implicit policy gate.
 
-**Acceptance:** documentation links resolve; current capability/control counts match package manifests; no policy behavior, scanner configuration, or catalog placeholder is added.
+**Delivered evidence:** documentation links resolve; capability/control counts are maintained against package manifests; no policy behavior, scanner configuration, or catalog placeholder was added.
 
 ### Milestone 2 — Completed bounded Go advisory expansion
 
@@ -104,11 +104,11 @@ Correct factual drift between canonical documents and current code/manifests, be
 
 **Delivered evidence:** official Go-database review recorded; affected/fixed/indirect regression fixtures; refreshed digest; redaction tests; unchanged policy selection boundary.
 
-### Milestone 3 — Next.js Server Action precision increment
+### Milestone 3 — Completed Next.js Server Action precision increment
 
-Choose exactly one excluded Server Action shape for a separate control contract. The default candidate is **inline Server Actions** *or* one specific direct export form, not both. The detector must document whether it recognizes a module directive, direct `db`/`prisma` mutation, and a local guard marker; it must not infer imported behavior, middleware/proxy authorization, ownership, tenancy, closures, aliases, or runtime reachability.
+`SEC-NEXT-INLINE-ACTION-001` now covers exactly one formerly excluded shape: a named `async function` nested in a lexical block whose first executable statement is inline `use server`, followed by a direct `db`/`prisma` mutation with no preceding local guard marker. It has a separate implementation ID, capability, control contract, dedicated opt-in policy, and secure/vulnerable/page-only/excluded fixtures. It did not alter `SEC-NEXT-ACTION-001` or its historical finding fingerprints.
 
-**Acceptance:** separate implementation ID and contract; secure/vulnerable/proxy-only/ambiguous fixtures; report execution metadata remains non-authoritative; false-positive review; no change to existing finding fingerprints without a versioned migration decision.
+**Delivered boundary:** arrow actions, module-level/exported actions, directives after executable code, aliases, wrappers, helpers, page-level checks, proxy/middleware, ownership, tenancy, closures, and runtime reachability remain excluded; execution metadata remains non-authoritative.
 
 ### Milestone 4 — Python SQL local-flow precision increment
 

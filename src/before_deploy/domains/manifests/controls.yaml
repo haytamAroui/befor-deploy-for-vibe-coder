@@ -253,3 +253,16 @@ controls:
       - Terraform module fetching, cloud state, providers, computed values, runtime behavior, registry access, target code execution, target commands, remediation, and AI functionality are not inferred or performed.
       - Target inline Trivy ignore directives are neutralized; only exact policy-bound Before Deploy waivers can alter the deterministic release decision.
     references: []
+  - id: CONTROL-AUTHORIZATION-NEXT-INLINE-SERVER-ACTION-001
+    version: "0.1.0"
+    title: Next.js inline Server Action local guard-marker check
+    capability_id: control.native.nextjs-inline-server-action-local-guard
+    implementation_id: SEC-NEXT-INLINE-ACTION-001
+    security_domains:
+      - DOMAIN-AUTHORIZATION-001
+    detection_scope: Named async function declarations nested in a lexical block with inline use server as the first executable statement, direct db/prisma mutation, and no visible preceding local guard marker.
+    exclusions:
+      - Arrow actions, exported/module-level actions, non-async functions, directives after executable code, aliases, imported delegates, and wrapped data access are not covered.
+      - Local guard markers do not prove authentication, authorization, ownership, tenancy, or policy correctness.
+      - Middleware/proxy conventions, page-level checks, closures, runtime dataflow, reachability, and route coverage are not inferred.
+    references: []

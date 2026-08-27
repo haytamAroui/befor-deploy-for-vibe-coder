@@ -15,7 +15,7 @@ Next.js documents exported Server Actions as direct POST entry points and requir
 | Observable fact | Handling |
 |---|---|
 | Detected Next.js project | The control is compatible and runs when a selected policy includes `SEC-NEXT-ACTION-001`. |
-| Module-level `use server` directive | The source file enters the narrow Server Action scope. Directives inside a function body are excluded. |
+| Module-level `use server` directive | The source file enters the narrow Server Action scope. Directives inside a function body are handled only by the separate named-inline contract. |
 | Named `export async function` | The function is considered. Default exports, arrow functions, aliases, and closures are excluded. |
 | Direct `db` or `prisma` create, delete, update, or upsert call | The function has a bounded ORM mutation marker. Reads, raw-query methods, and unfamiliar client shapes are excluded. |
 | Recognized local guard marker before the mutation | No finding is emitted for that narrow pattern. The marker is **not proof** of a real guard. |
@@ -30,7 +30,7 @@ The marker set is intentionally finite: `auth`, `authorize`, `requireUser`, `req
 | Authentication, authorization, role, tenant, and ownership correctness | Static name matching cannot establish semantics, identity binding, policy correctness, or resource-level permission. |
 | Middleware/proxy matcher coverage | Next.js matcher behavior is route- and deployment-dependent; a matcher can exclude Server Function calls.[2] |
 | Imported data-access delegates and custom clients | Following imports, aliases, wrappers, or ORM configuration would require broader semantic/dataflow analysis. |
-| Inline actions, arrow functions, default exports, and closures | The first contract chooses named exported module-level functions to keep its matching and false-positive boundary reviewable. |
+| Arrow functions, default exports, and closures | The module-level contract chooses named exported functions to keep its matching and false-positive boundary reviewable. Named nested inline actions are covered only by separate `SEC-NEXT-INLINE-ACTION-001`; all other inline forms remain excluded. |
 | Client validation, CSRF, returned data, server-only imports, rate limiting, and runtime configuration | These require distinct contracts and fixtures. Next.js recommends action-level validation and authorization, but this rule does not infer them.[1] |
 | A clean result | It means only that the precise pattern was not found. It never means that Server Actions are protected or that no action exists. |
 
@@ -42,7 +42,7 @@ The paired non-executable contract is `CONTROL-AUTHORIZATION-NEXT-SERVER-ACTION-
 
 ## Fixture matrix
 
-The test matrix contains an unguarded direct mutation, a direct mutation with a preceding local guard marker, a proxy-only case, comments/strings plus inline-action ambiguity, and a non-Next.js repository. The proxy-only fixture still produces the Server Action finding, demonstrating that proxy presence cannot become an implicit waiver.
+The test matrix contains an unguarded direct mutation, a direct mutation with a preceding local guard marker, a proxy-only case, comments/strings plus unsupported-inline ambiguity, and a non-Next.js repository. The separate inline control has its own secure/vulnerable/page-only/excluded matrix. The proxy-only fixture still produces the module-level Server Action finding, demonstrating that proxy presence cannot become an implicit waiver.
 
 ## References
 

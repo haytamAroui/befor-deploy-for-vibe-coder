@@ -10,6 +10,7 @@ from before_deploy.reports import render_json, render_markdown, render_sarif
 REPOSITORY = Path(__file__).parents[2]
 POLICY_PATH = REPOSITORY / "rules" / "default-policy.yaml"
 GO_VULNERABILITY_POLICY_PATH = REPOSITORY / "rules" / "go-vulnerability-snapshot-policy.yaml"
+NEXT_INLINE_ACTION_POLICY_PATH = REPOSITORY / "rules" / "nextjs-inline-server-actions-policy.yaml"
 FIXTURES = REPOSITORY / "fixtures"
 
 
@@ -88,7 +89,7 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
     )
     assert all(selection.detection_scope for selection in plan.control_contract_selections)
     assert all(selection.exclusions for selection in plan.control_contract_selections)
-    assert plan.security_domain_catalog_version == "0.8.0"
+    assert plan.security_domain_catalog_version == "0.9.0"
     assert plan.security_domain_catalog_digest
     assert not plan.adapter_selections
     assert not plan.skill_selections
@@ -141,6 +142,41 @@ def test_vulnerable_nextjs_server_action_fixture_blocks_on_the_local_guard_contr
     assert contract.security_domain_ids == ("DOMAIN-AUTHORIZATION-001",)
     execution = next(item for item in result.executions if item.control_id == "SEC-NEXT-ACTION-001")
     assert execution.metadata["next_proxy_convention"] == "absent"
+
+
+def test_nextjs_inline_action_policy_selects_only_the_new_inline_contract():
+    profile = load_policy(NEXT_INLINE_ACTION_POLICY_PATH)
+    controls = configured_controls(profile, _controls_for_profile(profile, NEXT_INLINE_ACTION_POLICY_PATH))
+    result = ScanOrchestrator(controls).scan(
+        FIXTURES / "vulnerable_nextjs_inline_server_action", NEXT_INLINE_ACTION_POLICY_PATH
+    )
+
+    assert result.decision.outcome.value == "BLOCK"
+    assert {finding.rule_id for finding in result.findings} == {"SEC-NEXT-INLINE-ACTION-001"}
+    assert result.security_analysis_plan is not None
+    contract = next(
+        selection
+        for selection in result.security_analysis_plan.control_contract_selections
+        if selection.implementation_id == "SEC-NEXT-INLINE-ACTION-001"
+    )
+    assert contract.control_id == "CONTROL-AUTHORIZATION-NEXT-INLINE-SERVER-ACTION-001"
+    assert contract.security_domain_ids == ("DOMAIN-AUTHORIZATION-001",)
+    reports = (render_json(result), render_markdown(result), render_sarif(result))
+    assert all("accountId" not in report for report in reports)
+    assert all("@/lib/db" not in report for report in reports)
+    assert all("Delete account" not in report for report in reports)
+
+
+def test_default_policy_does_not_implicitly_select_the_inline_nextjs_action_control():
+    result = _scan("vulnerable_nextjs_inline_server_action")
+
+    assert result.decision.outcome.value == "PASS"
+    assert "SEC-NEXT-INLINE-ACTION-001" not in {execution.control_id for execution in result.executions}
+    assert result.security_analysis_plan is not None
+    assert "SEC-NEXT-INLINE-ACTION-001" not in {
+        selection.implementation_id
+        for selection in result.security_analysis_plan.control_contract_selections
+    }
 
 
 def test_default_policy_does_not_implicitly_select_the_go_vulnerability_snapshot():

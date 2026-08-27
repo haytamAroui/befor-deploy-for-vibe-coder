@@ -2,6 +2,7 @@ from pathlib import Path
 
 from before_deploy.controls.base import ControlContext
 from before_deploy.controls.nextjs import (
+    NextInlineServerActionLocalGuardControl,
     NextPublicEnvironmentControl,
     NextServerActionLocalGuardControl,
     NextSessionCookieControl,
@@ -77,6 +78,36 @@ def test_nextjs_server_action_control_reports_only_the_bounded_unguarded_mutatio
     assert not ambiguous.findings
 
 
+def test_nextjs_inline_server_action_control_reports_only_the_named_nested_inline_pattern():
+    vulnerable = NextInlineServerActionLocalGuardControl().run(
+        _context("vulnerable_nextjs_inline_server_action")
+    )
+    locally_guarded = NextInlineServerActionLocalGuardControl().run(
+        _context("secure_nextjs_inline_server_action")
+    )
+    page_guard_only = NextInlineServerActionLocalGuardControl().run(
+        _context("nextjs_inline_server_action_page_guard_only")
+    )
+    excluded = NextInlineServerActionLocalGuardControl().run(
+        _context("nextjs_inline_server_action_false_positive")
+    )
+
+    assert [finding.evidence for finding in vulnerable.findings] == [
+        {
+            "action": "deleteAccount",
+            "mutation_operation": "delete",
+            "pattern": "inline_use_server_named_async_direct_mutation_no_local_guard_marker",
+        }
+    ]
+    assert "accountId" not in vulnerable.findings[0].message
+    assert "@/lib/db" not in vulnerable.findings[0].message
+    assert not locally_guarded.findings
+    assert [finding.evidence["action"] for finding in page_guard_only.findings] == [
+        "deleteAllRecords"
+    ]
+    assert not excluded.findings
+
+
 def test_nextjs_controls_are_not_applicable_to_non_next_repository():
     context = _context("go_service")
 
@@ -85,6 +116,7 @@ def test_nextjs_controls_are_not_applicable_to_non_next_repository():
         NextSessionCookieControl().run(context),
         NextStaticCorsControl().run(context),
         NextServerActionLocalGuardControl().run(context),
+        NextInlineServerActionLocalGuardControl().run(context),
     ]
 
     assert all(result.execution.status.value == "NOT_APPLICABLE" for result in results)

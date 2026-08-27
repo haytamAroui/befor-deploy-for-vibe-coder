@@ -53,14 +53,14 @@ The code maintains a fixed capability catalog. Each entry maps one control ident
 | Python SQL / production configuration / pip-audit | Applicable only to detected Python repositories. |
 | FastAPI route auth and dynamic review | Applicable only when FastAPI is detected. Static mutation routes may create ordinary findings; dynamic path/method structures create execution metadata only. |
 | Local Semgrep adapter | Applicable only to detected Python because the initial checked-in rule pack is Python-only. |
-| Next.js public-env, session-cookie, static CORS, and Server Action checks | Applicable only when Next.js is detected; direct/static patterns only. |
+| Next.js public-env, session-cookie, static CORS, module-level Server Action, and named-inline Server Action checks | Applicable only when Next.js is detected; each control has a separate direct/static lexical scope. |
 | SBOM presence | Applicable to release profiles that declare the control, regardless of language. |
 
 When a policy selects a control but the profile identifies it as incompatible, the orchestrator records an explicit `NOT_APPLICABLE` execution containing the adaptation reason. It does **not** silently omit that control. Required controls are still errors when they are missing because of a construction/configuration fault, not when deterministic compatibility records a legitimate non-applicability decision.
 
 ## 5. Coverage-gap reporting
 
-Coverage gaps, Security Analysis Plans, and Coverage Audits are deterministic diagnostics, not security findings and not gate overrides. JSON, Markdown, and SARIF reports expose the selected approved capabilities, explicit exclusions, and `COVERED`, `PARTIAL`, `UNAVAILABLE`, `NOT_SELECTED`, `NOT_APPLICABLE`, `DECLARED_REVIEW_REQUIRED`, or `ERROR` coverage states. A future policy may make named coverage gaps require a waiver, but that would be a separate, explicit policy decision.
+Coverage gaps, Security Analysis Plans, and Coverage Audits are deterministic diagnostics, not security findings and not gate overrides. JSON, Markdown, and SARIF reports expose the selected approved capabilities, explicit exclusions, and `COVERED`, `PARTIAL`, `UNAVAILABLE`, `NOT_SELECTED`, `NOT_APPLICABLE`, `DECLARED_REVIEW_REQUIRED`, or `ERROR` coverage states. A future policy may explicitly select a reviewed control, but coverage states themselves cannot require a waiver or change a release outcome.
 
 ## 6. Advisory-agent boundary
 
@@ -71,8 +71,8 @@ A future read-only advisory agent may consume only the normalized project profil
 | Scenario | Required behavior |
 |---|---|
 | FastAPI/Python repository | Detect Python and FastAPI; run Python/FastAPI-compatible controls; report no Python coverage gap. |
-| Next.js repository | Detect TypeScript/JavaScript and Next.js; run compatible cross-language controls, narrow static controls, and the module-level Server Action local-guard-marker check; report deferred middleware/proxy, inline-action, semantic authorization, and data-boundary coverage. |
-| Go repository | Detect Go and root-module evidence; run the two narrow native controls; report Gosec-backed injection, SSRF, and path-traversal coverage as `NOT_SELECTED` until an explicit adapter policy selects it. |
+| Next.js repository | Detect TypeScript/JavaScript and Next.js; run compatible cross-language controls, narrow static controls, and separately selected module-level and named-inline Server Action local-guard-marker checks; report deferred proxy/middleware, arrow-action, semantic authorization, and data-boundary coverage. |
+| Go repository | Detect Go and root-module evidence; run selected module/TLS controls, expose the separately opt-in offline snapshot control, and report Gosec-backed injection, SSRF, and path-traversal coverage as `NOT_SELECTED` until an explicit adapter policy selects it. |
 | Rust/Java mixed repository | Detect each language deterministically; retain generic checks; record language-specific coverage gaps. |
 | Policy includes a Python-only control for a Go-only repository | Record `NOT_APPLICABLE` with a visible reason rather than silently dropping the control. |
 | Unknown files or no recognized technology | Preserve generic controls and report that no language-specific catalog match was found. |

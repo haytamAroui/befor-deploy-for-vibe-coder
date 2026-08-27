@@ -45,6 +45,9 @@ _CORS_CREDENTIALS = re.compile(
 _EXPORTED_ASYNC_FUNCTION = re.compile(
     r"\bexport\s+async\s+function\s+(?P<name>[A-Za-z_$][\w$]*)\s*\(", re.MULTILINE
 )
+_INLINE_ASYNC_FUNCTION = re.compile(
+    r"\basync\s+function\s+(?P<name>[A-Za-z_$][\w$]*)\s*\(", re.MULTILINE
+)
 _DIRECT_MUTATION = re.compile(
     r"\b(?:db|prisma)(?:\s*\.\s*[A-Za-z_$][\w$]*)*\s*\.\s*"
     r"(?P<operation>create|createMany|delete|deleteMany|update|updateMany|upsert)\s*\("
@@ -279,6 +282,90 @@ class NextServerActionLocalGuardControl:
         )
 
 
+class NextInlineServerActionLocalGuardControl:
+    """Flag one lexical inline Server Action mutation form without inferring authorization.
+
+    This separate rule accepts only a named ``async function`` declaration whose first executable
+    statement is the inline ``use server`` directive, then detects a direct db/prisma mutation that
+    precedes no recognized local guard-marker call in that same function body. It deliberately does
+    not recognize arrow actions, exported/module-level actions, aliases, imported/wrapped access,
+    helper guards, page-level guards, proxy/middleware, closure semantics, ownership, tenancy,
+    reachability, or runtime behavior.
+    """
+
+    control_id = "SEC-NEXT-INLINE-ACTION-001"
+    control_version = "0.1.0"
+
+    def run(self, context: ControlContext) -> ControlResult:
+        started_at = utc_now()
+        if not _is_nextjs(context):
+            return _not_applicable(self, started_at, "Next.js framework was not detected.")
+        findings: list[Finding] = []
+        for path in _source_files(context):
+            source = _read_source(path)
+            if _has_module_server_directive(source):
+                continue
+            sanitized = _strip_javascript_comments_and_strings(source)
+            for action in _INLINE_ASYNC_FUNCTION.finditer(sanitized):
+                if _is_exported_or_top_level_inline_candidate(sanitized, action.start()):
+                    continue
+                opening_brace = sanitized.find("{", action.end())
+                if opening_brace < 0 or not _has_inline_server_directive(source, opening_brace):
+                    continue
+                body_end = _balanced_javascript_block(sanitized, opening_brace)
+                if body_end is None:
+                    continue
+                body = sanitized[opening_brace : body_end + 1]
+                mutation = _DIRECT_MUTATION.search(body)
+                if mutation is None or _LOCAL_GUARD_CALL.search(body[: mutation.start()]) is not None:
+                    continue
+                line_number = source.count("\n", 0, opening_brace + mutation.start()) + 1
+                location = _location(context, path, line_number)
+                evidence = {
+                    "action": action.group("name"),
+                    "mutation_operation": mutation.group("operation"),
+                    "pattern": "inline_use_server_named_async_direct_mutation_no_local_guard_marker",
+                }
+                findings.append(
+                    Finding(
+                        rule_id=self.control_id,
+                        rule_version=self.control_version,
+                        title="Inline Server Action mutation has no visible preceding local guard marker",
+                        message=(
+                            "A named async function with an inline 'use server' directive directly calls a "
+                            "db/prisma mutation before any recognized local authorization-marker call. "
+                            "Server Actions must be reviewed as direct POST entry points; page, proxy, and "
+                            "middleware checks are not treated as an action guard."
+                        ),
+                        remediation=(
+                            "Perform authentication and resource-specific authorization inside the Server "
+                            "Action or its immediately called server-side data-access path, then document a "
+                            "narrowly scoped waiver only if this bounded static pattern is intentional."
+                        ),
+                        severity=Severity.HIGH,
+                        confidence=Confidence.MEDIUM,
+                        fingerprint=fingerprint_for(self.control_id, location, evidence),
+                        location=location,
+                        evidence=evidence,
+                    )
+                )
+        return ControlResult(
+            execution=ControlExecution(
+                control_id=self.control_id,
+                control_version=self.control_version,
+                status=ExecutionStatus.COMPLETED,
+                started_at=started_at,
+                completed_at=utc_now(),
+                message=(
+                    "Checked named inline Server Actions for direct db/prisma mutations lacking a visible "
+                    "local guard marker. Arrow actions and module-level actions are excluded."
+                ),
+                metadata={"next_proxy_convention": _next_proxy_convention(context)},
+            ),
+            findings=tuple(findings),
+        )
+
+
 def _is_nextjs(context: ControlContext) -> bool:
     return context.project_profile is not None and "Next.js" in context.project_profile.frameworks
 
@@ -316,6 +403,41 @@ def _next_config_files(context: ControlContext) -> tuple[Path, ...]:
 def _has_module_server_directive(source: str) -> bool:
     """Recognize only `use server` as the first non-comment statement in a module."""
     index = 0
+    while index < len(source):
+        while index < len(source) and source[index].isspace():
+            index += 1
+        if source.startswith("//", index):
+            newline = source.find("\n", index + 2)
+            index = len(source) if newline < 0 else newline + 1
+            continue
+        if source.startswith("/*", index):
+            end = source.find("*/", index + 2)
+            if end < 0:
+                return False
+            index = end + 2
+            continue
+        break
+    directive = re.match(r"(['\"])use server\1\s*;?", source[index:])
+    return directive is not None
+
+
+def _is_exported_or_top_level_inline_candidate(source: str, function_start: int) -> bool:
+    """Exclude exported/module-level forms reserved for the existing Server Action contract."""
+    prefix = source[max(0, function_start - 32) : function_start]
+    if re.search(r"\bexport\s+$", prefix):
+        return True
+    depth = 0
+    for character in source[:function_start]:
+        if character == "{":
+            depth += 1
+        elif character == "}":
+            depth -= 1
+    return depth <= 0
+
+
+def _has_inline_server_directive(source: str, opening_brace: int) -> bool:
+    """Recognize `use server` only as the first non-comment statement in one function body."""
+    index = opening_brace + 1
     while index < len(source):
         while index < len(source) and source[index].isspace():
             index += 1

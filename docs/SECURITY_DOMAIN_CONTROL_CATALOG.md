@@ -1,6 +1,6 @@
 # Security Domain + Control Catalog
 
-**Version:** 0.8.0
+**Version:** 0.9.0
 **Authority:** Informational only; it is not a policy profile, a scanner, a compliance assessment, or a release authority.
 
 ## Purpose and authority boundary
@@ -39,7 +39,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 | ID | Domain | Current mapping posture | Present limitation |
 |---|---|---|---|
 | `DOMAIN-AUTHENTICATION-001` | Authentication | Unmapped | Requirement evidence does not prove an authentication mechanism, MFA posture, or identity assurance level. |
-| `DOMAIN-AUTHORIZATION-001` | Authorization | Mapped for one narrow Next.js Server Action guard-marker pattern | A local guard marker does not prove authentication, authorization, ownership, tenant isolation, proxy coverage, or policy correctness. |
+| `DOMAIN-AUTHORIZATION-001` | Authorization | Mapped for separate narrow Next.js module-level and named-inline Server Action guard-marker patterns | A local guard marker does not prove authentication, authorization, ownership, tenant isolation, proxy coverage, or policy correctness. |
 | `DOMAIN-ENDPOINT-SECURITY-001` | Endpoint security | Unmapped | Endpoint inventory, runtime headers, request limits, and enforcement are not inferred. |
 | `DOMAIN-INPUT-VALIDATION-001` | Input validation | Unmapped | Schema validation and runtime normalization are not inferred. |
 | `DOMAIN-INJECTION-001` | Injection protection | Mapped | Native Python SQL interpolation, optional local Semgrep, and opt-in Gosec are narrow; most injection families remain out of scope. |
@@ -74,7 +74,7 @@ The first catalog contains the **twenty-one foundational categories** adapted fr
 
 ## Current control contracts
 
-The catalog maps **only the twenty-one reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
+The catalog maps **only the twenty-two reviewed capability implementations already registered**. It adds no scanner and cannot make an unconfigured adapter run.
 
 | Control contract | Capability / implementation | Domain mapping | Selection boundary |
 |---|---|---|---|
@@ -97,6 +97,7 @@ The catalog maps **only the twenty-one reviewed capability implementations alrea
 | `CONTROL-CONTAINER-IAC-TRIVY-CONFIG-001` | `adapter.trivy-config-isolated` / `SEC-TRIVY-CONFIG-001` | Container security, infrastructure-as-code security | Explicit `trivy-config-policy.yaml` only; preinstalled version-verified Trivy 0.74.0, fixed offline misconfiguration-only arguments, isolated staged Dockerfile/Containerfile variants and Terraform `.tf`, and normalized redacted report only. |
 | `CONTROL-NEXTJS-PUBLIC-ENV-001` | `control.native.nextjs-public-env` / `SEC-NEXT-ENV-001` | Secrets | Direct sensitive-looking public variable names only. |
 | `CONTROL-AUTHORIZATION-NEXT-SERVER-ACTION-001` | `control.native.nextjs-server-action-local-guard` / `SEC-NEXT-ACTION-001` | Authorization | Module-level Server Action direct `db`/`prisma` mutation before a local guard marker; proxy/middleware is structural metadata only. |
+| `CONTROL-AUTHORIZATION-NEXT-INLINE-SERVER-ACTION-001` | `control.native.nextjs-inline-server-action-local-guard` / `SEC-NEXT-INLINE-ACTION-001` | Authorization | Named nested inline Server Action direct `db`/`prisma` mutation before a local guard marker; arrow, module-level, and exported forms are excluded. |
 | `CONTROL-NEXTJS-SESSION-COOKIE-001` | `control.native.nextjs-session-cookie` / `SEC-NEXT-COOKIE-001` | Session security | Explicit unsafe static cookie-option combinations only. |
 | `CONTROL-NEXTJS-CORS-001` | `control.native.nextjs-static-cors` / `SEC-NEXT-CORS-001` | CORS | Static `next.config.*` header arrays only. |
 

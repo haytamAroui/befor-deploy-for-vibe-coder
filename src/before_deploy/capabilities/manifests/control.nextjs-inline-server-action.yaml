@@ -1,0 +1,17 @@
+schema_version: 1
+id: control.native.nextjs-inline-server-action-local-guard
+version: "0.1.0"
+implementation_id: SEC-NEXT-INLINE-ACTION-001
+kind: CONTROL
+title: Next.js inline Server Action local guard-marker check
+applies_when:
+  frameworks:
+    - Next.js
+security_domains:
+  - DOMAIN-AUTHORIZATION-001
+exclusions:
+  - Only named async function declarations nested in a lexical block with inline use server as their first executable statement are considered.
+  - Arrow actions, exported or module-level actions, non-async functions, and directives after executable code are excluded.
+  - Only direct db or prisma create, delete, update, or upsert calls are considered.
+  - A local preceding auth/authorization marker is not proof of authentication, authorization, ownership, tenancy, or policy correctness.
+  - Middleware/proxy conventions, page-level checks, imported delegates, aliases, closures, runtime dataflow, reachability, and route coverage are not inferred.
