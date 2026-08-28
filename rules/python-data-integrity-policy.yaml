@@ -1,0 +1,7 @@
+schema_version: 1
+profile: python-data-integrity
+allow_nonrequired_control_errors: false
+controls:
+  SEC-DATA-INTEGRITY-001:
+    required: true
+    disposition: BLOCK

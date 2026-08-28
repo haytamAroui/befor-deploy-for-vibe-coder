@@ -16,6 +16,7 @@ DOCKER_COMPOSE_PRIVILEGED_POLICY_PATH = ROOT / "rules" / "docker-compose-privile
 FASTAPI_INPUT_VALIDATION_POLICY_PATH = ROOT / "rules" / "fastapi-input-validation-policy.yaml"
 FASTAPI_FILE_UPLOAD_POLICY_PATH = ROOT / "rules" / "fastapi-file-upload-policy.yaml"
 FASTAPI_AUTHORIZATION_POLICY_PATH = ROOT / "rules" / "fastapi-authorization-policy.yaml"
+PYTHON_DATA_INTEGRITY_POLICY_PATH = ROOT / "rules" / "python-data-integrity-policy.yaml"
 
 
 def _scan(fixture_name: str):
@@ -56,6 +57,14 @@ def _scan_docker_compose_privileged(fixture_name: str):
     )
 
 
+def _scan_python_data_integrity(fixture_name: str):
+    profile = load_policy(PYTHON_DATA_INTEGRITY_POLICY_PATH)
+    controls = configured_controls(profile, native_controls())
+    return ScanOrchestrator(controls).scan(
+        ROOT / "fixtures" / fixture_name, PYTHON_DATA_INTEGRITY_POLICY_PATH
+    )
+
+
 def _scan_fastapi_authorization(fixture_name: str):
     profile = load_policy(FASTAPI_AUTHORIZATION_POLICY_PATH)
     controls = configured_controls(profile, native_controls())
@@ -78,6 +87,43 @@ def _scan_fastapi_input_validation(fixture_name: str):
     return ScanOrchestrator(controls).scan(
         ROOT / "fixtures" / fixture_name, FASTAPI_INPUT_VALIDATION_POLICY_PATH
     )
+
+
+def test_python_data_integrity_vulnerable_fixture_blocks_and_redacts_sql():
+    result = _scan_python_data_integrity("vulnerable_python_data_integrity")
+
+    assert result.decision.outcome == GateOutcome.BLOCK
+    assert {finding.rule_id for finding in result.findings} == {"SEC-DATA-INTEGRITY-001"}
+    assert len(result.findings) == 2
+    for finding in result.findings:
+        assert finding.evidence == {
+            "artifact": "python",
+            "issue": "destructive_sql_without_where",
+        }
+        assert "source_only_table" not in finding.message
+        assert "account_records" not in finding.message
+
+
+def test_python_data_integrity_secure_fixture_passes_without_findings():
+    result = _scan_python_data_integrity("secure_python_data_integrity")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert result.findings == ()
+
+
+def test_python_data_integrity_ambiguous_fixture_passes_without_findings():
+    result = _scan_python_data_integrity("python_data_integrity_ambiguous")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert result.findings == ()
+
+
+def test_python_data_integrity_isolated_from_default_policy():
+    result = _scan("vulnerable_python_data_integrity")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert "SEC-DATA-INTEGRITY-001" not in {finding.rule_id for finding in result.findings}
+    assert all(item.control_id != "SEC-DATA-INTEGRITY-001" for item in result.executions)
 
 
 def test_fastapi_authorization_vulnerable_fixture_blocks_and_redacts_names():

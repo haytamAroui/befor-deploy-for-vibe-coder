@@ -17,9 +17,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     second = load_builtin_capability_registry()
 
     assert first.schema_version == 1
-    assert first.catalog_version == "0.19.0"
+    assert first.catalog_version == "0.20.0"
     assert first.catalog_digest == second.catalog_digest
-    assert len(first.capabilities) == 30
+    assert len(first.capabilities) == 31
     assert first.definition_for_implementation("SEC-NEXT-ENV-001").capability_id == (
         "control.native.nextjs-public-env"
     )
@@ -56,6 +56,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     docker_compose = first.definition_for_implementation("SEC-COMPOSE-PRIVILEGED-001")
     assert docker_compose.capability_id == "control.native.docker-compose-privileged"
     assert docker_compose.version == "0.1.0"
+    data_integrity = first.definition_for_implementation("SEC-DATA-INTEGRITY-001")
+    assert data_integrity.capability_id == "control.native.python-data-integrity"
+    assert data_integrity.version == "0.1.0"
     fastapi_authz = first.definition_for_implementation("SEC-API-AUTHZ-001")
     assert fastapi_authz.capability_id == "control.native.fastapi-authorization"
     assert fastapi_authz.version == "0.1.0"

@@ -75,6 +75,19 @@ controls:
       - Dynamic decorators, decorator aliases, route factories, computed calls, indirect dependencies, and non-FastAPI decorators are excluded.
     references:
       - REF-OWASP-API-2023
+  - id: CONTROL-DATA-INTEGRITY-PYTHON-001
+    version: "0.1.0"
+    title: Python destructive SQL without WHERE check
+    capability_id: control.native.python-data-integrity
+    implementation_id: SEC-DATA-INTEGRITY-001
+    security_domains:
+      - DOMAIN-DATA-INTEGRITY-001
+    detection_scope: Python AST check for direct literal UPDATE or DELETE SQL strings without a WHERE token passed to standalone execute or executemany calls.
+    exclusions:
+      - Formatted strings, variables, aliases, calls, branches, ORM methods, migrations, schemas, transactions, SQL semantics, and runtime behavior are excluded.
+      - SQL text, table names, column names, source excerpts, and target-controlled values are not retained in reports.
+    references:
+      - REF-OWASP-API-2023
   - id: CONTROL-API-FASTAPI-INPUT-001
     version: "0.1.0"
     title: FastAPI direct untyped mutating-body input check

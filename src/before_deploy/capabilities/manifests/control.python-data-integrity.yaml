@@ -1,0 +1,16 @@
+schema_version: 1
+id: control.native.python-data-integrity
+version: "0.1.0"
+implementation_id: SEC-DATA-INTEGRITY-001
+kind: CONTROL
+title: Python destructive SQL without WHERE check
+applies_when:
+  languages:
+    - Python
+security_domains:
+  - Data integrity
+exclusions:
+  - Only direct literal UPDATE or DELETE strings passed to standalone execute or executemany calls are recognized.
+  - F-strings, formatted strings, variables, aliases, calls, branches, ORM methods, migrations, schemas, transactions, and runtime behavior are excluded.
+  - SQL text, table names, columns, source excerpts, and target-controlled values are never retained in findings or reports.
+  - The control never executes Python, SQL, application code, package managers, Docker, scanners, or network requests.
