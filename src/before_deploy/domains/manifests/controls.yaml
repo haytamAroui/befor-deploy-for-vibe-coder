@@ -88,6 +88,19 @@ controls:
       - SQL text, table names, column names, source excerpts, and target-controlled values are not retained in reports.
     references:
       - REF-OWASP-API-2023
+  - id: CONTROL-SENSITIVE-DATA-PYTHON-001
+    version: "0.1.0"
+    title: Python sensitive value to logger check
+    capability_id: control.native.python-sensitive-data
+    implementation_id: SEC-SENSITIVE-DATA-PYTHON-001
+    security_domains:
+      - DOMAIN-SENSITIVE-DATA-001
+    detection_scope: Python AST check for direct Name or Attribute values with exact sensitive field names passed to explicit logging or logger calls.
+    exclusions:
+      - Formatted messages, unrelated variables, aliases, wrappers, non-logging sinks, serializers, runtime behavior, and dataflow are excluded.
+      - Sensitive values, message text, source excerpts, and target data are not retained in reports.
+    references:
+      - REF-OWASP-API-2023
   - id: CONTROL-API-FASTAPI-INPUT-001
     version: "0.1.0"
     title: FastAPI direct untyped mutating-body input check

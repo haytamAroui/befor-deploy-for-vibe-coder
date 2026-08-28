@@ -1,0 +1,7 @@
+schema_version: 1
+profile: python-sensitive-data
+allow_nonrequired_control_errors: false
+controls:
+  SEC-SENSITIVE-DATA-PYTHON-001:
+    required: true
+    disposition: BLOCK

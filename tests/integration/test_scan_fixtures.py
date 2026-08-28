@@ -17,6 +17,7 @@ FASTAPI_INPUT_VALIDATION_POLICY_PATH = ROOT / "rules" / "fastapi-input-validatio
 FASTAPI_FILE_UPLOAD_POLICY_PATH = ROOT / "rules" / "fastapi-file-upload-policy.yaml"
 FASTAPI_AUTHORIZATION_POLICY_PATH = ROOT / "rules" / "fastapi-authorization-policy.yaml"
 PYTHON_DATA_INTEGRITY_POLICY_PATH = ROOT / "rules" / "python-data-integrity-policy.yaml"
+PYTHON_SENSITIVE_DATA_POLICY_PATH = ROOT / "rules" / "python-sensitive-data-policy.yaml"
 
 
 def _scan(fixture_name: str):
@@ -63,6 +64,48 @@ def _scan_python_data_integrity(fixture_name: str):
     return ScanOrchestrator(controls).scan(
         ROOT / "fixtures" / fixture_name, PYTHON_DATA_INTEGRITY_POLICY_PATH
     )
+
+
+def _scan_python_sensitive_data(fixture_name: str):
+    profile = load_policy(PYTHON_SENSITIVE_DATA_POLICY_PATH)
+    controls = configured_controls(profile, native_controls())
+    return ScanOrchestrator(controls).scan(
+        ROOT / "fixtures" / fixture_name, PYTHON_SENSITIVE_DATA_POLICY_PATH
+    )
+
+
+def test_python_sensitive_data_vulnerable_fixture_blocks_and_redacts_fields():
+    result = _scan_python_sensitive_data("vulnerable_python_sensitive_data")
+    assert result.decision.outcome == GateOutcome.BLOCK
+    assert {finding.rule_id for finding in result.findings} == {"SEC-SENSITIVE-DATA-PYTHON-001"}
+    assert len(result.findings) == 2
+    for finding in result.findings:
+        assert finding.evidence == {"artifact": "python", "issue": "sensitive_value_to_logger"}
+        assert "password" not in str(finding.evidence)
+        assert "access_token" not in str(finding.evidence)
+
+
+def test_python_sensitive_data_secure_fixture_passes_without_findings():
+    result = _scan_python_sensitive_data("secure_python_sensitive_data")
+    assert result.decision.outcome == GateOutcome.PASS
+    assert result.findings == ()
+
+
+def test_python_sensitive_data_ambiguous_fixture_passes_without_findings():
+    result = _scan_python_sensitive_data("python_sensitive_data_ambiguous")
+    assert result.decision.outcome == GateOutcome.PASS
+    assert result.findings == ()
+
+
+def test_python_sensitive_data_error_fixture_is_fail_closed():
+    result = _scan_python_sensitive_data("python_sensitive_data_error")
+    assert result.decision.outcome == GateOutcome.ERROR
+
+
+def test_python_sensitive_data_isolated_from_default_policy():
+    result = _scan("vulnerable_python_sensitive_data")
+    assert result.decision.outcome == GateOutcome.PASS
+    assert "SEC-SENSITIVE-DATA-PYTHON-001" not in {finding.rule_id for finding in result.findings}
 
 
 def _scan_fastapi_authorization(fixture_name: str):

@@ -1,0 +1,16 @@
+schema_version: 1
+id: control.native.python-sensitive-data
+version: "0.1.0"
+implementation_id: SEC-SENSITIVE-DATA-PYTHON-001
+kind: CONTROL
+title: Python sensitive value to logger check
+applies_when:
+  languages:
+    - Python
+security_domains:
+  - Sensitive data
+exclusions:
+  - Only direct Name or Attribute values with an exact sensitive field name passed to explicit logging or logger calls are recognized.
+  - Formatted messages, variables with unrelated names, aliases, wrappers, serializers, sinks other than logging, and runtime behavior are excluded.
+  - The control never retains sensitive values, message text, source excerpts, or target data in findings or reports.
+  - The control never executes Python, application code, tests, builds, package managers, or network requests.

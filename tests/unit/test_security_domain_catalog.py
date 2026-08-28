@@ -20,10 +20,10 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.20.0"
+    assert catalog.catalog_version == "0.21.0"
     assert catalog.catalog_digest == second.catalog_digest
     assert len(catalog.domains) == 30
-    assert len(catalog.controls) == 31
+    assert len(catalog.controls) == 32
     assert catalog.domains["DOMAIN-SSRF-001"].title == "Server-side request forgery"
     assert {
         control.capability_id for control in catalog.controls.values()
@@ -97,6 +97,10 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert data_integrity_contract.control_id == "CONTROL-DATA-INTEGRITY-PYTHON-001"
     assert data_integrity_contract.version == "0.1.0"
     assert data_integrity_contract.security_domain_ids == ("DOMAIN-DATA-INTEGRITY-001",)
+    sensitive_data_contract = catalog.control_for_implementation("SEC-SENSITIVE-DATA-PYTHON-001")
+    assert sensitive_data_contract is not None
+    assert sensitive_data_contract.control_id == "CONTROL-SENSITIVE-DATA-PYTHON-001"
+    assert sensitive_data_contract.security_domain_ids == ("DOMAIN-SENSITIVE-DATA-001",)
     fastapi_authz_contract = catalog.control_for_implementation("SEC-API-AUTHZ-001")
     assert fastapi_authz_contract is not None
     assert fastapi_authz_contract.control_id == "CONTROL-API-FASTAPI-AUTHZ-001"
