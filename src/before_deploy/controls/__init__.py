@@ -7,6 +7,7 @@ from before_deploy.controls.deployment_config import (
     ProductionDebugControl,
 )
 from before_deploy.controls.docker_compose import DockerComposePrivilegedControl
+from before_deploy.controls.fastapi_authorization import FastApiAuthorizationDeclarationControl
 from before_deploy.controls.fastapi_input import FastApiInputValidationControl
 from before_deploy.controls.fastapi_upload import FastApiUploadFilenameControl
 from before_deploy.controls.fastapi_routes import FastApiRouteAuthenticationControl
@@ -35,6 +36,7 @@ def native_controls() -> tuple[Control, ...]:
         SqlInjectionControl(),
         SqlInjectionSingleLocalAliasControl(),
         FastApiRouteAuthenticationControl(),
+        FastApiAuthorizationDeclarationControl(),
         FastApiInputValidationControl(),
         FastApiUploadFilenameControl(),
         ProductionDebugControl(),
@@ -64,6 +66,7 @@ __all__ = [
     "CycloneDxSbomControl",
     "DependencyLockfileControl",
     "DockerComposePrivilegedControl",
+    "FastApiAuthorizationDeclarationControl",
     "FastApiInputValidationControl",
     "FastApiUploadFilenameControl",
     "FastApiRouteAuthenticationControl",

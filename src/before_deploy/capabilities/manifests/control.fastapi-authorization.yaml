@@ -1,0 +1,17 @@
+schema_version: 1
+id: control.native.fastapi-authorization
+version: "0.1.0"
+implementation_id: SEC-API-AUTHZ-001
+kind: CONTROL
+title: FastAPI authentication without authorization marker check
+applies_when:
+  frameworks:
+    - FastAPI
+security_domains:
+  - Authorization
+  - API security
+exclusions:
+  - Only literal mutating FastAPI routes, direct Depends or Security defaults, and fixed lexical dependency markers are recognized.
+  - Authentication, roles, scopes, ownership, tenant isolation, middleware, wrappers, runtime enforcement, and dependency semantics are not inferred.
+  - Dynamic decorators, decorator aliases, route factories, computed calls, indirect dependencies, and non-FastAPI decorators are excluded.
+  - The control never executes Python, FastAPI, application code, tests, builds, scanners, package managers, Docker, or network requests.

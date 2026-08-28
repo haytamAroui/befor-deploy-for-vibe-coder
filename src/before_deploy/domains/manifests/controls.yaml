@@ -60,6 +60,21 @@ controls:
       - Route path values, computed methods, APIRouter aliases/factories/registrations, prefix values, runtime registration, decorator aliases, business authorization, object-level access, and runtime middleware are not inferred.
     references:
       - REF-OWASP-API-2023
+  - id: CONTROL-API-FASTAPI-AUTHZ-001
+    version: "0.1.0"
+    title: FastAPI authentication without authorization marker check
+    capability_id: control.native.fastapi-authorization
+    implementation_id: SEC-API-AUTHZ-001
+    security_domains:
+      - DOMAIN-AUTHORIZATION-001
+      - DOMAIN-API-SECURITY-001
+    detection_scope: Python AST check for literal mutating FastAPI routes with direct authentication-shaped Depends or Security defaults and no recognized authorization marker.
+    exclusions:
+      - Authentication presence is not authorization proof; roles, scopes, ownership, tenant isolation, dependency semantics, middleware, wrappers, and runtime enforcement are not inferred.
+      - Only fixed lexical markers beginning with require_, authorize_, check_permission, enforce_permission, require_role, or require_scope are recognized.
+      - Dynamic decorators, decorator aliases, route factories, computed calls, indirect dependencies, and non-FastAPI decorators are excluded.
+    references:
+      - REF-OWASP-API-2023
   - id: CONTROL-API-FASTAPI-INPUT-001
     version: "0.1.0"
     title: FastAPI direct untyped mutating-body input check

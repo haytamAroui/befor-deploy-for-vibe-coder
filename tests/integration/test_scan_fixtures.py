@@ -15,6 +15,7 @@ RUBY_RAILS_GEMFILE_LOCK_POLICY_PATH = ROOT / "rules" / "ruby-rails-gemfile-lock-
 DOCKER_COMPOSE_PRIVILEGED_POLICY_PATH = ROOT / "rules" / "docker-compose-privileged-policy.yaml"
 FASTAPI_INPUT_VALIDATION_POLICY_PATH = ROOT / "rules" / "fastapi-input-validation-policy.yaml"
 FASTAPI_FILE_UPLOAD_POLICY_PATH = ROOT / "rules" / "fastapi-file-upload-policy.yaml"
+FASTAPI_AUTHORIZATION_POLICY_PATH = ROOT / "rules" / "fastapi-authorization-policy.yaml"
 
 
 def _scan(fixture_name: str):
@@ -55,6 +56,14 @@ def _scan_docker_compose_privileged(fixture_name: str):
     )
 
 
+def _scan_fastapi_authorization(fixture_name: str):
+    profile = load_policy(FASTAPI_AUTHORIZATION_POLICY_PATH)
+    controls = configured_controls(profile, native_controls())
+    return ScanOrchestrator(controls).scan(
+        ROOT / "fixtures" / fixture_name, FASTAPI_AUTHORIZATION_POLICY_PATH
+    )
+
+
 def _scan_fastapi_file_upload(fixture_name: str):
     profile = load_policy(FASTAPI_FILE_UPLOAD_POLICY_PATH)
     controls = configured_controls(profile, native_controls())
@@ -69,6 +78,42 @@ def _scan_fastapi_input_validation(fixture_name: str):
     return ScanOrchestrator(controls).scan(
         ROOT / "fixtures" / fixture_name, FASTAPI_INPUT_VALIDATION_POLICY_PATH
     )
+
+
+def test_fastapi_authorization_vulnerable_fixture_blocks_and_redacts_names():
+    result = _scan_fastapi_authorization("vulnerable_fastapi_authorization")
+
+    assert result.decision.outcome == GateOutcome.BLOCK
+    assert {finding.rule_id for finding in result.findings} == {"SEC-API-AUTHZ-001"}
+    finding = result.findings[0]
+    assert finding.evidence == {
+        "artifact": "python",
+        "issue": "authentication_without_authorization_marker",
+    }
+    assert "/accounts" not in finding.message
+    assert "create_account" not in finding.message
+
+
+def test_fastapi_authorization_secure_fixture_passes_without_findings():
+    result = _scan_fastapi_authorization("secure_fastapi_authorization")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert result.findings == ()
+
+
+def test_fastapi_authorization_ambiguous_fixture_is_not_evaluated():
+    result = _scan_fastapi_authorization("fastapi_authorization_ambiguous")
+
+    assert result.decision.outcome == GateOutcome.NOT_EVALUATED
+    assert result.findings == ()
+
+
+def test_fastapi_authorization_isolated_from_default_policy():
+    result = _scan("vulnerable_fastapi_authorization")
+
+    assert result.decision.outcome == GateOutcome.PASS
+    assert "SEC-API-AUTHZ-001" not in {finding.rule_id for finding in result.findings}
+    assert all(item.control_id != "SEC-API-AUTHZ-001" for item in result.executions)
 
 
 def test_fastapi_file_upload_vulnerable_fixture_blocks_and_redacts_filename():

@@ -176,7 +176,13 @@ Coverage audit v0.4.0 now treats each active domain as the set of its **compatib
 
 **Delivered boundary:** the control does not prove path traversal, upload binding, filename content, sanitization effectiveness, path resolution, storage behavior, archive safety, MIME validation, size limits, malware scanning, authorization, or runtime reachability. It never executes Python, FastAPI, application code, builds, tests, scanners, Docker, or network requests. It is selected only by `fastapi-file-upload-policy.yaml`; default and strict profiles remain unchanged.
 
-### Milestone 14 — Optional external/runtime evidence, separate architecture
+### Milestone 14 — Completed FastAPI authorization-declaration control
+
+`SEC-API-AUTHZ-001` is an opt-in deterministic Python AST control for literal mutating FastAPI routes with a direct authentication-shaped `Depends` or `Security` dependency but no fixed authorization marker. It produces a normalized finding requiring an explicit reviewed authorization dependency. Vulnerable, safe, dynamic, indirect, non-FastAPI, malformed-source, redaction, policy-isolation, catalog, and package tests accompany the control.
+
+**Delivered boundary:** lexical dependency names are not proof of roles, scopes, ownership, tenant isolation, dependency semantics, middleware, wrappers, runtime enforcement, or authorization correctness. It never executes Python, FastAPI, application code, builds, tests, scanners, Docker, or network requests. It is selected only by `fastapi-authorization-policy.yaml`; default and strict profiles remain unchanged.
+
+### Milestone 15 — Optional external/runtime evidence, separate architecture
 
 Only after repository-only work is mature, design optional external evidence for cloud, Kubernetes, identity, API endpoint, container registry, artifact registry, or deployment manifest state. This is a new trust model, not an extension of a local repository scanner.
 
@@ -184,7 +190,7 @@ Only after repository-only work is mature, design optional external evidence for
 
 **Non-goal:** the repository scanner must never gain unrestricted cloud access, deployment authority, or a claim that static source mirrors deployed state.
 
-### Milestone 15 — Read-only advisory AI
+### Milestone 16 — Read-only advisory AI
 
 Only after the preceding contracts, reports, redaction, and policy behavior are stable, a future advisory AI may receive normalized redacted JSON/Markdown/SARIF output and answer explanation-oriented questions. It may prioritize human review and suggest remediation for human approval.
 
