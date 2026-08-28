@@ -114,6 +114,19 @@ controls:
       - Exception messages, source excerpts, and application data are not retained in reports.
     references:
       - REF-OWASP-API-2023
+  - id: CONTROL-OBSERVABILITY-PYTHON-001
+    version: "0.1.0"
+    title: Python direct print output check
+    capability_id: control.native.python-observability
+    implementation_id: SEC-OBSERVABILITY-PYTHON-001
+    security_domains:
+      - DOMAIN-OBSERVABILITY-001
+    detection_scope: Python AST check for direct calls to the built-in print function.
+    exclusions:
+      - Structured logging, aliases, wrappers, test output, runtime behavior, and telemetry completeness are excluded.
+      - Output values, source excerpts, and application data are not retained in reports.
+    references:
+      - REF-OWASP-API-2023
   - id: CONTROL-API-FASTAPI-INPUT-001
     version: "0.1.0"
     title: FastAPI direct untyped mutating-body input check

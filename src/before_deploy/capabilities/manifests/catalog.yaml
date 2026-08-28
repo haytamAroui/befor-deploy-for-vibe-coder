@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.22.0"
+catalog_version: "0.23.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -16,6 +16,7 @@ manifests:
   - control.python-data-integrity.yaml
   - control.python-sensitive-data.yaml
   - control.python-error-handling.yaml
+  - control.python-observability.yaml
   - control.github-actions.yaml
   - control.go-module.yaml
   - control.go-tls.yaml

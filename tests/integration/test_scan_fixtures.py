@@ -19,6 +19,7 @@ FASTAPI_AUTHORIZATION_POLICY_PATH = ROOT / "rules" / "fastapi-authorization-poli
 PYTHON_DATA_INTEGRITY_POLICY_PATH = ROOT / "rules" / "python-data-integrity-policy.yaml"
 PYTHON_SENSITIVE_DATA_POLICY_PATH = ROOT / "rules" / "python-sensitive-data-policy.yaml"
 PYTHON_ERROR_HANDLING_POLICY_PATH = ROOT / "rules" / "python-error-handling-policy.yaml"
+PYTHON_OBSERVABILITY_POLICY_PATH = ROOT / "rules" / "python-observability-policy.yaml"
 
 
 def _scan(fixture_name: str):
@@ -65,6 +66,27 @@ def _scan_python_data_integrity(fixture_name: str):
     return ScanOrchestrator(controls).scan(
         ROOT / "fixtures" / fixture_name, PYTHON_DATA_INTEGRITY_POLICY_PATH
     )
+
+
+def _scan_python_observability(fixture_name: str):
+    profile = load_policy(PYTHON_OBSERVABILITY_POLICY_PATH)
+    controls = configured_controls(profile, native_controls())
+    return ScanOrchestrator(controls).scan(ROOT / "fixtures" / fixture_name, PYTHON_OBSERVABILITY_POLICY_PATH)
+
+
+def test_python_observability_policy_blocks_print_and_passes_safe_fixture():
+    vulnerable = _scan_python_observability("vulnerable_python_observability")
+    assert vulnerable.decision.outcome == GateOutcome.BLOCK
+    assert len(vulnerable.findings) == 2
+    assert _scan_python_observability("secure_python_observability").decision.outcome == GateOutcome.PASS
+    assert _scan_python_observability("python_observability_ambiguous").decision.outcome == GateOutcome.PASS
+    assert _scan_python_observability("python_observability_error").decision.outcome == GateOutcome.ERROR
+
+
+def test_python_observability_isolated_from_default_policy():
+    result = _scan("vulnerable_python_observability")
+    assert result.decision.outcome == GateOutcome.PASS
+    assert "SEC-OBSERVABILITY-PYTHON-001" not in {f.rule_id for f in result.findings}
 
 
 def _scan_python_error_handling(fixture_name: str):

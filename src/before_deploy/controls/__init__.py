@@ -13,6 +13,7 @@ from before_deploy.controls.fastapi_upload import FastApiUploadFilenameControl
 from before_deploy.controls.python_data_integrity import PythonDataIntegrityControl
 from before_deploy.controls.python_sensitive_data import PythonSensitiveDataLoggingControl
 from before_deploy.controls.python_error_handling import PythonErrorHandlingControl
+from before_deploy.controls.python_observability import PythonObservabilityControl
 from before_deploy.controls.fastapi_routes import FastApiRouteAuthenticationControl
 from before_deploy.controls.github_actions import GitHubActionsSecurityControl
 from before_deploy.controls.go import GoModuleIntegrityControl, GoTLSVerificationControl
@@ -45,6 +46,7 @@ def native_controls() -> tuple[Control, ...]:
         PythonDataIntegrityControl(),
         PythonSensitiveDataLoggingControl(),
         PythonErrorHandlingControl(),
+        PythonObservabilityControl(),
         ProductionDebugControl(),
         CredentialedWildcardCorsControl(),
         DockerComposePrivilegedControl(),
@@ -78,6 +80,7 @@ __all__ = [
     "PythonDataIntegrityControl",
     "PythonSensitiveDataLoggingControl",
     "PythonErrorHandlingControl",
+    "PythonObservabilityControl",
     "FastApiRouteAuthenticationControl",
     "GitHubActionsSecurityControl",
     "GoModuleIntegrityControl",

@@ -1,0 +1,16 @@
+schema_version: 1
+id: control.native.python-observability
+version: "0.1.0"
+implementation_id: SEC-OBSERVABILITY-PYTHON-001
+kind: CONTROL
+title: Python direct print output check
+applies_when:
+  languages:
+    - Python
+security_domains:
+  - Observability
+exclusions:
+  - Only direct calls to the built-in print function are recognized.
+  - Structured logging, aliases, wrappers, test output, runtime behavior, and telemetry completeness are excluded.
+  - Output values, source excerpts, and application data are never retained in findings.
+  - The control never executes Python, application code, tests, builds, or network requests.
