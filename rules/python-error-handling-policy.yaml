@@ -1,0 +1,7 @@
+schema_version: 1
+profile: python-error-handling
+allow_nonrequired_control_errors: false
+controls:
+  SEC-ERROR-HANDLING-PYTHON-001:
+    required: true
+    disposition: BLOCK

@@ -18,6 +18,7 @@ FASTAPI_FILE_UPLOAD_POLICY_PATH = ROOT / "rules" / "fastapi-file-upload-policy.y
 FASTAPI_AUTHORIZATION_POLICY_PATH = ROOT / "rules" / "fastapi-authorization-policy.yaml"
 PYTHON_DATA_INTEGRITY_POLICY_PATH = ROOT / "rules" / "python-data-integrity-policy.yaml"
 PYTHON_SENSITIVE_DATA_POLICY_PATH = ROOT / "rules" / "python-sensitive-data-policy.yaml"
+PYTHON_ERROR_HANDLING_POLICY_PATH = ROOT / "rules" / "python-error-handling-policy.yaml"
 
 
 def _scan(fixture_name: str):
@@ -64,6 +65,37 @@ def _scan_python_data_integrity(fixture_name: str):
     return ScanOrchestrator(controls).scan(
         ROOT / "fixtures" / fixture_name, PYTHON_DATA_INTEGRITY_POLICY_PATH
     )
+
+
+def _scan_python_error_handling(fixture_name: str):
+    profile = load_policy(PYTHON_ERROR_HANDLING_POLICY_PATH)
+    controls = configured_controls(profile, native_controls())
+    return ScanOrchestrator(controls).scan(
+        ROOT / "fixtures" / fixture_name, PYTHON_ERROR_HANDLING_POLICY_PATH
+    )
+
+
+def test_python_error_handling_vulnerable_fixture_blocks_and_redacts():
+    result = _scan_python_error_handling("vulnerable_python_error_handling")
+    assert result.decision.outcome == GateOutcome.BLOCK
+    assert {finding.rule_id for finding in result.findings} == {"SEC-ERROR-HANDLING-PYTHON-001"}
+    assert len(result.findings) == 2
+    assert all(finding.evidence == {"artifact": "python", "issue": "broad_exception_suppressed"} for finding in result.findings)
+
+
+def test_python_error_handling_secure_and_ambiguous_fixtures_pass():
+    assert _scan_python_error_handling("secure_python_error_handling").decision.outcome == GateOutcome.PASS
+    assert _scan_python_error_handling("python_error_handling_ambiguous").decision.outcome == GateOutcome.PASS
+
+
+def test_python_error_handling_error_fixture_fails_closed():
+    assert _scan_python_error_handling("python_error_handling_error").decision.outcome == GateOutcome.ERROR
+
+
+def test_python_error_handling_isolated_from_default_policy():
+    result = _scan("vulnerable_python_error_handling")
+    assert result.decision.outcome == GateOutcome.PASS
+    assert "SEC-ERROR-HANDLING-PYTHON-001" not in {finding.rule_id for finding in result.findings}
 
 
 def _scan_python_sensitive_data(fixture_name: str):

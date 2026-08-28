@@ -1,0 +1,16 @@
+schema_version: 1
+id: control.native.python-error-handling
+version: "0.1.0"
+implementation_id: SEC-ERROR-HANDLING-PYTHON-001
+kind: CONTROL
+title: Python broad exception suppression check
+applies_when:
+  languages:
+    - Python
+security_domains:
+  - Error handling
+exclusions:
+  - Only bare or Exception handlers whose complete body is one direct pass statement are recognized.
+  - Narrow exception types, logging, returns, raises, calls, aliases, wrappers, and runtime behavior are excluded.
+  - Exception messages, source excerpts, and application data are never retained in findings.
+  - The control never executes Python, application code, tests, builds, package managers, or network requests.
