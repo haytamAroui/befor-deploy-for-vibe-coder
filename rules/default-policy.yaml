@@ -56,6 +56,9 @@ controls:
   SEC-NEXT-SSRF-ALIAS-001:
     required: true
     disposition: BLOCK
+  SEC-NEXT-ERROR-STACK-001:
+    required: true
+    disposition: BLOCK
   SEC-CICD-001:
     required: false
     disposition: BLOCK
