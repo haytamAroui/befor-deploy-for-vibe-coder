@@ -10,5 +10,5 @@ applies_when:
 security_domains:
   - JSON Web Token security
 exclusions:
-  - Only direct PyJWT or python-jose imports and direct decode calls with a literal options mapping are inspected.
-  - Import aliases, wrappers, options variables, alternative JWT libraries, algorithm choice, expiry validation, key management, revocation, token storage, and runtime behavior are not inferred.
+  - Only unshadowed direct PyJWT or python-jose imports and direct decode calls with a literal options mapping are inspected.
+  - Import aliases, rebound jwt or decode names, wrappers, options variables, alternative JWT libraries, algorithm choice, expiry validation, key management, revocation, token storage, and runtime behavior are not inferred.
