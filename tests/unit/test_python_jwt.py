@@ -128,6 +128,38 @@ def decode_token(token, key):
     assert result.findings == ()
 
 
+def test_shadowed_jwt_parameter_is_out_of_scope(tmp_path: Path):
+    result = _run(
+        tmp_path,
+        """
+import jwt
+
+def decode_token(jwt, token, key):
+    return jwt.decode(token, key, options={"verify_signature": False})
+""",
+    )
+
+    assert result.execution.status == ExecutionStatus.NOT_APPLICABLE
+    assert result.findings == ()
+
+
+def test_rebound_direct_decode_name_is_out_of_scope(tmp_path: Path):
+    result = _run(
+        tmp_path,
+        """
+from jwt import decode
+
+decode = custom_decoder
+
+def decode_token(token, key):
+    return decode(token, key, options={"verify_signature": False})
+""",
+    )
+
+    assert result.execution.status == ExecutionStatus.NOT_APPLICABLE
+    assert result.findings == ()
+
+
 def test_unrelated_decode_function_is_not_applicable(tmp_path: Path):
     result = _run(
         tmp_path,
