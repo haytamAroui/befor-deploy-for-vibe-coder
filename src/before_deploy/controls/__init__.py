@@ -37,6 +37,7 @@ from before_deploy.controls.sbom import CycloneDxSbomControl
 from before_deploy.controls.secrets import SecretDetectionControl
 from before_deploy.controls.spring_config import SpringActuatorExposureControl
 from before_deploy.controls.spring_cors import SpringCredentialedWildcardCorsControl
+from before_deploy.controls.spring_jpa_injection import SpringRequestParamNativeQueryInjectionControl
 
 
 def native_controls() -> tuple[Control, ...]:
@@ -67,6 +68,7 @@ def native_controls() -> tuple[Control, ...]:
         NextSingleAliasQueryFetchSsrfControl(),
         SpringActuatorExposureControl(),
         SpringCredentialedWildcardCorsControl(),
+        SpringRequestParamNativeQueryInjectionControl(),
         GitHubActionsSecurityControl(),
         DependencyLockfileControl(),
         LaravelComposerLockfileControl(),
@@ -114,6 +116,7 @@ __all__ = [
     "SecretDetectionControl",
     "SpringActuatorExposureControl",
     "SpringCredentialedWildcardCorsControl",
+    "SpringRequestParamNativeQueryInjectionControl",
     "SqlInjectionControl",
     "SqlInjectionSingleLocalAliasControl",
     "native_controls",
