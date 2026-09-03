@@ -32,6 +32,7 @@ from before_deploy.controls.rust_cargo import RustCargoLockfileControl
 from before_deploy.controls.sbom import CycloneDxSbomControl
 from before_deploy.controls.secrets import SecretDetectionControl
 from before_deploy.controls.spring_config import SpringActuatorExposureControl
+from before_deploy.controls.spring_cors import SpringCredentialedWildcardCorsControl
 
 
 def native_controls() -> tuple[Control, ...]:
@@ -57,6 +58,7 @@ def native_controls() -> tuple[Control, ...]:
         NextServerActionLocalGuardControl(),
         NextInlineServerActionLocalGuardControl(),
         SpringActuatorExposureControl(),
+        SpringCredentialedWildcardCorsControl(),
         GitHubActionsSecurityControl(),
         DependencyLockfileControl(),
         LaravelComposerLockfileControl(),
@@ -99,6 +101,7 @@ __all__ = [
     "RustCargoLockfileControl",
     "SecretDetectionControl",
     "SpringActuatorExposureControl",
+    "SpringCredentialedWildcardCorsControl",
     "SqlInjectionControl",
     "SqlInjectionSingleLocalAliasControl",
     "native_controls",

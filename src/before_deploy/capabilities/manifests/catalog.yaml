@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.24.0"
+catalog_version: "0.25.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -36,3 +36,4 @@ manifests:
   - control.rust-cargo-lock.yaml
   - control.secrets.yaml
   - control.spring-actuator.yaml
+  - control.spring-cors.yaml

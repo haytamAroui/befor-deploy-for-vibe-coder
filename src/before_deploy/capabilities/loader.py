@@ -57,6 +57,7 @@ APPROVED_IMPLEMENTATION_IDS = frozenset(
         "SEC-SECRET-001",
         "SEC-SECRET-GITLEAKS-001",
         "SEC-SPRING-ACTUATOR-001",
+        "SEC-SPRING-CORS-001",
         "SEC-TRIVY-CONFIG-001",
     }
 )

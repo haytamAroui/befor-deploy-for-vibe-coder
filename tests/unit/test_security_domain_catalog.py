@@ -20,10 +20,10 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.24.0"
+    assert catalog.catalog_version == "0.25.0"
     assert catalog.catalog_digest == second.catalog_digest
     assert len(catalog.domains) == 30
-    assert len(catalog.controls) == 35
+    assert len(catalog.controls) == 36
     assert catalog.domains["DOMAIN-SSRF-001"].title == "Server-side request forgery"
     assert {
         control.capability_id for control in catalog.controls.values()
@@ -122,6 +122,11 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert spring_contract.control_id == "CONTROL-CONFIG-SPRING-ACTUATOR-001"
     assert spring_contract.version == "0.1.0"
     assert spring_contract.security_domain_ids == ("DOMAIN-PRODUCTION-CONFIGURATION-001",)
+    spring_cors_contract = catalog.control_for_implementation("SEC-SPRING-CORS-001")
+    assert spring_cors_contract is not None
+    assert spring_cors_contract.control_id == "CONTROL-CORS-SPRING-CROSSORIGIN-001"
+    assert spring_cors_contract.version == "0.1.0"
+    assert spring_cors_contract.security_domain_ids == ("DOMAIN-CORS-001",)
     trivy_contract = catalog.control_for_implementation("SEC-TRIVY-CONFIG-001")
     assert trivy_contract is not None
     assert trivy_contract.control_id == "CONTROL-CONTAINER-IAC-TRIVY-CONFIG-001"
