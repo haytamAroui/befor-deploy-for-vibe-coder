@@ -1,0 +1,6 @@
+schema_version: 1
+profile: spring-cors
+controls:
+  SEC-SPRING-CORS-001:
+    required: true
+    disposition: BLOCK
