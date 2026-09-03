@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ast
 import re
-from pathlib import Path
 
 from before_deploy.controls.base import ControlContext, ControlResult
 from before_deploy.controls.fastapi_input import FastApiInputValidationControl
