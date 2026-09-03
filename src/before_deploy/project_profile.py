@@ -221,10 +221,12 @@ def _coverage_gaps(languages: set[str], frameworks: set[str]) -> tuple[str, ...]
         )
     if "Spring" in frameworks:
         gaps.append(
-            "Spring coverage is limited to two bounded checks: application.properties Actuator wildcard web "
-            "exposure and direct single-line credentialed wildcard CrossOrigin annotations; YAML, arbitrary "
-            "profiles, global CORS configuration, Spring Security authorization, CSRF, validation, data access, "
-            "runtime configuration precedence, proxies, and deployed behavior are not analyzed."
+            "Spring coverage is limited to four bounded checks: application.properties Actuator wildcard web "
+            "exposure, direct single-line credentialed wildcard CrossOrigin annotations, one direct Spring MVC "
+            "request String to JPA native-query concatenation form, and direct Spring Security "
+            "anyRequest().permitAll(); YAML, arbitrary profiles, global CORS, matcher ordering, multiple security "
+            "chains, custom filters, method security, CSRF, validation, broader data access, runtime configuration "
+            "precedence, proxies, and deployed behavior are not analyzed."
         )
     for framework in sorted(
         frameworks - {"FastAPI", "Laravel", "Next.js", "Rails", "Spring", "GitHub Actions"}
