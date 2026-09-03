@@ -1,0 +1,15 @@
+schema_version: 1
+controls:
+  - id: CONTROL-INJECTION-SPRING-JPA-NATIVE-QUERY-001
+    version: "0.1.0"
+    title: Spring MVC direct request parameter to JPA native-query injection contract
+    capability_id: control.native.spring-jpa-native-query-injection
+    implementation_id: SEC-SPRING-JPA-NATIVE-QUERY-001
+    security_domains:
+      - DOMAIN-INJECTION-001
+    detection_scope: Direct RequestParam or PathVariable String parameter concatenated with a Java string literal inside the first argument to EntityManager createNativeQuery in the same mapped Spring MVC handler.
+    exclusions:
+      - Aliases, fields, RequestBody or DTO values, transformations, helpers, repository annotations, Hibernate Session APIs, JPQL createQuery, Criteria APIs, query semantics, and interprocedural flow are not covered.
+      - Detection requires visible Spring web annotation and JPA EntityManager imports; fully qualified or unconventional source forms may remain outside coverage.
+      - Findings retain only bounded structural metadata such as mapping annotation, request-source kind, local parameter name, sink name, and relative location; SQL text is not retained.
+    references: []
