@@ -1,0 +1,15 @@
+schema_version: 1
+id: control.native.fastapi-session-cookie
+version: "0.1.0"
+implementation_id: SEC-FASTAPI-SESSION-COOKIE-001
+kind: CONTROL
+title: FastAPI explicit unsafe session-cookie flag check
+applies_when:
+  languages: [Python]
+  frameworks: [FastAPI]
+security_domains:
+  - Session security
+exclusions:
+  - Missing cookie flags are not treated as unsafe; only explicit httponly=False or secure=False is reported.
+  - Only direct set_cookie calls on a bare Response-annotated FastAPI route parameter are checked.
+  - Response aliases, response objects created inside handlers, middleware/session configuration, wrappers, and runtime behavior are excluded.
