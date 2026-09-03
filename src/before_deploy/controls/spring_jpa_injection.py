@@ -94,14 +94,17 @@ class SpringRequestParamNativeQueryInjectionControl:
                 if body_close is None:
                     continue
                 supported_handler_seen = True
-                body = comments_removed[body_open : body_close + 1]
+                body_structural = structural[body_open : body_close + 1]
+                body_visible = comments_removed[body_open : body_close + 1]
 
-                for sink in _NATIVE_QUERY.finditer(body):
+                for sink in _NATIVE_QUERY.finditer(body_structural):
                     call_open = sink.end() - 1
-                    call_close = _balanced_delimiter_end(body, call_open, "(", ")")
+                    call_close = _balanced_delimiter_end(body_structural, call_open, "(", ")")
                     if call_close is None:
                         continue
-                    first_argument = _first_top_level_argument(body[call_open + 1 : call_close])
+                    first_argument = _first_top_level_argument(
+                        body_visible[call_open + 1 : call_close]
+                    )
                     if first_argument is None:
                         continue
 
@@ -237,9 +240,9 @@ def _balanced_delimiter_end(source: str, opening: int, left: str, right: str) ->
     index = opening
     while index < len(source):
         char = source[index]
-        next_two = source[index : index + 3]
+        next_three = source[index : index + 3]
         if state == "code":
-            if next_two == '"""':
+            if next_three == '"""':
                 state = "text_block"
                 index += 3
                 continue
@@ -263,7 +266,7 @@ def _balanced_delimiter_end(source: str, opening: int, left: str, right: str) ->
             elif char == quote:
                 state = "code"
         elif state == "text_block":
-            if next_two == '"""':
+            if next_three == '"""':
                 state = "code"
                 index += 3
                 continue
