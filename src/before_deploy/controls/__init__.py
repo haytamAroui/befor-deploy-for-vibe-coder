@@ -9,12 +9,9 @@ from before_deploy.controls.deployment_config import (
 from before_deploy.controls.docker_compose import DockerComposePrivilegedControl
 from before_deploy.controls.fastapi_authorization import FastApiAuthorizationDeclarationControl
 from before_deploy.controls.fastapi_input import FastApiInputValidationControl
-from before_deploy.controls.fastapi_upload import FastApiUploadFilenameControl
-from before_deploy.controls.python_data_integrity import PythonDataIntegrityControl
-from before_deploy.controls.python_sensitive_data import PythonSensitiveDataLoggingControl
-from before_deploy.controls.python_error_handling import PythonErrorHandlingControl
-from before_deploy.controls.python_observability import PythonObservabilityControl
 from before_deploy.controls.fastapi_routes import FastApiRouteAuthenticationControl
+from before_deploy.controls.fastapi_ssrf import FastApiDirectUrlSsrfControl
+from before_deploy.controls.fastapi_upload import FastApiUploadFilenameControl
 from before_deploy.controls.github_actions import GitHubActionsSecurityControl
 from before_deploy.controls.go import GoModuleIntegrityControl, GoTLSVerificationControl
 from before_deploy.controls.go_vulnerabilities import GoVulnerabilitySnapshotControl
@@ -27,6 +24,10 @@ from before_deploy.controls.nextjs import (
     NextStaticCorsControl,
 )
 from before_deploy.controls.php_laravel import LaravelComposerLockfileControl
+from before_deploy.controls.python_data_integrity import PythonDataIntegrityControl
+from before_deploy.controls.python_error_handling import PythonErrorHandlingControl
+from before_deploy.controls.python_observability import PythonObservabilityControl
+from before_deploy.controls.python_sensitive_data import PythonSensitiveDataLoggingControl
 from before_deploy.controls.ruby_rails import RailsGemfileLockfileControl
 from before_deploy.controls.rust_cargo import RustCargoLockfileControl
 from before_deploy.controls.sbom import CycloneDxSbomControl
@@ -45,6 +46,7 @@ def native_controls() -> tuple[Control, ...]:
         FastApiAuthorizationDeclarationControl(),
         FastApiInputValidationControl(),
         FastApiUploadFilenameControl(),
+        FastApiDirectUrlSsrfControl(),
         PythonDataIntegrityControl(),
         PythonSensitiveDataLoggingControl(),
         PythonErrorHandlingControl(),
@@ -79,13 +81,10 @@ __all__ = [
     "DependencyLockfileControl",
     "DockerComposePrivilegedControl",
     "FastApiAuthorizationDeclarationControl",
+    "FastApiDirectUrlSsrfControl",
     "FastApiInputValidationControl",
-    "FastApiUploadFilenameControl",
-    "PythonDataIntegrityControl",
-    "PythonSensitiveDataLoggingControl",
-    "PythonErrorHandlingControl",
-    "PythonObservabilityControl",
     "FastApiRouteAuthenticationControl",
+    "FastApiUploadFilenameControl",
     "GitHubActionsSecurityControl",
     "GoModuleIntegrityControl",
     "GoTLSVerificationControl",
@@ -97,6 +96,10 @@ __all__ = [
     "NextSessionCookieControl",
     "NextStaticCorsControl",
     "ProductionDebugControl",
+    "PythonDataIntegrityControl",
+    "PythonErrorHandlingControl",
+    "PythonObservabilityControl",
+    "PythonSensitiveDataLoggingControl",
     "RailsGemfileLockfileControl",
     "RustCargoLockfileControl",
     "SecretDetectionControl",
