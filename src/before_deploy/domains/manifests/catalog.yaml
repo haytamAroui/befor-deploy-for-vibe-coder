@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.33.0"
+catalog_version: "0.34.0"
 references:
   REF-NIST-SSDF-DRAFT-1-2:
     title: NIST SSDF Version 1.2 initial public draft announcement
@@ -18,6 +18,7 @@ domain_manifests:
 control_manifests:
   - controls.yaml
   - controls.core21-completion.yaml
+  - controls.fastapi-session-cookie.yaml
   - controls.fastapi-ssrf.yaml
   - controls.fastapi-ssrf-single-alias.yaml
   - controls.nextjs-error-stack.yaml
