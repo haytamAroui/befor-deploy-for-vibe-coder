@@ -1,0 +1,15 @@
+schema_version: 1
+controls:
+  - id: CONTROL-NEXTJS-ERROR-STACK-001
+    version: "0.1.0"
+    title: Next.js Route Handler caught-exception stack response contract
+    capability_id: control.native.nextjs-route-stack-response
+    implementation_id: SEC-NEXT-ERROR-STACK-001
+    security_domains:
+      - DOMAIN-ERROR-HANDLING-001
+      - DOMAIN-SENSITIVE-DATA-001
+    detection_scope: Supported Next.js Route Handler files are checked for a direct catch variable stack property inside NextResponse.json or Response.json within the catch block.
+    exclusions:
+      - Exception messages, local aliases, helper calls, custom response wrappers, Server Actions, pages, logging behavior, environment-specific response rewriting, and runtime behavior are not inferred.
+    references:
+      - REF-OWASP-API-2023
