@@ -1,0 +1,15 @@
+schema_version: 1
+id: control.native.fastapi-endpoint-domain
+version: "0.1.0"
+implementation_id: SEC-ENDPOINT-FASTAPI-001
+kind: CONTROL
+title: FastAPI bounded endpoint access check
+applies_when:
+  frameworks:
+    - FastAPI
+security_domains:
+  - Endpoint security
+  - "Framework: FastAPI"
+exclusions:
+  - Reuses the bounded static mutating-route dependency predicate and does not establish endpoint inventory completeness, headers, limits, object authorization, or runtime protection.
+  - Dynamic routes, middleware, wrappers, indirect dependencies, and runtime behavior are not inferred.
