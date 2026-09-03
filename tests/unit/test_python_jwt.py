@@ -1,9 +1,16 @@
 from pathlib import Path
 
+from before_deploy.controls import native_controls
 from before_deploy.controls.base import ControlContext
 from before_deploy.controls.python_jwt import PythonJwtSignatureVerificationControl
 from before_deploy.inventory import collect_inventory
 from before_deploy.models import ExecutionStatus, Severity
+from before_deploy.orchestrator import ScanOrchestrator, configured_controls
+from before_deploy.policy import load_policy
+
+
+REPOSITORY = Path(__file__).parents[2]
+JWT_POLICY = REPOSITORY / "rules" / "python-jwt-verification-policy.yaml"
 
 
 def _run(tmp_path: Path, source: str):
@@ -135,3 +142,32 @@ def load(token, key):
 
     assert result.execution.status == ExecutionStatus.NOT_APPLICABLE
     assert result.findings == ()
+
+
+def test_focused_policy_blocks_explicit_signature_verification_bypass(tmp_path: Path):
+    (tmp_path / "app.py").write_text(
+        """
+import jwt
+
+def decode_token(token, key):
+    return jwt.decode(token, key, algorithms=["HS256"], options={"verify_signature": False})
+""",
+        encoding="utf-8",
+    )
+    profile = load_policy(JWT_POLICY)
+    controls = configured_controls(profile, native_controls())
+    result = ScanOrchestrator(controls).scan(tmp_path, JWT_POLICY)
+
+    assert result.decision.outcome.value == "BLOCK"
+    assert {finding.rule_id for finding in result.findings} == {"SEC-JWT-PYTHON-VERIFY-001"}
+    assert result.security_analysis_plan is not None
+    contract = next(
+        selection
+        for selection in result.security_analysis_plan.control_contract_selections
+        if selection.implementation_id == "SEC-JWT-PYTHON-VERIFY-001"
+    )
+    assert contract.control_id == "CONTROL-JWT-PYTHON-SIGNATURE-VERIFY-001"
+    assert contract.security_domain_ids == (
+        "DOMAIN-JWT-SECURITY-001",
+        "DOMAIN-AUTHENTICATION-001",
+    )
