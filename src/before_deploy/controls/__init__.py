@@ -11,6 +11,7 @@ from before_deploy.controls.fastapi_authorization import FastApiAuthorizationDec
 from before_deploy.controls.fastapi_input import FastApiInputValidationControl
 from before_deploy.controls.fastapi_routes import FastApiRouteAuthenticationControl
 from before_deploy.controls.fastapi_ssrf import FastApiDirectUrlSsrfControl
+from before_deploy.controls.fastapi_ssrf_single_alias import FastApiSingleAliasSsrfControl
 from before_deploy.controls.fastapi_upload import FastApiUploadFilenameControl
 from before_deploy.controls.github_actions import GitHubActionsSecurityControl
 from before_deploy.controls.go import GoModuleIntegrityControl, GoTLSVerificationControl
@@ -47,6 +48,7 @@ def native_controls() -> tuple[Control, ...]:
         FastApiInputValidationControl(),
         FastApiUploadFilenameControl(),
         FastApiDirectUrlSsrfControl(),
+        FastApiSingleAliasSsrfControl(),
         PythonDataIntegrityControl(),
         PythonSensitiveDataLoggingControl(),
         PythonErrorHandlingControl(),
@@ -84,6 +86,7 @@ __all__ = [
     "FastApiDirectUrlSsrfControl",
     "FastApiInputValidationControl",
     "FastApiRouteAuthenticationControl",
+    "FastApiSingleAliasSsrfControl",
     "FastApiUploadFilenameControl",
     "GitHubActionsSecurityControl",
     "GoModuleIntegrityControl",
