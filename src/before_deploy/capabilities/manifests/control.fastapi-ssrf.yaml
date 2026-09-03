@@ -1,0 +1,17 @@
+schema_version: 1
+id: control.native.fastapi-direct-url-ssrf
+version: "0.1.0"
+implementation_id: SEC-FASTAPI-SSRF-001
+kind: CONTROL
+title: FastAPI direct string parameter to outbound HTTP client check
+applies_when:
+  languages:
+    - Python
+  frameworks:
+    - FastAPI
+security_domains:
+  - Server-side request forgery
+  - "Framework: FastAPI"
+exclusions:
+  - Only direct str route parameters passed unchanged to module-level requests/httpx calls are inspected.
+  - Aliases, imported functions, client instances, model fields, concatenation, helper calls, redirects, DNS resolution, address classification, validation semantics, and runtime network behavior are not inferred.
