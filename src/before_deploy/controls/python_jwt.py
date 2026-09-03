@@ -27,10 +27,10 @@ class PythonJwtSignatureVerificationControl:
     ``from jose import jwt``, or ``from jose.jwt import decode`` without aliases. A finding is emitted
     only when the same file contains a supported direct decode call whose literal ``options`` mapping
     sets ``verify_signature`` to ``False``. A supported imported name is discarded for the whole file
-    if that name is rebound by an assignment, function/class definition, or function parameter. Import
-    aliases, helper wrappers, options stored in variables, dictionary expansion, alternative JWT
-    libraries, algorithm choice, expiry validation, key management, revocation, storage, and runtime
-    behavior are excluded.
+    if that name is rebound by an assignment, conflicting import, exception target, function/class
+    definition, or function parameter. Import aliases, helper wrappers, options stored in variables,
+    dictionary expansion, alternative JWT libraries, algorithm choice, expiry validation, key
+    management, revocation, storage, and runtime behavior are excluded.
     """
 
     control_id = _CONTROL_ID
@@ -138,9 +138,13 @@ def _supported_imports(tree: ast.Module) -> tuple[bool, bool]:
 
 def _name_is_rebound(tree: ast.Module, name: str) -> bool:
     for node in ast.walk(tree):
-        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store) and node.id == name:
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)) and node.id == name:
             return True
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == name:
+            return True
+        if isinstance(node, ast.ExceptHandler) and node.name == name:
+            return True
+        if isinstance(node, (ast.Import, ast.ImportFrom)) and _has_conflicting_import_binding(node, name):
             return True
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             parameters = (
@@ -154,6 +158,29 @@ def _name_is_rebound(tree: ast.Module, name: str) -> bool:
                 return True
             if node.args.kwarg is not None and node.args.kwarg.arg == name:
                 return True
+    return False
+
+
+def _has_conflicting_import_binding(node: ast.Import | ast.ImportFrom, name: str) -> bool:
+    for alias in node.names:
+        if isinstance(node, ast.Import):
+            bound_name = alias.asname or alias.name.split(".", maxsplit=1)[0]
+            allowed = name == "jwt" and alias.name == "jwt" and alias.asname is None
+        else:
+            bound_name = alias.asname or alias.name
+            allowed = (
+                name == "jwt"
+                and node.module == "jose"
+                and alias.name == "jwt"
+                and alias.asname is None
+            ) or (
+                name == "decode"
+                and node.module in {"jwt", "jose.jwt"}
+                and alias.name == "decode"
+                and alias.asname is None
+            )
+        if bound_name == name and not allowed:
+            return True
     return False
 
 
