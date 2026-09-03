@@ -89,7 +89,7 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
     )
     assert all(selection.detection_scope for selection in plan.control_contract_selections)
     assert all(selection.exclusions for selection in plan.control_contract_selections)
-    assert plan.security_domain_catalog_version == "0.30.0"
+    assert plan.security_domain_catalog_version == "0.31.0"
     assert plan.security_domain_catalog_digest
     assert not plan.adapter_selections
     assert not plan.skill_selections
@@ -105,7 +105,7 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
     assert coverage["Declared requirement: File upload"] == "DECLARED_REVIEW_REQUIRED"
     assert coverage_by_id["DOMAIN-SESSION-SECURITY-001"] == "COVERED"
     assert coverage_by_id["DOMAIN-FILE-UPLOAD-001"] == "NOT_APPLICABLE"
-    assert coverage_by_id["DOMAIN-PAYMENT-INTEGRATION-001"] == "UNAVAILABLE"
+    assert coverage_by_id["DOMAIN-PAYMENT-INTEGRATION-001"] == "NOT_APPLICABLE"
     assert coverage_by_id["DOMAIN-CONTAINER-SECURITY-001"] == "NOT_SELECTED"
     assert coverage_by_id["DOMAIN-IAC-SECURITY-001"] == "NOT_SELECTED"
 

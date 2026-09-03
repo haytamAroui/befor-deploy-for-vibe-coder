@@ -1,0 +1,15 @@
+schema_version: 1
+id: control.native.fastapi-authentication-domain
+version: "0.1.0"
+implementation_id: SEC-AUTH-FASTAPI-001
+kind: CONTROL
+title: FastAPI bounded authentication boundary check
+applies_when:
+  frameworks:
+    - FastAPI
+security_domains:
+  - Authentication
+  - "Framework: FastAPI"
+exclusions:
+  - Reuses the bounded static mutating-route dependency predicate; dependency presence does not prove identity assurance, MFA, session validity, authorization, or runtime enforcement.
+  - Dynamic routes, middleware, wrappers, indirect dependencies, and runtime authentication are not inferred.

@@ -1,0 +1,22 @@
+schema_version: 1
+profile: core-21-completion
+allow_nonrequired_control_errors: true
+controls:
+  SEC-AUTH-FASTAPI-001:
+    required: true
+    disposition: BLOCK
+  SEC-ENDPOINT-FASTAPI-001:
+    required: true
+    disposition: BLOCK
+  SEC-DATABASE-TRANSPORT-PYTHON-001:
+    required: true
+    disposition: BLOCK
+  SEC-API-ASSURANCE-FASTAPI-001:
+    required: true
+    disposition: BLOCK
+  SEC-SECURITY-TESTING-EVIDENCE-001:
+    required: false
+    disposition: BLOCK
+  SEC-PAYMENT-STRIPE-WEBHOOK-001:
+    required: false
+    disposition: BLOCK

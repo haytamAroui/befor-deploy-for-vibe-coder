@@ -1,0 +1,12 @@
+schema_version: 1
+id: control.native.security-testing-evidence
+version: "0.1.0"
+implementation_id: SEC-SECURITY-TESTING-EVIDENCE-001
+kind: CONTROL
+title: Repository-local dedicated security-test evidence check
+applies_when: {}
+security_domains:
+  - Security testing evidence
+exclusions:
+  - Only supported test files whose path or filename contains a reviewed security token are recognized.
+  - Test quality, coverage, execution, assertions, runtime behavior, external scanners, and CI enforcement are not inferred.
