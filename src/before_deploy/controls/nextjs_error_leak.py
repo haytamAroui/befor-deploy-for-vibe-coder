@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
 
 from before_deploy.controls.base import ControlContext, ControlResult
 from before_deploy.models import (
