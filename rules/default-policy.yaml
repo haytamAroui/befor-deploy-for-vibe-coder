@@ -17,6 +17,9 @@ controls:
   SEC-FASTAPI-SSRF-001:
     required: true
     disposition: BLOCK
+  SEC-FASTAPI-SSRF-ALIAS-001:
+    required: true
+    disposition: BLOCK
   SEC-CONFIG-001:
     required: true
     disposition: BLOCK

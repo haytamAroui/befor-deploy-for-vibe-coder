@@ -1,0 +1,17 @@
+schema_version: 1
+id: control.native.fastapi-single-alias-ssrf
+version: "0.1.0"
+implementation_id: SEC-FASTAPI-SSRF-ALIAS-001
+kind: CONTROL
+title: FastAPI single-local-alias outbound URL SSRF check
+applies_when:
+  languages:
+    - Python
+  frameworks:
+    - FastAPI
+security_domains:
+  - Server-side request forgery
+  - "Framework: FastAPI"
+exclusions:
+  - Only one direct local assignment from a bare str route parameter is followed.
+  - Chained aliases, transforms, attributes, containers, helpers, branches, loops, client instances, and interprocedural flow are not analyzed.

@@ -1,0 +1,14 @@
+schema_version: 1
+controls:
+  - id: CONTROL-SSRF-FASTAPI-SINGLE-ALIAS-001
+    version: "0.1.0"
+    title: FastAPI single-local-alias outbound URL SSRF check
+    capability_id: control.native.fastapi-single-alias-ssrf
+    implementation_id: SEC-FASTAPI-SSRF-ALIAS-001
+    security_domains:
+      - DOMAIN-SSRF-001
+    detection_scope: One top-level local assignment from a direct bare str FastAPI route parameter followed by a supported module-level requests/httpx URL sink in the same function.
+    exclusions:
+      - Chained aliases, transformed values, attributes, collections, helper calls, branches, loops, client instances, imported request functions, and interprocedural flow are not analyzed.
+      - Runtime DNS resolution, redirects, private-address classification, proxies, and semantic allowlist validation are not inferred.
+    references: []
