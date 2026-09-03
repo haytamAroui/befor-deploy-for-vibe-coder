@@ -1,0 +1,13 @@
+schema_version: 1
+controls:
+  - id: CONTROL-SESSION-FASTAPI-COOKIE-FLAGS-001
+    version: "0.1.0"
+    title: FastAPI explicit unsafe session-cookie flag contract
+    capability_id: control.native.fastapi-session-cookie
+    implementation_id: SEC-FASTAPI-SESSION-COOKIE-001
+    security_domains:
+      - DOMAIN-SESSION-SECURITY-001
+    detection_scope: Direct set_cookie calls on a bare Response-annotated parameter in a literal FastAPI route, limited to session-like static cookie names and explicit httponly=False or secure=False keyword arguments.
+    exclusions:
+      - Missing cookie flags, SameSite semantics, response aliases, locally constructed response objects, middleware/session configuration, wrappers, deletion, TLS termination, browser behavior, and runtime policy are not inferred.
+    references: []

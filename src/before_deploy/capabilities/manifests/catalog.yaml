@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.33.0"
+catalog_version: "0.34.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -16,6 +16,7 @@ manifests:
   - control.fastapi-endpoint-domain.yaml
   - control.fastapi-input-validation.yaml
   - control.fastapi-file-upload.yaml
+  - control.fastapi-session-cookie.yaml
   - control.fastapi-ssrf.yaml
   - control.fastapi-ssrf-single-alias.yaml
   - control.github-actions.yaml

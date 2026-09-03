@@ -20,10 +20,10 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.33.0"
+    assert catalog.catalog_version == "0.34.0"
     assert catalog.catalog_digest == second.catalog_digest
     assert len(catalog.domains) == 30
-    assert len(catalog.controls) == 49
+    assert len(catalog.controls) == 50
     assert catalog.domains["DOMAIN-SSRF-001"].title == "Server-side request forgery"
     assert {control.capability_id for control in catalog.controls.values()} == set(registry.capabilities)
     assert all(
@@ -82,6 +82,10 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert fastapi_ssrf_alias_contract.control_id == "CONTROL-SSRF-FASTAPI-SINGLE-ALIAS-001"
     assert fastapi_ssrf_alias_contract.version == "0.1.0"
     assert fastapi_ssrf_alias_contract.security_domain_ids == ("DOMAIN-SSRF-001",)
+    fastapi_session_contract = catalog.control_for_implementation("SEC-FASTAPI-SESSION-COOKIE-001")
+    assert fastapi_session_contract is not None
+    assert fastapi_session_contract.control_id == "CONTROL-SESSION-FASTAPI-COOKIE-FLAGS-001"
+    assert fastapi_session_contract.security_domain_ids == ("DOMAIN-SESSION-SECURITY-001",)
     php_laravel_contract = catalog.control_for_implementation("SEC-PHP-LARAVEL-COMPOSER-LOCK-001")
     assert php_laravel_contract is not None
     assert php_laravel_contract.control_id == "CONTROL-SUPPLY-PHP-LARAVEL-COMPOSER-LOCK-001"
@@ -191,6 +195,9 @@ def test_domain_catalog_is_informational_and_exposes_registry_mapping(tmp_path):
     }
     assert "control.native.nextjs-route-stack-response" in {
         item.capability_id for item in catalog.controls_for_domain("DOMAIN-ERROR-HANDLING-001")
+    }
+    assert "control.native.fastapi-session-cookie" in {
+        item.capability_id for item in catalog.controls_for_domain("DOMAIN-SESSION-SECURITY-001")
     }
     assert registry.definition_for_implementation("SEC-UNREGISTERED-001") is None
 

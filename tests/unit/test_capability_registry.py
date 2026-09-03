@@ -17,9 +17,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     second = load_builtin_capability_registry()
 
     assert first.schema_version == 1
-    assert first.catalog_version == "0.33.0"
+    assert first.catalog_version == "0.34.0"
     assert first.catalog_digest == second.catalog_digest
-    assert len(first.capabilities) == 49
+    assert len(first.capabilities) == 50
     assert first.definition_for_implementation("SEC-NEXT-ENV-001").capability_id == (
         "control.native.nextjs-public-env"
     )
@@ -60,6 +60,10 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     fastapi_ssrf_alias = first.definition_for_implementation("SEC-FASTAPI-SSRF-ALIAS-001")
     assert fastapi_ssrf_alias.capability_id == "control.native.fastapi-single-alias-ssrf"
     assert fastapi_ssrf_alias.frameworks == frozenset({"FastAPI"})
+    fastapi_session = first.definition_for_implementation("SEC-FASTAPI-SESSION-COOKIE-001")
+    assert fastapi_session.capability_id == "control.native.fastapi-session-cookie"
+    assert fastapi_session.frameworks == frozenset({"FastAPI"})
+    assert fastapi_session.languages == frozenset({"Python"})
     php_laravel = first.definition_for_implementation("SEC-PHP-LARAVEL-COMPOSER-LOCK-001")
     assert php_laravel.capability_id == "control.native.php-laravel-composer-lock"
     assert php_laravel.version == "0.1.0"
