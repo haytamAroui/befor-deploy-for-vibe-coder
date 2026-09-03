@@ -26,9 +26,11 @@ class PythonJwtSignatureVerificationControl:
     Supported imports are intentionally narrow: direct ``import jwt``, ``from jwt import decode``,
     ``from jose import jwt``, or ``from jose.jwt import decode`` without aliases. A finding is emitted
     only when the same file contains a supported direct decode call whose literal ``options`` mapping
-    sets ``verify_signature`` to ``False``. Import aliases, helper wrappers, options stored in variables,
-    dictionary expansion, alternative JWT libraries, algorithm choice, expiry validation, key
-    management, revocation, storage, and runtime behavior are excluded.
+    sets ``verify_signature`` to ``False``. A supported imported name is discarded for the whole file
+    if that name is rebound by an assignment, function/class definition, or function parameter. Import
+    aliases, helper wrappers, options stored in variables, dictionary expansion, alternative JWT
+    libraries, algorithm choice, expiry validation, key management, revocation, storage, and runtime
+    behavior are excluded.
     """
 
     control_id = _CONTROL_ID
@@ -54,6 +56,10 @@ class PythonJwtSignatureVerificationControl:
                 continue
 
             module_decode, direct_decode = _supported_imports(tree)
+            if module_decode and _name_is_rebound(tree, "jwt"):
+                module_decode = False
+            if direct_decode and _name_is_rebound(tree, "decode"):
+                direct_decode = False
             if not module_decode and not direct_decode:
                 continue
             applicable = True
@@ -94,7 +100,7 @@ class PythonJwtSignatureVerificationControl:
         if not applicable:
             return _not_applicable(
                 started_at,
-                "No supported direct PyJWT or python-jose import was detected.",
+                "No supported unshadowed direct PyJWT or python-jose import was detected.",
             )
         return ControlResult(
             execution=ControlExecution(
@@ -128,6 +134,27 @@ def _supported_imports(tree: ast.Module) -> tuple[bool, bool]:
                 if any(alias.name == "decode" and alias.asname is None for alias in node.names):
                     direct_decode = True
     return module_decode, direct_decode
+
+
+def _name_is_rebound(tree: ast.Module, name: str) -> bool:
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store) and node.id == name:
+            return True
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == name:
+            return True
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            parameters = (
+                *node.args.posonlyargs,
+                *node.args.args,
+                *node.args.kwonlyargs,
+            )
+            if any(parameter.arg == name for parameter in parameters):
+                return True
+            if node.args.vararg is not None and node.args.vararg.arg == name:
+                return True
+            if node.args.kwarg is not None and node.args.kwarg.arg == name:
+                return True
+    return False
 
 
 def _is_supported_decode_call(call: ast.Call, module_decode: bool, direct_decode: bool) -> bool:
