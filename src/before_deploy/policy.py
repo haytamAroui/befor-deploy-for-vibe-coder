@@ -10,6 +10,8 @@ import yaml
 
 from before_deploy.models import (
     ControlExecution,
+    CoverageAudit,
+    CoverageStatus,
     Disposition,
     ExecutionStatus,
     Finding,
@@ -58,6 +60,13 @@ class ProvenancePolicy:
 
 
 @dataclass(frozen=True)
+class AssurancePolicy:
+    """Policy-owned minimum acceptable coverage for explicitly required domains."""
+
+    minimum_domain_coverage: Mapping[str, CoverageStatus] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class PolicyProfile:
     """Validated, reviewable policy data loaded from YAML."""
 
@@ -69,6 +78,7 @@ class PolicyProfile:
     dependency_audit: DependencyAuditPolicy | None = None
     provenance: ProvenancePolicy | None = None
     allow_nonrequired_control_errors: bool = False
+    assurance: AssurancePolicy = field(default_factory=AssurancePolicy)
 
 
 def load_policy(path: Path) -> PolicyProfile:
@@ -108,6 +118,7 @@ def load_policy(path: Path) -> PolicyProfile:
     tools = _parse_external_tools(raw.get("external_tools", {}))
     dependency_audit = _parse_dependency_audit(raw.get("dependency_audit"))
     provenance = _parse_provenance(raw.get("provenance"))
+    assurance = _parse_assurance(raw.get("assurance"))
     allow_errors = raw.get("allow_nonrequired_control_errors", False)
     if not isinstance(allow_errors, bool):
         raise ValueError("allow_nonrequired_control_errors must be boolean")
@@ -121,6 +132,7 @@ def load_policy(path: Path) -> PolicyProfile:
         dependency_audit=dependency_audit,
         provenance=provenance,
         allow_nonrequired_control_errors=allow_errors,
+        assurance=assurance,
     )
 
 
@@ -131,11 +143,14 @@ def evaluate(
     findings: tuple[Finding, ...],
     waivers: tuple[Waiver, ...],
     profile: PolicyProfile,
+    coverage_audit: CoverageAudit | None = None,
 ) -> tuple[tuple[Finding, ...], PolicyDecision]:
     """Assign policy dispositions and produce the sole deterministic gate outcome."""
     execution_by_id = {execution.control_id: execution for execution in executions}
     errors: set[str] = set()
     reason_codes: set[str] = set()
+
+    _evaluate_assurance(profile, coverage_audit, errors, reason_codes)
 
     for control_id, control_policy in profile.controls.items():
         execution = execution_by_id.get(control_id)
@@ -212,6 +227,86 @@ def evaluate(
         error_control_ids=tuple(sorted(errors)),
     )
     return tuple(evaluated_findings), decision
+
+
+_COVERAGE_RANK = {
+    CoverageStatus.PARTIAL: 1,
+    CoverageStatus.COVERED: 2,
+}
+
+
+def _evaluate_assurance(
+    profile: PolicyProfile,
+    coverage_audit: CoverageAudit | None,
+    errors: set[str],
+    reason_codes: set[str],
+) -> None:
+    """Apply explicit assurance requirements while keeping policy as sole authority."""
+    requirements = profile.assurance.minimum_domain_coverage
+    if not requirements:
+        return
+
+    if coverage_audit is None:
+        errors.add("ASSURANCE:COVERAGE_AUDIT_MISSING")
+        reason_codes.add("ASSURANCE_COVERAGE_AUDIT_MISSING")
+        return
+
+    by_domain_id = {
+        assessment.domain_id: assessment
+        for assessment in coverage_audit.assessments
+        if assessment.domain_id is not None
+    }
+
+    for domain_id, minimum_status in sorted(requirements.items()):
+        assessment = by_domain_id.get(domain_id)
+        if assessment is None:
+            errors.add(f"ASSURANCE:{domain_id}")
+            reason_codes.add(f"ASSURANCE_DOMAIN_MISSING:{domain_id}")
+            continue
+
+        actual_rank = _COVERAGE_RANK.get(assessment.status, 0)
+        required_rank = _COVERAGE_RANK[minimum_status]
+        if actual_rank < required_rank:
+            errors.add(f"ASSURANCE:{domain_id}")
+            reason_codes.add(
+                f"ASSURANCE_COVERAGE_INSUFFICIENT:{domain_id}:"
+                f"{assessment.status.value}:REQUIRES_{minimum_status.value}"
+            )
+        else:
+            reason_codes.add(
+                f"ASSURANCE_COVERAGE_SATISFIED:{domain_id}:{assessment.status.value}"
+            )
+
+
+def _parse_assurance(raw_assurance: Any) -> AssurancePolicy:
+    if raw_assurance is None:
+        return AssurancePolicy()
+    if not isinstance(raw_assurance, dict):
+        raise ValueError("assurance must be a mapping")
+
+    raw_minimums = raw_assurance.get("minimum_domain_coverage", {})
+    if not isinstance(raw_minimums, dict):
+        raise ValueError("assurance.minimum_domain_coverage must be a mapping")
+
+    minimums: dict[str, CoverageStatus] = {}
+    for domain_id, raw_status in raw_minimums.items():
+        if not isinstance(domain_id, str) or not domain_id.startswith("DOMAIN-"):
+            raise ValueError(
+                "assurance.minimum_domain_coverage keys must be stable DOMAIN-* identifiers"
+            )
+        try:
+            status = CoverageStatus(raw_status)
+        except ValueError as error:
+            raise ValueError(
+                f"assurance minimum for {domain_id} must be PARTIAL or COVERED"
+            ) from error
+        if status not in _COVERAGE_RANK:
+            raise ValueError(
+                f"assurance minimum for {domain_id} must be PARTIAL or COVERED"
+            )
+        minimums[domain_id] = status
+
+    return AssurancePolicy(minimum_domain_coverage=minimums)
 
 
 def _parse_dependency_audit(raw_dependency_audit: Any) -> DependencyAuditPolicy | None:

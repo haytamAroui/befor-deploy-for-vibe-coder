@@ -105,6 +105,7 @@ class ScanOrchestrator:
             findings=tuple(findings),
             waivers=waivers,
             profile=profile,
+            coverage_audit=coverage_audit,
         )
         completed_manifest = replace(manifest, completed_at=utc_now())
         return ScanResult(
