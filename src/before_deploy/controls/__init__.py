@@ -24,6 +24,7 @@ from before_deploy.controls.nextjs import (
     NextSessionCookieControl,
     NextStaticCorsControl,
 )
+from before_deploy.controls.nextjs_ssrf import NextDirectQueryFetchSsrfControl
 from before_deploy.controls.php_laravel import LaravelComposerLockfileControl
 from before_deploy.controls.python_data_integrity import PythonDataIntegrityControl
 from before_deploy.controls.python_error_handling import PythonErrorHandlingControl
@@ -61,6 +62,7 @@ def native_controls() -> tuple[Control, ...]:
         NextStaticCorsControl(),
         NextServerActionLocalGuardControl(),
         NextInlineServerActionLocalGuardControl(),
+        NextDirectQueryFetchSsrfControl(),
         SpringActuatorExposureControl(),
         SpringCredentialedWildcardCorsControl(),
         GitHubActionsSecurityControl(),
@@ -93,6 +95,7 @@ __all__ = [
     "GoTLSVerificationControl",
     "GoVulnerabilitySnapshotControl",
     "LaravelComposerLockfileControl",
+    "NextDirectQueryFetchSsrfControl",
     "NextInlineServerActionLocalGuardControl",
     "NextPublicEnvironmentControl",
     "NextServerActionLocalGuardControl",
