@@ -17,9 +17,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     second = load_builtin_capability_registry()
 
     assert first.schema_version == 1
-    assert first.catalog_version == "0.27.0"
+    assert first.catalog_version == "0.28.0"
     assert first.catalog_digest == second.catalog_digest
-    assert len(first.capabilities) == 38
+    assert len(first.capabilities) == 39
     assert first.definition_for_implementation("SEC-NEXT-ENV-001").capability_id == (
         "control.native.nextjs-public-env"
     )
@@ -35,6 +35,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     assert first.definition_for_implementation("SEC-NEXT-INLINE-ACTION-001").capability_id == (
         "control.native.nextjs-inline-server-action-local-guard"
     )
+    next_ssrf = first.definition_for_implementation("SEC-NEXT-SSRF-001")
+    assert next_ssrf.capability_id == "control.native.nextjs-direct-query-fetch-ssrf"
+    assert next_ssrf.frameworks == frozenset({"Next.js"})
     assert first.definition_for_implementation("SEC-TRIVY-CONFIG-001").capability_id == (
         "adapter.trivy-config-isolated"
     )

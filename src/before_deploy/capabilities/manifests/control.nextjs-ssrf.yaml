@@ -1,0 +1,17 @@
+schema_version: 1
+id: control.native.nextjs-direct-query-fetch-ssrf
+version: "0.1.0"
+implementation_id: SEC-NEXT-SSRF-001
+kind: CONTROL
+title: Next.js direct query value to fetch SSRF check
+applies_when:
+  frameworks:
+    - Next.js
+security_domains:
+  - DOMAIN-SSRF-001
+exclusions:
+  - Only App Router route.js, route.jsx, route.ts, and route.tsx files are considered.
+  - Only named exported async GET, POST, PUT, PATCH, and DELETE handlers are considered.
+  - Only direct fetch(request.nextUrl.searchParams.get(...)) flows are considered.
+  - Local aliases, new URL(request.url), request bodies, FormData, transformations, helpers, wrappers, branches, client libraries, and interprocedural flow are excluded.
+  - DNS resolution, redirects, proxy behavior, private-address classification, and semantic allowlist validation are not inferred.

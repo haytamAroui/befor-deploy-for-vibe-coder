@@ -1,0 +1,15 @@
+schema_version: 1
+controls:
+  - id: CONTROL-SSRF-NEXTJS-DIRECT-QUERY-FETCH-001
+    version: "0.1.0"
+    title: Next.js direct query value to fetch SSRF contract
+    capability_id: control.native.nextjs-direct-query-fetch-ssrf
+    implementation_id: SEC-NEXT-SSRF-001
+    security_domains:
+      - DOMAIN-SSRF-001
+    detection_scope: Detect direct fetch(request.nextUrl.searchParams.get(...)) inside supported App Router route handlers.
+    exclusions:
+      - Local aliases, new URL(request.url), request bodies, FormData, transformations, helpers, wrappers, branches, client libraries, and interprocedural flow are excluded.
+      - DNS resolution, redirects, proxy behavior, private-address classification, and semantic allowlist validation are not inferred.
+    references:
+      - REF-OWASP-API-2023
