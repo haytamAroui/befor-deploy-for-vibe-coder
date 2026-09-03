@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.26.0"
+catalog_version: "0.27.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -14,6 +14,7 @@ manifests:
   - control.fastapi-input-validation.yaml
   - control.fastapi-file-upload.yaml
   - control.fastapi-ssrf.yaml
+  - control.fastapi-ssrf-single-alias.yaml
   - control.python-data-integrity.yaml
   - control.python-sensitive-data.yaml
   - control.python-error-handling.yaml
