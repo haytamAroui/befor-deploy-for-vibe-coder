@@ -50,7 +50,9 @@ class SpringRequestParamNativeQueryInjectionControl:
 
     def run(self, context: ControlContext) -> ControlResult:
         started_at = utc_now()
-        java_files = sorted(path for path in context.inventory.files if path.suffix.lower() == ".java")
+        java_files: list[Path] = sorted(
+            path for path in context.inventory.files if path.suffix.lower() == ".java"
+        )
         if not java_files:
             return _not_applicable(started_at, "No Java source files were in scope.")
 
