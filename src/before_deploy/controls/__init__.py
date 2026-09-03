@@ -31,6 +31,7 @@ from before_deploy.controls.ruby_rails import RailsGemfileLockfileControl
 from before_deploy.controls.rust_cargo import RustCargoLockfileControl
 from before_deploy.controls.sbom import CycloneDxSbomControl
 from before_deploy.controls.secrets import SecretDetectionControl
+from before_deploy.controls.spring_config import SpringActuatorExposureControl
 
 
 def native_controls() -> tuple[Control, ...]:
@@ -55,6 +56,7 @@ def native_controls() -> tuple[Control, ...]:
         NextStaticCorsControl(),
         NextServerActionLocalGuardControl(),
         NextInlineServerActionLocalGuardControl(),
+        SpringActuatorExposureControl(),
         GitHubActionsSecurityControl(),
         DependencyLockfileControl(),
         LaravelComposerLockfileControl(),
@@ -96,6 +98,7 @@ __all__ = [
     "RailsGemfileLockfileControl",
     "RustCargoLockfileControl",
     "SecretDetectionControl",
+    "SpringActuatorExposureControl",
     "SqlInjectionControl",
     "SqlInjectionSingleLocalAliasControl",
     "native_controls",
