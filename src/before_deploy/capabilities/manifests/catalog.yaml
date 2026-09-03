@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.31.0"
+catalog_version: "0.32.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -48,3 +48,4 @@ manifests:
   - control.spring-actuator.yaml
   - control.spring-cors.yaml
   - control.spring-jpa-native-query.yaml
+  - control.spring-security-permit-all.yaml
