@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.30.0"
+catalog_version: "0.31.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -10,15 +10,14 @@ manifests:
   - control.dependency-manifest.yaml
   - control.docker-compose-privileged.yaml
   - control.fastapi-api.yaml
+  - control.fastapi-api-assurance-domain.yaml
+  - control.fastapi-authentication-domain.yaml
   - control.fastapi-authorization.yaml
+  - control.fastapi-endpoint-domain.yaml
   - control.fastapi-input-validation.yaml
   - control.fastapi-file-upload.yaml
   - control.fastapi-ssrf.yaml
   - control.fastapi-ssrf-single-alias.yaml
-  - control.python-data-integrity.yaml
-  - control.python-sensitive-data.yaml
-  - control.python-error-handling.yaml
-  - control.python-observability.yaml
   - control.github-actions.yaml
   - control.go-module.yaml
   - control.go-tls.yaml
@@ -30,15 +29,22 @@ manifests:
   - control.nextjs-public-env.yaml
   - control.nextjs-ssrf.yaml
   - control.nextjs-ssrf-single-alias.yaml
+  - control.payment-stripe-webhook.yaml
   - control.php-laravel-composer-lock.yaml
   - control.python-config.yaml
   - control.python-cors.yaml
+  - control.python-database-transport.yaml
+  - control.python-data-integrity.yaml
+  - control.python-error-handling.yaml
+  - control.python-observability.yaml
   - control.python-sast.yaml
+  - control.python-sensitive-data.yaml
   - control.python-sql-single-alias.yaml
   - control.release-sbom.yaml
   - control.ruby-rails-gemfile-lock.yaml
   - control.rust-cargo-lock.yaml
   - control.secrets.yaml
+  - control.security-testing-evidence.yaml
   - control.spring-actuator.yaml
   - control.spring-cors.yaml
   - control.spring-jpa-native-query.yaml
