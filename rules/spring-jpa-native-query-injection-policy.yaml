@@ -1,0 +1,8 @@
+schema_version: 1
+profile: spring-jpa-native-query-injection
+allow_nonrequired_control_errors: true
+public_fastapi_routes: []
+controls:
+  SEC-SPRING-JPA-NATIVE-QUERY-001:
+    required: true
+    disposition: BLOCK

@@ -1,0 +1,18 @@
+schema_version: 1
+id: control.native.spring-jpa-native-query-injection
+version: "0.1.0"
+implementation_id: SEC-SPRING-JPA-NATIVE-QUERY-001
+kind: CONTROL
+title: Spring MVC request parameter to JPA native-query injection check
+applies_when:
+  languages:
+    - Java
+  frameworks:
+    - Spring
+security_domains:
+  - Injection
+  - "Framework: Spring"
+exclusions:
+  - Only mapped Spring MVC methods with direct RequestParam or PathVariable String parameters are considered.
+  - Only direct Java string-literal concatenation of that exact parameter inside EntityManager createNativeQuery first arguments is detected.
+  - Aliases, fields, RequestBody or DTO values, transformations, helper calls, repository annotations, Hibernate Session APIs, JPQL createQuery, Criteria APIs, and interprocedural flow are excluded.
