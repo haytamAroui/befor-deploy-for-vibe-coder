@@ -17,9 +17,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     second = load_builtin_capability_registry()
 
     assert first.schema_version == 1
-    assert first.catalog_version == "0.29.0"
+    assert first.catalog_version == "0.30.0"
     assert first.catalog_digest == second.catalog_digest
-    assert len(first.capabilities) == 40
+    assert len(first.capabilities) == 41
     assert first.definition_for_implementation("SEC-NEXT-ENV-001").capability_id == (
         "control.native.nextjs-public-env"
     )
@@ -89,6 +89,10 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     spring_cors = first.definition_for_implementation("SEC-SPRING-CORS-001")
     assert spring_cors.capability_id == "control.native.spring-cors"
     assert spring_cors.frameworks == frozenset({"Spring"})
+    spring_jpa = first.definition_for_implementation("SEC-SPRING-JPA-NATIVE-QUERY-001")
+    assert spring_jpa.capability_id == "control.native.spring-jpa-native-query-injection"
+    assert spring_jpa.frameworks == frozenset({"Spring"})
+    assert spring_jpa.languages == frozenset({"Java"})
     assert first.definition_for_implementation("SEC-UNREGISTERED-001") is None
 
 
