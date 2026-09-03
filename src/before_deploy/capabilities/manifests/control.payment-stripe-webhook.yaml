@@ -1,0 +1,16 @@
+schema_version: 1
+id: control.native.payment-stripe-webhook
+version: "0.1.0"
+implementation_id: SEC-PAYMENT-STRIPE-WEBHOOK-001
+kind: CONTROL
+title: FastAPI Stripe webhook signature evidence check
+applies_when:
+  languages:
+    - Python
+  frameworks:
+    - FastAPI
+security_domains:
+  - Payment integration security
+exclusions:
+  - Only direct Stripe Python imports plus literal FastAPI POST paths containing webhook are inspected for a same-handler stripe.Webhook.construct_event call.
+  - Custom verification helpers, middleware, other payment providers, dynamic routes, secret management, idempotency, payment authorization, and runtime behavior are not inferred.
