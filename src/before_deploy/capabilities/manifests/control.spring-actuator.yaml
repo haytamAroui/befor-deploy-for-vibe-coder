@@ -1,0 +1,16 @@
+schema_version: 1
+id: control.native.spring-actuator
+version: "0.1.0"
+implementation_id: SEC-SPRING-ACTUATOR-001
+kind: CONTROL
+title: Spring Boot Actuator wildcard web exposure check
+applies_when:
+  languages:
+    - Java
+  frameworks:
+    - Spring
+security_domains:
+  - "Framework: Spring"
+exclusions:
+  - Only direct supported application.properties and application-prod.properties assignments are inspected.
+  - YAML, profile-specific files other than application-prod.properties, environment overrides, configuration imports, placeholders, continuation forms, runtime precedence, authentication, authorization, and network exposure are not established.
