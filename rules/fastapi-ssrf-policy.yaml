@@ -1,0 +1,6 @@
+schema_version: 1
+profile: fastapi-ssrf
+controls:
+  SEC-FASTAPI-SSRF-001:
+    required: true
+    disposition: BLOCK
