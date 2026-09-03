@@ -20,10 +20,10 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.26.0"
+    assert catalog.catalog_version == "0.27.0"
     assert catalog.catalog_digest == second.catalog_digest
     assert len(catalog.domains) == 30
-    assert len(catalog.controls) == 37
+    assert len(catalog.controls) == 38
     assert catalog.domains["DOMAIN-SSRF-001"].title == "Server-side request forgery"
     assert {
         control.capability_id for control in catalog.controls.values()
@@ -65,6 +65,11 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert fastapi_ssrf_contract.control_id == "CONTROL-SSRF-FASTAPI-DIRECT-URL-001"
     assert fastapi_ssrf_contract.version == "0.1.0"
     assert fastapi_ssrf_contract.security_domain_ids == ("DOMAIN-SSRF-001",)
+    fastapi_ssrf_alias_contract = catalog.control_for_implementation("SEC-FASTAPI-SSRF-ALIAS-001")
+    assert fastapi_ssrf_alias_contract is not None
+    assert fastapi_ssrf_alias_contract.control_id == "CONTROL-SSRF-FASTAPI-SINGLE-ALIAS-001"
+    assert fastapi_ssrf_alias_contract.version == "0.1.0"
+    assert fastapi_ssrf_alias_contract.security_domain_ids == ("DOMAIN-SSRF-001",)
     php_laravel_contract = catalog.control_for_implementation(
         "SEC-PHP-LARAVEL-COMPOSER-LOCK-001"
     )
@@ -161,6 +166,7 @@ def test_domain_catalog_is_informational_and_exposes_registry_mapping(tmp_path):
     assert [item.capability_id for item in catalog.controls_for_domain("DOMAIN-SSRF-001")] == [
         "adapter.gosec-go-module",
         "control.native.fastapi-direct-url-ssrf",
+        "control.native.fastapi-single-alias-ssrf",
     ]
     assert registry.definition_for_implementation("SEC-UNREGISTERED-001") is None
 
