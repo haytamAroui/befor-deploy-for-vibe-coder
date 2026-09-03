@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.28.0"
+catalog_version: "0.29.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -29,6 +29,7 @@ manifests:
   - control.nextjs-inline-server-action.yaml
   - control.nextjs-public-env.yaml
   - control.nextjs-ssrf.yaml
+  - control.nextjs-ssrf-single-alias.yaml
   - control.php-laravel-composer-lock.yaml
   - control.python-config.yaml
   - control.python-cors.yaml

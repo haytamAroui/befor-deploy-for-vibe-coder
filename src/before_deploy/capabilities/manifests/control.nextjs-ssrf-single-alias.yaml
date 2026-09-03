@@ -1,0 +1,16 @@
+schema_version: 1
+id: control.native.nextjs-single-alias-query-fetch-ssrf
+version: "0.1.0"
+implementation_id: SEC-NEXT-SSRF-ALIAS-001
+kind: CONTROL
+title: Next.js one-local-alias query-to-fetch SSRF check
+applies_when:
+  frameworks:
+    - Next.js
+security_domains:
+  - DOMAIN-SSRF-001
+exclusions:
+  - Only named exported App Router Route Handlers in route.js, route.jsx, route.ts, or route.tsx are considered.
+  - Only one local const or let alias assigned directly from request.nextUrl.searchParams.get(...) and later passed unchanged to fetch() is considered.
+  - Chained aliases, reassignment, transformations, branches, request bodies, FormData, helpers, wrappers, alternate HTTP clients, and interprocedural flow are excluded.
+  - DNS resolution, redirects, proxy behavior, private-address reachability, and semantic destination allowlists are not inferred.

@@ -20,10 +20,10 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.28.0"
+    assert catalog.catalog_version == "0.29.0"
     assert catalog.catalog_digest == second.catalog_digest
     assert len(catalog.domains) == 30
-    assert len(catalog.controls) == 39
+    assert len(catalog.controls) == 40
     assert catalog.domains["DOMAIN-SSRF-001"].title == "Server-side request forgery"
     assert {
         control.capability_id for control in catalog.controls.values()
@@ -55,6 +55,10 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert next_ssrf_contract is not None
     assert next_ssrf_contract.control_id == "CONTROL-SSRF-NEXTJS-DIRECT-QUERY-FETCH-001"
     assert next_ssrf_contract.security_domain_ids == ("DOMAIN-SSRF-001",)
+    next_ssrf_alias_contract = catalog.control_for_implementation("SEC-NEXT-SSRF-ALIAS-001")
+    assert next_ssrf_alias_contract is not None
+    assert next_ssrf_alias_contract.control_id == "CONTROL-SSRF-NEXTJS-SINGLE-ALIAS-001"
+    assert next_ssrf_alias_contract.security_domain_ids == ("DOMAIN-SSRF-001",)
     go_snapshot_contract = catalog.control_for_implementation("SEC-GO-VULN-001")
     assert go_snapshot_contract is not None
     assert go_snapshot_contract.control_id == "CONTROL-SUPPLY-GO-VULNERABILITY-SNAPSHOT-001"
@@ -172,6 +176,7 @@ def test_domain_catalog_is_informational_and_exposes_registry_mapping(tmp_path):
         "control.native.fastapi-direct-url-ssrf",
         "control.native.fastapi-single-alias-ssrf",
         "control.native.nextjs-direct-query-fetch-ssrf",
+        "control.native.nextjs-single-alias-query-fetch-ssrf",
     ]
     assert registry.definition_for_implementation("SEC-UNREGISTERED-001") is None
 
