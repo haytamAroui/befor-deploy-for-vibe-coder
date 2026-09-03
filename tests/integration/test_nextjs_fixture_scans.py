@@ -89,7 +89,7 @@ def test_adaptive_planning_fixture_exposes_evidence_plan_and_diagnostic_coverage
     )
     assert all(selection.detection_scope for selection in plan.control_contract_selections)
     assert all(selection.exclusions for selection in plan.control_contract_selections)
-    assert plan.security_domain_catalog_version == "0.25.0"
+    assert plan.security_domain_catalog_version == "0.26.0"
     assert plan.security_domain_catalog_digest
     assert not plan.adapter_selections
     assert not plan.skill_selections
