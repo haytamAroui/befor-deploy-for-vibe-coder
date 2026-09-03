@@ -46,6 +46,7 @@ APPROVED_IMPLEMENTATION_IDS = frozenset(
         "SEC-GO-TLS-001",
         "SEC-GO-VULN-001",
         "SEC-GOSEC-001",
+        "SEC-JWT-PYTHON-VERIFY-001",
         "SEC-NEXT-ACTION-001",
         "SEC-NEXT-COOKIE-001",
         "SEC-NEXT-CORS-001",
