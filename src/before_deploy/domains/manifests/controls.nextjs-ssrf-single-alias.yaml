@@ -1,0 +1,16 @@
+schema_version: 1
+controls:
+  - id: CONTROL-SSRF-NEXTJS-SINGLE-ALIAS-001
+    version: "0.1.0"
+    title: Next.js one-local-alias query value to fetch SSRF contract
+    capability_id: control.native.nextjs-single-alias-query-fetch-ssrf
+    implementation_id: SEC-NEXT-SSRF-ALIAS-001
+    security_domains:
+      - DOMAIN-SSRF-001
+    detection_scope: Detect one local const or let alias assigned directly from request.nextUrl.searchParams.get(...) and later passed unchanged to fetch() inside a supported App Router Route Handler.
+    exclusions:
+      - Direct query-to-fetch flows are handled by a separate contract.
+      - Chained aliases, reassignment, transformations, branches, request bodies, FormData, helpers, wrappers, alternate HTTP clients, and interprocedural flow are excluded.
+      - DNS resolution, redirects, proxy behavior, private-address classification, and semantic allowlist validation are not inferred.
+    references:
+      - REF-OWASP-API-2023
