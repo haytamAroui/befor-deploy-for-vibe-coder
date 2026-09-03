@@ -1,0 +1,14 @@
+schema_version: 1
+id: control.native.python-database-transport
+version: "0.1.0"
+implementation_id: SEC-DATABASE-TRANSPORT-PYTHON-001
+kind: CONTROL
+title: Python literal database TLS-disable check
+applies_when:
+  languages:
+    - Python
+security_domains:
+  - Database security
+exclusions:
+  - Only literal SQLAlchemy create_engine or psycopg/psycopg2 connect forms that explicitly disable TLS are inspected.
+  - Dynamic DSNs, environment values, aliases, wrappers, ORM configuration layers, IAM, encryption at rest, backups, network posture, and runtime certificate behavior are not inferred.
