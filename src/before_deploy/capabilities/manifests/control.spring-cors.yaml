@@ -1,0 +1,17 @@
+schema_version: 1
+id: control.native.spring-cors
+version: "0.1.0"
+implementation_id: SEC-SPRING-CORS-001
+kind: CONTROL
+title: Spring direct credentialed wildcard CrossOrigin check
+applies_when:
+  languages:
+    - Java
+  frameworks:
+    - Spring
+security_domains:
+  - CORS
+  - "Framework: Spring"
+exclusions:
+  - Only direct single-line CrossOrigin annotations using literal origins wildcard and literal allowCredentials true are inspected.
+  - Multiline annotations, value alias forms, arrays, constants, composed annotations, global CORS configuration, SecurityFilterChain configuration, proxies, runtime policy, and effective response headers are not inferred.
