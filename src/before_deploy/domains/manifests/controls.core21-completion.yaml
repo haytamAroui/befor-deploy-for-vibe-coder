@@ -1,0 +1,73 @@
+schema_version: 1
+controls:
+  - id: CONTROL-AUTHENTICATION-FASTAPI-001
+    version: "0.1.0"
+    title: FastAPI bounded authentication boundary contract
+    capability_id: control.native.fastapi-authentication-domain
+    implementation_id: SEC-AUTH-FASTAPI-001
+    security_domains:
+      - DOMAIN-AUTHENTICATION-001
+    detection_scope: Static mutating FastAPI route-method pairs are checked for a direct Depends or Security authentication dependency using the reviewed route parser.
+    exclusions:
+      - Dependency presence does not prove identity assurance, MFA, session validity, authorization, middleware enforcement, or runtime authentication.
+    references:
+      - REF-OWASP-API-2023
+  - id: CONTROL-ENDPOINT-FASTAPI-001
+    version: "0.1.0"
+    title: FastAPI bounded endpoint access contract
+    capability_id: control.native.fastapi-endpoint-domain
+    implementation_id: SEC-ENDPOINT-FASTAPI-001
+    security_domains:
+      - DOMAIN-ENDPOINT-SECURITY-001
+    detection_scope: Static mutating FastAPI route-method pairs are checked for a direct access-protection dependency using the reviewed route parser.
+    exclusions:
+      - Endpoint inventory completeness, headers, request limits, object authorization, dynamic routes, middleware, and runtime enforcement are not inferred.
+    references:
+      - REF-OWASP-API-2023
+  - id: CONTROL-DATABASE-PYTHON-TRANSPORT-001
+    version: "0.1.0"
+    title: Python literal database TLS-disable contract
+    capability_id: control.native.python-database-transport
+    implementation_id: SEC-DATABASE-TRANSPORT-PYTHON-001
+    security_domains:
+      - DOMAIN-DATABASE-SECURITY-001
+    detection_scope: Literal SQLAlchemy create_engine and psycopg or psycopg2 connect forms that explicitly disable TLS are detected without retaining connection strings.
+    exclusions:
+      - Dynamic DSNs, environment values, aliases, wrappers, IAM, encryption at rest, backups, network posture, and runtime certificate behavior are not inferred.
+    references: []
+  - id: CONTROL-API-ASSURANCE-FASTAPI-001
+    version: "0.1.0"
+    title: FastAPI bounded API assurance contract
+    capability_id: control.native.fastapi-api-assurance-domain
+    implementation_id: SEC-API-ASSURANCE-FASTAPI-001
+    security_domains:
+      - DOMAIN-API-ASSURANCE-001
+    detection_scope: Literal mutating FastAPI routes are checked for direct bare dict or Any body parameters using the reviewed input-validation parser.
+    exclusions:
+      - Explicit typing does not prove schema semantics, response validation, normalization, size limits, inventory completeness, or runtime enforcement.
+    references:
+      - REF-OWASP-API-2023
+  - id: CONTROL-SECURITY-TESTING-EVIDENCE-001
+    version: "0.1.0"
+    title: Repository-local dedicated security-test evidence contract
+    capability_id: control.native.security-testing-evidence
+    implementation_id: SEC-SECURITY-TESTING-EVIDENCE-001
+    security_domains:
+      - DOMAIN-SECURITY-TESTING-001
+    detection_scope: Supported test files are checked for reviewed security-oriented path or filename tokens and absence is reported as an assurance evidence gap.
+    exclusions:
+      - Test quality, execution, coverage, assertions, external scanners, CI enforcement, and runtime behavior are not inferred.
+    references:
+      - REF-NIST-SSDF-DRAFT-1-2
+  - id: CONTROL-PAYMENT-STRIPE-WEBHOOK-001
+    version: "0.1.0"
+    title: FastAPI Stripe webhook signature evidence contract
+    capability_id: control.native.payment-stripe-webhook
+    implementation_id: SEC-PAYMENT-STRIPE-WEBHOOK-001
+    security_domains:
+      - DOMAIN-PAYMENT-INTEGRATION-001
+    detection_scope: Direct Stripe Python imports plus literal FastAPI POST webhook handlers are checked for a same-handler stripe.Webhook.construct_event call.
+    exclusions:
+      - Custom verification helpers, middleware, other payment providers, dynamic routes, secret management, idempotency, authorization, and runtime behavior are not inferred.
+    references:
+      - REF-OWASP-API-2023
