@@ -39,6 +39,7 @@ APPROVED_IMPLEMENTATION_IDS = frozenset(
         "SEC-DEP-VULN-001",
         "SEC-ENDPOINT-FASTAPI-001",
         "SEC-ERROR-HANDLING-PYTHON-001",
+        "SEC-FASTAPI-SESSION-COOKIE-001",
         "SEC-FASTAPI-SSRF-001",
         "SEC-FASTAPI-SSRF-ALIAS-001",
         "SEC-GO-MODULE-001",
@@ -96,14 +97,17 @@ _UniqueKeyLoader.add_constructor(
 
 
 def builtin_manifest_directory() -> Path:
+    """Return the packaged source directory containing the trusted built-in YAML manifests."""
     return Path(__file__).with_name("manifests")
 
 
 def load_builtin_capability_registry() -> CapabilityRegistry:
+    """Load the packaged reviewed catalog; no repository-supplied registry is discovered automatically."""
     return load_capability_registry(builtin_manifest_directory())
 
 
 def load_capability_registry(directory: Path) -> CapabilityRegistry:
+    """Load a strictly validated registry directory and return its canonical semantic digest."""
     if not directory.is_dir():
         raise ValueError(f"Capability manifest directory is not a directory: {directory}")
     catalog_path = directory / CATALOG_FILE_NAME
@@ -125,7 +129,9 @@ def load_capability_registry(directory: Path) -> CapabilityRegistry:
         if definition.capability_id in capabilities:
             raise ValueError(f"Duplicate capability ID: {definition.capability_id}")
         if definition.implementation_id in implementation_ids:
-            raise ValueError(f"Multiple capability manifests reference implementation: {definition.implementation_id}")
+            raise ValueError(
+                f"Multiple capability manifests reference implementation: {definition.implementation_id}"
+            )
         capabilities[definition.capability_id] = definition
         implementation_ids.add(definition.implementation_id)
 
@@ -139,7 +145,21 @@ def load_capability_registry(directory: Path) -> CapabilityRegistry:
 
 def _parse_definition(path: Path) -> CapabilityDefinition:
     raw = _load_mapping(path, "capability manifest")
-    _reject_unknown_keys(raw, {"schema_version", "id", "version", "implementation_id", "kind", "title", "applies_when", "security_domains", "exclusions"}, path)
+    _reject_unknown_keys(
+        raw,
+        {
+            "schema_version",
+            "id",
+            "version",
+            "implementation_id",
+            "kind",
+            "title",
+            "applies_when",
+            "security_domains",
+            "exclusions",
+        },
+        path,
+    )
     if raw.get("schema_version") != CATALOG_SCHEMA_VERSION:
         raise ValueError(f"Capability {path.name} schema_version must be {CATALOG_SCHEMA_VERSION}")
     capability_id = _required_string(raw, "id", path)
@@ -149,7 +169,11 @@ def _parse_definition(path: Path) -> CapabilityDefinition:
     applies_when = raw.get("applies_when")
     if not isinstance(applies_when, dict):
         raise ValueError(f"Capability {capability_id} applies_when must be a mapping")
-    _reject_unknown_keys(applies_when, {"languages", "frameworks", "requires_github_workflow", "required_project_signals"}, path)
+    _reject_unknown_keys(
+        applies_when,
+        {"languages", "frameworks", "requires_github_workflow", "required_project_signals"},
+        path,
+    )
     requires_workflow = applies_when.get("requires_github_workflow", False)
     if not isinstance(requires_workflow, bool):
         raise ValueError(f"Capability {capability_id} requires_github_workflow must be boolean")
@@ -162,7 +186,13 @@ def _parse_definition(path: Path) -> CapabilityDefinition:
         languages=frozenset(_string_tuple(applies_when.get("languages", []), "languages", path)),
         frameworks=frozenset(_string_tuple(applies_when.get("frameworks", []), "frameworks", path)),
         requires_github_workflow=requires_workflow,
-        required_project_signals=frozenset(_string_tuple(applies_when.get("required_project_signals", []), "required_project_signals", path)),
+        required_project_signals=frozenset(
+            _string_tuple(
+                applies_when.get("required_project_signals", []),
+                "required_project_signals",
+                path,
+            )
+        ),
         security_domains=_string_tuple(raw.get("security_domains"), "security_domains", path),
         exclusions=_string_tuple(raw.get("exclusions"), "exclusions", path),
         source_path=path,
