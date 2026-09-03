@@ -1,0 +1,15 @@
+schema_version: 1
+id: control.native.fastapi-api-assurance-domain
+version: "0.1.0"
+implementation_id: SEC-API-ASSURANCE-FASTAPI-001
+kind: CONTROL
+title: FastAPI bounded API assurance check
+applies_when:
+  frameworks:
+    - FastAPI
+security_domains:
+  - API assurance
+  - Input validation
+exclusions:
+  - Reuses the bounded bare dict or Any body-typing predicate; explicit typing does not prove schema semantics, response validation, normalization, size limits, inventory completeness, or runtime enforcement.
+  - Dynamic decorators, aliases, factories, indirect parameters, and interprocedural behavior are not inferred.
