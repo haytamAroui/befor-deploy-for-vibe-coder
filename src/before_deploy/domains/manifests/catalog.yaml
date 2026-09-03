@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.34.0"
+catalog_version: "0.35.0"
 references:
   REF-NIST-SSDF-DRAFT-1-2:
     title: NIST SSDF Version 1.2 initial public draft announcement
@@ -24,6 +24,7 @@ control_manifests:
   - controls.nextjs-error-stack.yaml
   - controls.nextjs-ssrf.yaml
   - controls.nextjs-ssrf-single-alias.yaml
+  - controls.python-jwt-verification.yaml
   - controls.spring.yaml
   - controls.spring-injection.yaml
   - controls.spring-security.yaml

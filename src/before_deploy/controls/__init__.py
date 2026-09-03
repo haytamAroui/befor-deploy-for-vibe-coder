@@ -39,6 +39,7 @@ from before_deploy.controls.nextjs_ssrf_single_alias import NextSingleAliasQuery
 from before_deploy.controls.php_laravel import LaravelComposerLockfileControl
 from before_deploy.controls.python_data_integrity import PythonDataIntegrityControl
 from before_deploy.controls.python_error_handling import PythonErrorHandlingControl
+from before_deploy.controls.python_jwt import PythonJwtSignatureVerificationControl
 from before_deploy.controls.python_observability import PythonObservabilityControl
 from before_deploy.controls.python_sensitive_data import PythonSensitiveDataLoggingControl
 from before_deploy.controls.ruby_rails import RailsGemfileLockfileControl
@@ -62,6 +63,7 @@ def native_controls() -> tuple[Control, ...]:
         FastApiInputValidationControl(),
         FastApiUploadFilenameControl(),
         FastApiUnsafeSessionCookieControl(),
+        PythonJwtSignatureVerificationControl(),
         FastApiDirectUrlSsrfControl(),
         FastApiSingleAliasSsrfControl(),
         FastApiAuthenticationBoundaryControl(),
@@ -136,6 +138,7 @@ __all__ = [
     "PythonDatabaseTransportControl",
     "PythonDataIntegrityControl",
     "PythonErrorHandlingControl",
+    "PythonJwtSignatureVerificationControl",
     "PythonObservabilityControl",
     "PythonSensitiveDataLoggingControl",
     "RailsGemfileLockfileControl",

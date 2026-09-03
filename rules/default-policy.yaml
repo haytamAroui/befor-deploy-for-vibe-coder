@@ -23,6 +23,9 @@ controls:
   SEC-FASTAPI-SESSION-COOKIE-001:
     required: true
     disposition: BLOCK
+  SEC-JWT-PYTHON-VERIFY-001:
+    required: true
+    disposition: BLOCK
   SEC-CONFIG-001:
     required: true
     disposition: BLOCK

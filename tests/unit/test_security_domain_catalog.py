@@ -20,10 +20,10 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.34.0"
+    assert catalog.catalog_version == "0.35.0"
     assert catalog.catalog_digest == second.catalog_digest
     assert len(catalog.domains) == 30
-    assert len(catalog.controls) == 50
+    assert len(catalog.controls) == 51
     assert catalog.domains["DOMAIN-SSRF-001"].title == "Server-side request forgery"
     assert {control.capability_id for control in catalog.controls.values()} == set(registry.capabilities)
     assert all(
@@ -86,6 +86,13 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert fastapi_session_contract is not None
     assert fastapi_session_contract.control_id == "CONTROL-SESSION-FASTAPI-COOKIE-FLAGS-001"
     assert fastapi_session_contract.security_domain_ids == ("DOMAIN-SESSION-SECURITY-001",)
+    python_jwt_contract = catalog.control_for_implementation("SEC-JWT-PYTHON-VERIFY-001")
+    assert python_jwt_contract is not None
+    assert python_jwt_contract.control_id == "CONTROL-JWT-PYTHON-SIGNATURE-VERIFY-001"
+    assert python_jwt_contract.security_domain_ids == (
+        "DOMAIN-JWT-SECURITY-001",
+        "DOMAIN-AUTHENTICATION-001",
+    )
     php_laravel_contract = catalog.control_for_implementation("SEC-PHP-LARAVEL-COMPOSER-LOCK-001")
     assert php_laravel_contract is not None
     assert php_laravel_contract.control_id == "CONTROL-SUPPLY-PHP-LARAVEL-COMPOSER-LOCK-001"
@@ -192,6 +199,12 @@ def test_domain_catalog_is_informational_and_exposes_registry_mapping(tmp_path):
     }
     assert "control.native.spring-security-permit-all" in {
         item.capability_id for item in catalog.controls_for_domain("DOMAIN-AUTHENTICATION-001")
+    }
+    assert "control.native.python-jwt-signature-verification" in {
+        item.capability_id for item in catalog.controls_for_domain("DOMAIN-AUTHENTICATION-001")
+    }
+    assert "control.native.python-jwt-signature-verification" in {
+        item.capability_id for item in catalog.controls_for_domain("DOMAIN-JWT-SECURITY-001")
     }
     assert "control.native.nextjs-route-stack-response" in {
         item.capability_id for item in catalog.controls_for_domain("DOMAIN-ERROR-HANDLING-001")

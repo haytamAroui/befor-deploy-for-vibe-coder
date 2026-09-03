@@ -1,0 +1,14 @@
+schema_version: 1
+id: control.native.python-jwt-signature-verification
+version: "0.1.0"
+implementation_id: SEC-JWT-PYTHON-VERIFY-001
+kind: CONTROL
+title: Python JWT signature-verification disablement check
+applies_when:
+  languages:
+    - Python
+security_domains:
+  - JSON Web Token security
+exclusions:
+  - Only unshadowed direct PyJWT or python-jose imports and direct decode calls with a literal options mapping are inspected.
+  - Import aliases, rebound jwt or decode names, wrappers, options variables, alternative JWT libraries, algorithm choice, expiry validation, key management, revocation, token storage, and runtime behavior are not inferred.
