@@ -1,0 +1,15 @@
+schema_version: 1
+controls:
+  - id: CONTROL-SSRF-FASTAPI-DIRECT-URL-001
+    version: "0.1.0"
+    title: FastAPI direct string parameter to outbound HTTP client check
+    capability_id: control.native.fastapi-direct-url-ssrf
+    implementation_id: SEC-FASTAPI-SSRF-001
+    security_domains:
+      - DOMAIN-SSRF-001
+    detection_scope: Direct bare str parameter of a literal FastAPI route passed unchanged to a supported module-level requests or httpx URL argument.
+    exclusions:
+      - Aliases, imported request functions, client objects, model attributes, concatenation, helper calls, branches, interprocedural flow, validation semantics, redirects, DNS resolution, private-address classification, proxies, and runtime network behavior are not covered.
+      - Depends and Security defaults are excluded from direct user-input treatment.
+    references:
+      - REF-OWASP-API-2023
