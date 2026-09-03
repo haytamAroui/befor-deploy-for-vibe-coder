@@ -17,12 +17,16 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     second = load_builtin_capability_registry()
 
     assert first.schema_version == 1
-    assert first.catalog_version == "0.32.0"
+    assert first.catalog_version == "0.33.0"
     assert first.catalog_digest == second.catalog_digest
-    assert len(first.capabilities) == 48
+    assert len(first.capabilities) == 49
     assert first.definition_for_implementation("SEC-NEXT-ENV-001").capability_id == (
         "control.native.nextjs-public-env"
     )
+    next_error = first.definition_for_implementation("SEC-NEXT-ERROR-STACK-001")
+    assert next_error.capability_id == "control.native.nextjs-route-stack-response"
+    assert next_error.frameworks == frozenset({"Next.js"})
+    assert next_error.languages == frozenset({"JavaScript", "TypeScript"})
     assert first.definition_for_implementation("SEC-GO-TLS-001").capability_id == (
         "control.native.go-tls-verification"
     )
@@ -120,9 +124,7 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
 
 def test_every_configured_policy_control_has_one_approved_capability_definition():
     registry = load_builtin_capability_registry()
-    registered = {
-        definition.implementation_id for definition in registry.capabilities.values()
-    }
+    registered = {definition.implementation_id for definition in registry.capabilities.values()}
 
     for policy_path in sorted((REPOSITORY / "rules").glob("*.yaml")):
         profile = load_policy(policy_path)
@@ -130,9 +132,7 @@ def test_every_configured_policy_control_has_one_approved_capability_definition(
 
 
 def test_registry_rejects_unknown_executable_field(tmp_path):
-    _write_registry(
-        tmp_path,
-        """schema_version: 1
+    _write_registry(tmp_path, """schema_version: 1
 id: control.example
 version: "0.1.0"
 implementation_id: SEC-SECRET-001
@@ -142,17 +142,13 @@ applies_when: {}
 security_domains: [Secrets]
 exclusions: []
 command: curl https://example.test
-""",
-    )
-
+""")
     with pytest.raises(ValueError, match="Unsupported fields"):
         load_capability_registry(tmp_path)
 
 
 def test_registry_rejects_url_or_command_marker_in_permitted_text_field(tmp_path):
-    _write_registry(
-        tmp_path,
-        """schema_version: 1
+    _write_registry(tmp_path, """schema_version: 1
 id: control.example
 version: "0.1.0"
 implementation_id: SEC-SECRET-001
@@ -161,17 +157,13 @@ title: https://untrusted.example/command
 applies_when: {}
 security_domains: [Secrets]
 exclusions: []
-""",
-    )
-
+""")
     with pytest.raises(ValueError, match="forbidden executable or URL marker"):
         load_capability_registry(tmp_path)
 
 
 def test_registry_rejects_unapproved_implementation_and_duplicate_yaml_keys(tmp_path):
-    _write_registry(
-        tmp_path,
-        """schema_version: 1
+    _write_registry(tmp_path, """schema_version: 1
 id: control.example
 version: "0.1.0"
 implementation_id: SEC-UNAPPROVED-001
@@ -180,14 +172,11 @@ title: Example
 applies_when: {}
 security_domains: [Secrets]
 exclusions: []
-""",
-    )
+""")
     with pytest.raises(ValueError, match="unapproved implementation"):
         load_capability_registry(tmp_path)
 
-    _write_registry(
-        tmp_path,
-        """schema_version: 1
+    _write_registry(tmp_path, """schema_version: 1
 id: control.example
 id: control.duplicate
 version: "0.1.0"
@@ -197,8 +186,7 @@ title: Example
 applies_when: {}
 security_domains: [Secrets]
 exclusions: []
-""",
-    )
+""")
     with pytest.raises(ValueError, match="Unable to load capability manifest"):
         load_capability_registry(tmp_path)
 

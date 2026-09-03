@@ -1,0 +1,16 @@
+schema_version: 1
+id: control.native.nextjs-route-stack-response
+version: "0.1.0"
+implementation_id: SEC-NEXT-ERROR-STACK-001
+kind: CONTROL
+title: Next.js Route Handler caught-exception stack response check
+applies_when:
+  languages: [JavaScript, TypeScript]
+  frameworks: [Next.js]
+security_domains:
+  - Error handling
+  - Sensitive data handling
+exclusions:
+  - Only supported route files and exported async HTTP handlers are inspected.
+  - Only a direct catch variable stack property passed inside NextResponse.json or Response.json is detected.
+  - Exception messages, aliases, helpers, logs, Server Actions, pages, custom response wrappers, and runtime behavior are not inferred.
