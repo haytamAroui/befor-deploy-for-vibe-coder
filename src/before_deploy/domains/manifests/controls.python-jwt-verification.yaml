@@ -8,8 +8,8 @@ controls:
     security_domains:
       - DOMAIN-JWT-SECURITY-001
       - DOMAIN-AUTHENTICATION-001
-    detection_scope: Direct PyJWT or python-jose decode calls are checked for a literal options mapping that explicitly sets verify_signature to false.
+    detection_scope: Unshadowed direct PyJWT or python-jose decode calls are checked for a literal options mapping that explicitly sets verify_signature to false.
     exclusions:
-      - Import aliases, wrappers, options variables, alternative JWT libraries, algorithm selection, expiry validation, issuer or audience validation, key management, revocation, storage, and runtime behavior are not inferred.
+      - Import aliases, rebound jwt or decode names, wrappers, options variables, alternative JWT libraries, algorithm selection, expiry validation, issuer or audience validation, key management, revocation, storage, and runtime behavior are not inferred.
     references:
       - REF-OWASP-API-2023
