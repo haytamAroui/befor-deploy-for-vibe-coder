@@ -1,6 +1,14 @@
 """Deterministic native controls and future external scanner adapters."""
 
 from before_deploy.controls.base import Control, ControlContext, ControlResult
+from before_deploy.controls.core_domain_completion import (
+    FastApiApiAssuranceControl,
+    FastApiAuthenticationBoundaryControl,
+    FastApiEndpointAccessControl,
+    FastApiStripeWebhookSignatureControl,
+    PythonDatabaseTransportControl,
+    SecurityTestEvidenceControl,
+)
 from before_deploy.controls.dependencies import DependencyLockfileControl
 from before_deploy.controls.deployment_config import (
     CredentialedWildcardCorsControl,
@@ -52,6 +60,12 @@ def native_controls() -> tuple[Control, ...]:
         FastApiUploadFilenameControl(),
         FastApiDirectUrlSsrfControl(),
         FastApiSingleAliasSsrfControl(),
+        FastApiAuthenticationBoundaryControl(),
+        FastApiEndpointAccessControl(),
+        FastApiApiAssuranceControl(),
+        PythonDatabaseTransportControl(),
+        SecurityTestEvidenceControl(),
+        FastApiStripeWebhookSignatureControl(),
         PythonDataIntegrityControl(),
         PythonSensitiveDataLoggingControl(),
         PythonErrorHandlingControl(),
@@ -88,11 +102,15 @@ __all__ = [
     "CycloneDxSbomControl",
     "DependencyLockfileControl",
     "DockerComposePrivilegedControl",
+    "FastApiApiAssuranceControl",
+    "FastApiAuthenticationBoundaryControl",
     "FastApiAuthorizationDeclarationControl",
     "FastApiDirectUrlSsrfControl",
+    "FastApiEndpointAccessControl",
     "FastApiInputValidationControl",
     "FastApiRouteAuthenticationControl",
     "FastApiSingleAliasSsrfControl",
+    "FastApiStripeWebhookSignatureControl",
     "FastApiUploadFilenameControl",
     "GitHubActionsSecurityControl",
     "GoModuleIntegrityControl",
@@ -107,6 +125,7 @@ __all__ = [
     "NextSingleAliasQueryFetchSsrfControl",
     "NextStaticCorsControl",
     "ProductionDebugControl",
+    "PythonDatabaseTransportControl",
     "PythonDataIntegrityControl",
     "PythonErrorHandlingControl",
     "PythonObservabilityControl",
@@ -114,6 +133,7 @@ __all__ = [
     "RailsGemfileLockfileControl",
     "RustCargoLockfileControl",
     "SecretDetectionControl",
+    "SecurityTestEvidenceControl",
     "SpringActuatorExposureControl",
     "SpringCredentialedWildcardCorsControl",
     "SpringRequestParamNativeQueryInjectionControl",
