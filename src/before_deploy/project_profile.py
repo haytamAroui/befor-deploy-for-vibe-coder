@@ -219,7 +219,15 @@ def _coverage_gaps(languages: set[str], frameworks: set[str]) -> tuple[str, ...]
         gaps.append(
             "No language-specific JavaScript/TypeScript controls are installed without a detected Next.js framework."
         )
-    for framework in sorted(frameworks - {"FastAPI", "Laravel", "Next.js", "Rails", "GitHub Actions"}):
+    if "Spring" in frameworks:
+        gaps.append(
+            "Spring coverage is limited to one bounded application.properties Actuator wildcard web-exposure "
+            "check; YAML, arbitrary profiles, Spring Security authorization, CSRF, CORS, validation, data access, "
+            "runtime configuration precedence, and deployed exposure are not analyzed."
+        )
+    for framework in sorted(
+        frameworks - {"FastAPI", "Laravel", "Next.js", "Rails", "Spring", "GitHub Actions"}
+    ):
         gaps.append(f"{framework} is detected, but no framework-specific controls are currently installed.")
     if not languages:
         gaps.append("No supported language signal was detected; only generic controls can provide coverage.")

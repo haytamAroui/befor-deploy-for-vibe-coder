@@ -1,0 +1,14 @@
+schema_version: 1
+controls:
+  - id: CONTROL-CONFIG-SPRING-ACTUATOR-001
+    version: "0.1.0"
+    title: Spring Boot Actuator wildcard web exposure check
+    capability_id: control.native.spring-actuator
+    implementation_id: SEC-SPRING-ACTUATOR-001
+    security_domains:
+      - DOMAIN-PRODUCTION-CONFIGURATION-001
+    detection_scope: Direct non-comment, non-continuation assignment of management.endpoints.web.exposure.include=* in root or src/main/resources application.properties or application-prod.properties.
+    exclusions:
+      - YAML, XML, environment variables, configuration imports, placeholders, custom profile files, continuation syntax, runtime precedence, authentication, authorization, reverse proxies, network policy, and deployed effective exposure are not covered.
+      - A finding records only constant setting metadata and the relative file/line; endpoint names, application source, and runtime values are not retained.
+    references: []

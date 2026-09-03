@@ -1,0 +1,6 @@
+schema_version: 1
+profile: spring-actuator
+controls:
+  SEC-SPRING-ACTUATOR-001:
+    required: true
+    disposition: BLOCK

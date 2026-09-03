@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.23.0"
+catalog_version: "0.24.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -35,3 +35,4 @@ manifests:
   - control.ruby-rails-gemfile-lock.yaml
   - control.rust-cargo-lock.yaml
   - control.secrets.yaml
+  - control.spring-actuator.yaml
