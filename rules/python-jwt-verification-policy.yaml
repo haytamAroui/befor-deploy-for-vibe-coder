@@ -1,0 +1,8 @@
+schema_version: 1
+profile: python-jwt-verification
+allow_nonrequired_control_errors: true
+public_fastapi_routes: []
+controls:
+  SEC-JWT-PYTHON-VERIFY-001:
+    required: true
+    disposition: BLOCK
