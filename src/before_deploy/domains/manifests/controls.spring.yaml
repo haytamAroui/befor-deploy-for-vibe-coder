@@ -12,3 +12,15 @@ controls:
       - YAML, XML, environment variables, configuration imports, placeholders, custom profile files, continuation syntax, runtime precedence, authentication, authorization, reverse proxies, network policy, and deployed effective exposure are not covered.
       - A finding records only constant setting metadata and the relative file/line; endpoint names, application source, and runtime values are not retained.
     references: []
+  - id: CONTROL-CORS-SPRING-CROSSORIGIN-001
+    version: "0.1.0"
+    title: Spring direct credentialed wildcard CrossOrigin check
+    capability_id: control.native.spring-cors
+    implementation_id: SEC-SPRING-CORS-001
+    security_domains:
+      - DOMAIN-CORS-001
+    detection_scope: Direct single-line Java CrossOrigin annotation with literal origins wildcard and literal allowCredentials true, with comments removed before matching.
+    exclusions:
+      - Multiline annotations, value alias forms, arrays, constants, composed annotations, imported aliases, global MVC CORS configuration, SecurityFilterChain configuration, proxies, runtime policy, and effective response headers are not covered.
+      - A finding records only constant annotation metadata and the relative file/line; controller names, route paths, source excerpts, and origin values other than the wildcard category are not retained.
+    references: []
