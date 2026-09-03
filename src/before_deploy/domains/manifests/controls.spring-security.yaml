@@ -1,0 +1,15 @@
+schema_version: 1
+controls:
+  - id: CONTROL-AUTH-SPRING-ANY-REQUEST-PERMIT-ALL-001
+    version: "0.1.0"
+    title: Spring Security direct any-request permit-all check
+    capability_id: control.native.spring-security-permit-all
+    implementation_id: SEC-SPRING-SECURITY-PERMIT-ALL-001
+    security_domains:
+      - DOMAIN-AUTHENTICATION-001
+      - DOMAIN-ENDPOINT-SECURITY-001
+    detection_scope: Java source importing Spring SecurityFilterChain and HttpSecurity is checked for the exact direct fluent call anyRequest().permitAll() after comments and literals are masked.
+    exclusions:
+      - Multiple SecurityFilterChain beans, matcher ordering, custom filters, method security, annotations, proxies, runtime bean ordering, and effective deployed authorization are not inferred.
+      - requestMatchers permitAll rules, aliases, helper methods, Kotlin configuration, XML configuration, and indirect builder composition are not covered.
+    references: []

@@ -1,0 +1,18 @@
+schema_version: 1
+id: control.native.spring-security-permit-all
+version: "0.1.0"
+implementation_id: SEC-SPRING-SECURITY-PERMIT-ALL-001
+kind: CONTROL
+title: Spring Security direct any-request permit-all check
+applies_when:
+  languages:
+    - Java
+  frameworks:
+    - Spring
+security_domains:
+  - Authentication
+  - Endpoint security
+  - "Framework: Spring"
+exclusions:
+  - Multiple SecurityFilterChain beans, matcher ordering, custom filters, method security, annotations, proxies, runtime bean ordering, and effective deployed authorization are not inferred.
+  - Only direct Java configuration importing SecurityFilterChain and HttpSecurity with the exact anyRequest().permitAll() fluent call shape is covered.

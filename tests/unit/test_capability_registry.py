@@ -17,9 +17,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     second = load_builtin_capability_registry()
 
     assert first.schema_version == 1
-    assert first.catalog_version == "0.31.0"
+    assert first.catalog_version == "0.32.0"
     assert first.catalog_digest == second.catalog_digest
-    assert len(first.capabilities) == 47
+    assert len(first.capabilities) == 48
     assert first.definition_for_implementation("SEC-NEXT-ENV-001").capability_id == (
         "control.native.nextjs-public-env"
     )
@@ -93,6 +93,10 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     assert spring_jpa.capability_id == "control.native.spring-jpa-native-query-injection"
     assert spring_jpa.frameworks == frozenset({"Spring"})
     assert spring_jpa.languages == frozenset({"Java"})
+    spring_security = first.definition_for_implementation("SEC-SPRING-SECURITY-PERMIT-ALL-001")
+    assert spring_security.capability_id == "control.native.spring-security-permit-all"
+    assert spring_security.frameworks == frozenset({"Spring"})
+    assert spring_security.languages == frozenset({"Java"})
     assert first.definition_for_implementation("SEC-AUTH-FASTAPI-001").capability_id == (
         "control.native.fastapi-authentication-domain"
     )
