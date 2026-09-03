@@ -20,14 +20,12 @@ def test_builtin_domain_catalog_is_versioned_deterministic_and_maps_only_real_ca
     registry = load_builtin_capability_registry()
 
     assert catalog.schema_version == 1
-    assert catalog.catalog_version == "0.32.0"
+    assert catalog.catalog_version == "0.33.0"
     assert catalog.catalog_digest == second.catalog_digest
     assert len(catalog.domains) == 30
-    assert len(catalog.controls) == 48
+    assert len(catalog.controls) == 49
     assert catalog.domains["DOMAIN-SSRF-001"].title == "Server-side request forgery"
-    assert {
-        control.capability_id for control in catalog.controls.values()
-    } == set(registry.capabilities)
+    assert {control.capability_id for control in catalog.controls.values()} == set(registry.capabilities)
     assert all(
         registry.capabilities[control.capability_id].implementation_id == control.implementation_id
         for control in catalog.controls.values()
@@ -38,7 +36,6 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     catalog = load_builtin_security_domain_catalog()
 
     contract = catalog.control_for_implementation("SEC-GO-TLS-001")
-
     assert contract is not None
     assert contract.control_id == "CONTROL-TRANSPORT-GO-TLS-001"
     assert contract.capability_id == "control.native.go-tls-verification"
@@ -59,6 +56,13 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert next_ssrf_alias_contract is not None
     assert next_ssrf_alias_contract.control_id == "CONTROL-SSRF-NEXTJS-SINGLE-ALIAS-001"
     assert next_ssrf_alias_contract.security_domain_ids == ("DOMAIN-SSRF-001",)
+    next_error_contract = catalog.control_for_implementation("SEC-NEXT-ERROR-STACK-001")
+    assert next_error_contract is not None
+    assert next_error_contract.control_id == "CONTROL-NEXTJS-ERROR-STACK-001"
+    assert next_error_contract.security_domain_ids == (
+        "DOMAIN-ERROR-HANDLING-001",
+        "DOMAIN-SENSITIVE-DATA-001",
+    )
     go_snapshot_contract = catalog.control_for_implementation("SEC-GO-VULN-001")
     assert go_snapshot_contract is not None
     assert go_snapshot_contract.control_id == "CONTROL-SUPPLY-GO-VULNERABILITY-SNAPSHOT-001"
@@ -78,9 +82,7 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert fastapi_ssrf_alias_contract.control_id == "CONTROL-SSRF-FASTAPI-SINGLE-ALIAS-001"
     assert fastapi_ssrf_alias_contract.version == "0.1.0"
     assert fastapi_ssrf_alias_contract.security_domain_ids == ("DOMAIN-SSRF-001",)
-    php_laravel_contract = catalog.control_for_implementation(
-        "SEC-PHP-LARAVEL-COMPOSER-LOCK-001"
-    )
+    php_laravel_contract = catalog.control_for_implementation("SEC-PHP-LARAVEL-COMPOSER-LOCK-001")
     assert php_laravel_contract is not None
     assert php_laravel_contract.control_id == "CONTROL-SUPPLY-PHP-LARAVEL-COMPOSER-LOCK-001"
     assert php_laravel_contract.version == "0.1.0"
@@ -90,9 +92,7 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert rust_cargo_contract.control_id == "CONTROL-SUPPLY-RUST-CARGO-LOCK-001"
     assert rust_cargo_contract.version == "0.1.0"
     assert rust_cargo_contract.security_domain_ids == ("DOMAIN-SUPPLY-CHAIN-001",)
-    ruby_rails_contract = catalog.control_for_implementation(
-        "SEC-RUBY-RAILS-GEMFILE-LOCK-001"
-    )
+    ruby_rails_contract = catalog.control_for_implementation("SEC-RUBY-RAILS-GEMFILE-LOCK-001")
     assert ruby_rails_contract is not None
     assert ruby_rails_contract.control_id == "CONTROL-SUPPLY-RUBY-RAILS-GEMFILE-LOCK-001"
     assert ruby_rails_contract.version == "0.1.0"
@@ -150,9 +150,7 @@ def test_domain_catalog_exposes_a_unique_contract_for_each_registered_implementa
     assert spring_jpa_contract.control_id == "CONTROL-INJECTION-SPRING-JPA-NATIVE-QUERY-001"
     assert spring_jpa_contract.version == "0.1.0"
     assert spring_jpa_contract.security_domain_ids == ("DOMAIN-INJECTION-001",)
-    spring_security_contract = catalog.control_for_implementation(
-        "SEC-SPRING-SECURITY-PERMIT-ALL-001"
-    )
+    spring_security_contract = catalog.control_for_implementation("SEC-SPRING-SECURITY-PERMIT-ALL-001")
     assert spring_security_contract is not None
     assert spring_security_contract.control_id == "CONTROL-AUTH-SPRING-ANY-REQUEST-PERMIT-ALL-001"
     assert spring_security_contract.security_domain_ids == (
@@ -174,14 +172,7 @@ def test_domain_catalog_is_informational_and_exposes_registry_mapping(tmp_path):
     registry = load_builtin_capability_registry()
     from before_deploy.models import ProjectProfile
 
-    profile = ProjectProfile(
-        languages=(),
-        frameworks=(),
-        package_managers=(),
-        signals={},
-        coverage_gaps=(),
-    )
-
+    profile = ProjectProfile(languages=(), frameworks=(), package_managers=(), signals={}, coverage_gaps=())
     active = catalog.domains_for_profile(profile, frozenset({"REQUIREMENT-EXTERNAL-URL-FETCH"}))
 
     assert [item.domain_id for item in active] == ["DOMAIN-SECRETS-001", "DOMAIN-SSRF-001"]
@@ -198,38 +189,30 @@ def test_domain_catalog_is_informational_and_exposes_registry_mapping(tmp_path):
     assert "control.native.spring-security-permit-all" in {
         item.capability_id for item in catalog.controls_for_domain("DOMAIN-AUTHENTICATION-001")
     }
+    assert "control.native.nextjs-route-stack-response" in {
+        item.capability_id for item in catalog.controls_for_domain("DOMAIN-ERROR-HANDLING-001")
+    }
     assert registry.definition_for_implementation("SEC-UNREGISTERED-001") is None
 
 
 def test_domain_catalog_rejects_unknown_executable_metadata_and_unknown_domain_reference(tmp_path):
-    _write_catalog(
-        tmp_path,
-        domain_extra="\n    command: curl https://untrusted.example/check",
-    )
+    _write_catalog(tmp_path, domain_extra="\n    command: curl https://untrusted.example/check")
     with pytest.raises(ValueError, match="Unsupported fields"):
-        load_security_domain_catalog(
-            tmp_path, capability_registry=load_builtin_capability_registry()
-        )
+        load_security_domain_catalog(tmp_path, capability_registry=load_builtin_capability_registry())
 
     _write_catalog(tmp_path, control_domain="DOMAIN-NOT-REGISTERED-001")
     with pytest.raises(ValueError, match="unknown security domains"):
-        load_security_domain_catalog(
-            tmp_path, capability_registry=load_builtin_capability_registry()
-        )
+        load_security_domain_catalog(tmp_path, capability_registry=load_builtin_capability_registry())
 
 
 def test_domain_catalog_rejects_unapproved_reference_and_duplicate_yaml_key(tmp_path):
     _write_catalog(tmp_path, reference_url="https://untrusted.example/reference")
     with pytest.raises(ValueError, match="URL is not approved"):
-        load_security_domain_catalog(
-            tmp_path, capability_registry=load_builtin_capability_registry()
-        )
+        load_security_domain_catalog(tmp_path, capability_registry=load_builtin_capability_registry())
 
     _write_catalog(tmp_path, duplicate_domain_id=True)
     with pytest.raises(ValueError, match="Unable to load security domain manifest bundle"):
-        load_security_domain_catalog(
-            tmp_path, capability_registry=load_builtin_capability_registry()
-        )
+        load_security_domain_catalog(tmp_path, capability_registry=load_builtin_capability_registry())
 
 
 def _write_catalog(
