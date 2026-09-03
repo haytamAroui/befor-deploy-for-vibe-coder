@@ -20,6 +20,9 @@ controls:
   SEC-FASTAPI-SSRF-ALIAS-001:
     required: true
     disposition: BLOCK
+  SEC-FASTAPI-SESSION-COOKIE-001:
+    required: true
+    disposition: BLOCK
   SEC-CONFIG-001:
     required: true
     disposition: BLOCK
