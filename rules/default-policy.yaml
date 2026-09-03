@@ -20,6 +20,9 @@ controls:
   SEC-CONFIG-002:
     required: true
     disposition: BLOCK
+  SEC-SPRING-ACTUATOR-001:
+    required: true
+    disposition: BLOCK
   SEC-NEXT-ENV-001:
     required: true
     disposition: BLOCK
