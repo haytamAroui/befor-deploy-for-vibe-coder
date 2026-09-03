@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.32.0"
+catalog_version: "0.33.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -25,6 +25,7 @@ manifests:
   - control.nextjs-cookie.yaml
   - control.nextjs-server-action.yaml
   - control.nextjs-cors.yaml
+  - control.nextjs-error-stack.yaml
   - control.nextjs-inline-server-action.yaml
   - control.nextjs-public-env.yaml
   - control.nextjs-ssrf.yaml
