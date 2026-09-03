@@ -1,0 +1,6 @@
+schema_version: 1
+profile: fastapi-ssrf-single-alias
+controls:
+  SEC-FASTAPI-SSRF-ALIAS-001:
+    required: true
+    disposition: BLOCK
