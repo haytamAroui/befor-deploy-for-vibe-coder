@@ -17,9 +17,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     second = load_builtin_capability_registry()
 
     assert first.schema_version == 1
-    assert first.catalog_version == "0.23.0"
+    assert first.catalog_version == "0.24.0"
     assert first.catalog_digest == second.catalog_digest
-    assert len(first.capabilities) == 34
+    assert len(first.capabilities) == 35
     assert first.definition_for_implementation("SEC-NEXT-ENV-001").capability_id == (
         "control.native.nextjs-public-env"
     )
@@ -71,6 +71,9 @@ def test_builtin_registry_is_versioned_and_contains_only_approved_implementation
     fastapi_upload = first.definition_for_implementation("SEC-API-UPLOAD-001")
     assert fastapi_upload.capability_id == "control.native.fastapi-file-upload"
     assert fastapi_upload.version == "0.1.0"
+    spring_actuator = first.definition_for_implementation("SEC-SPRING-ACTUATOR-001")
+    assert spring_actuator.capability_id == "control.native.spring-actuator"
+    assert spring_actuator.frameworks == frozenset({"Spring"})
     assert first.definition_for_implementation("SEC-UNREGISTERED-001") is None
 
 
