@@ -1,0 +1,14 @@
+schema_version: 1
+controls:
+  - id: CONTROL-INJECTION-FASTAPI-DIRECT-COMMAND-001
+    version: "0.1.0"
+    title: FastAPI direct request-to-shell command injection contract
+    capability_id: control.native.fastapi-direct-command-injection
+    implementation_id: SEC-FASTAPI-COMMAND-INJECTION-001
+    security_domains:
+      - DOMAIN-INJECTION-001
+    detection_scope: Literal FastAPI route handlers are checked for a bare string request parameter passed unchanged to direct os.system or subprocess run, call, or Popen with literal shell true.
+    exclusions:
+      - Aliases, f-strings, concatenation, local aliases, transformations, wrappers, helpers, interprocedural flow, dynamic shell values, list-form subprocess calls, authorization, and runtime reachability are not inferred.
+    references:
+      - REF-OWASP-API-2023
