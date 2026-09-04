@@ -1,0 +1,8 @@
+schema_version: 1
+profile: fastapi-command-injection
+allow_nonrequired_control_errors: true
+public_fastapi_routes: []
+controls:
+  SEC-FASTAPI-COMMAND-INJECTION-001:
+    required: true
+    disposition: BLOCK
