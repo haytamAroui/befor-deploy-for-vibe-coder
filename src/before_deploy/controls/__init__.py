@@ -16,6 +16,7 @@ from before_deploy.controls.deployment_config import (
 )
 from before_deploy.controls.docker_compose import DockerComposePrivilegedControl
 from before_deploy.controls.fastapi_authorization import FastApiAuthorizationDeclarationControl
+from before_deploy.controls.fastapi_command_injection import FastApiDirectCommandInjectionControl
 from before_deploy.controls.fastapi_input import FastApiInputValidationControl
 from before_deploy.controls.fastapi_routes import FastApiRouteAuthenticationControl
 from before_deploy.controls.fastapi_session_cookie import FastApiUnsafeSessionCookieControl
@@ -64,6 +65,7 @@ def native_controls() -> tuple[Control, ...]:
         FastApiUploadFilenameControl(),
         FastApiUnsafeSessionCookieControl(),
         PythonJwtSignatureVerificationControl(),
+        FastApiDirectCommandInjectionControl(),
         FastApiDirectUrlSsrfControl(),
         FastApiSingleAliasSsrfControl(),
         FastApiAuthenticationBoundaryControl(),
@@ -113,6 +115,7 @@ __all__ = [
     "FastApiApiAssuranceControl",
     "FastApiAuthenticationBoundaryControl",
     "FastApiAuthorizationDeclarationControl",
+    "FastApiDirectCommandInjectionControl",
     "FastApiDirectUrlSsrfControl",
     "FastApiEndpointAccessControl",
     "FastApiInputValidationControl",
