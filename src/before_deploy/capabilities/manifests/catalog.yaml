@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_version: "0.35.0"
+catalog_version: "0.36.0"
 manifests:
   - adapter.gitleaks.yaml
   - adapter.gosec.yaml
@@ -13,6 +13,7 @@ manifests:
   - control.fastapi-api-assurance-domain.yaml
   - control.fastapi-authentication-domain.yaml
   - control.fastapi-authorization.yaml
+  - control.fastapi-command-injection.yaml
   - control.fastapi-endpoint-domain.yaml
   - control.fastapi-input-validation.yaml
   - control.fastapi-file-upload.yaml
