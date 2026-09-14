@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 
 from before_deploy.advisory import AdvisoryFinding, load_advisory_file
-from before_deploy.models import Location, to_primitive
+from before_deploy.models import to_primitive
 
 BENCHMARK_SCHEMA_VERSION = 1
 
