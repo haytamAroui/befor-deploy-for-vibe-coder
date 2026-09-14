@@ -51,4 +51,6 @@ uv run python scripts/validate_review_benchmark_corpus.py \
   --oracle-advisory fixtures/review-benchmark-v1/oracle-advisory.json
 ```
 
-The validator checks exact source bytes using Git blob SHA-1 identifiers, label/source consistency, canonical advisory taxonomy, evidence-test selectors, and oracle alignment. The Git blob identifier is used only as a deterministic drift detector; it is not treated as a cryptographic trust or authenticity mechanism.
+The validator checks exact current source bytes using Git blob SHA-1 identifiers, verifies that each declared blob is the file stored at the declared source snapshot commit, and then checks label/source consistency, canonical advisory taxonomy, evidence-test selectors, and oracle alignment. The declared snapshot commit therefore must be available in the local Git history; CI uses a full checkout for this offline provenance check.
+
+The Git blob identifier is used only as a deterministic drift and snapshot-membership identifier. It is not treated as a cryptographic trust or authenticity mechanism.
