@@ -53,6 +53,8 @@ class AdvisoryImport:
     findings: tuple[AdvisoryFinding, ...]
     status: str = "COMPLETED"
     message: str | None = None
+    scope_status: str = "NOT_CHECKED"
+    scope_message: str | None = None
 
 
 def advisory_error_import(
@@ -61,6 +63,8 @@ def advisory_error_import(
     source: str,
     source_format: str,
     message: str,
+    scope_status: str = "NOT_CHECKED",
+    scope_message: str | None = None,
 ) -> AdvisoryImport:
     """Create a gate-neutral advisory source error for reporting."""
     return AdvisoryImport(
@@ -70,6 +74,8 @@ def advisory_error_import(
         findings=(),
         status="ERROR",
         message=message,
+        scope_status=scope_status,
+        scope_message=scope_message,
     )
 
 
