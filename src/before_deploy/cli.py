@@ -397,6 +397,7 @@ def _collect_advisory_sources(args: argparse.Namespace):
                 OcrAdvisoryOptions(
                     timeout_seconds=args.ocr_timeout_seconds,
                     max_output_bytes=args.ocr_max_output_bytes,
+                    max_file_bytes=args.max_file_bytes,
                     from_ref=args.review_from,
                     to_ref=args.review_to,
                     commit=args.review_commit,
@@ -426,10 +427,15 @@ def _print_terminal_summary(result, output_dir: Path) -> None:
 def _print_review_terminal_summary(review, output_dir: Path) -> None:
     _print_terminal_summary(review.scan, output_dir)
     advisory_errors = sum(source.status == "ERROR" for source in review.advisory_sources)
+    scope_states = sum(
+        source.scope_status not in {"MATCHED", "NOT_CHECKED"}
+        for source in review.advisory_sources
+    )
     print(
         "Advisory review: "
         f"findings={len(review.advisory_findings)}, "
         f"source_errors={advisory_errors}, "
+        f"scope_nonmatched={scope_states}, "
         f"location_correlations={len(review.correlations)}, "
         "authority=ADVISORY, gate_effect=NONE"
     )

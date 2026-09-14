@@ -18,6 +18,7 @@ def render_review_json(result: UnifiedReviewResult) -> str:
             "advisory_gate_effect": "NONE",
             "correlation_semantics": "location_overlap_only",
             "advisory_content_trust": "untrusted",
+            "advisory_scope_attestation": "diagnostic_only",
         },
         "deterministic_scan": to_primitive(result.scan),
         "advisory_sources": [
@@ -28,6 +29,8 @@ def render_review_json(result: UnifiedReviewResult) -> str:
                 "finding_count": len(source.findings),
                 "status": source.status,
                 "message": source.message,
+                "scope_status": source.scope_status,
+                "scope_message": source.scope_message,
             }
             for source in result.advisory_sources
         ],
@@ -40,6 +43,10 @@ def render_review_json(result: UnifiedReviewResult) -> str:
 def render_review_markdown(result: UnifiedReviewResult) -> str:
     """Render a human review summary with the trust boundary stated explicitly."""
     decision = result.scan.decision.outcome.value
+    nonmatched_scope = sum(
+        source.scope_status not in {"MATCHED", "NOT_CHECKED"}
+        for source in result.advisory_sources
+    )
     lines = [
         "# Before Deploy Unified Review",
         "",
@@ -50,6 +57,7 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
         "- Only the deterministic `PolicyDecision` can affect release status.",
         "- Imported AI or third-party findings are `ADVISORY` with `gate_effect=NONE`.",
         "- Advisory message content is untrusted input and is not deterministic evidence.",
+        "- Advisory scope attestation is diagnostic only and cannot change release status.",
         "- Correlation means source-location overlap only; it does not prove semantic agreement.",
         "",
         "## Summary",
@@ -57,6 +65,7 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
         f"- Deterministic findings: **{len(result.scan.findings)}**",
         f"- Advisory findings: **{len(result.advisory_findings)}**",
         f"- Advisory source errors: **{sum(source.status == 'ERROR' for source in result.advisory_sources)}**",
+        f"- Advisory scope states other than MATCHED/NOT_CHECKED: **{nonmatched_scope}**",
         f"- Location correlations: **{len(result.correlations)}**",
         "",
     ]
@@ -66,10 +75,13 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
         for source in result.advisory_sources:
             lines.append(
                 f"- `{source.input_name}` — `{source.source}` / `{source.source_format}` "
-                f"— `{source.status}` ({len(source.findings)} findings)"
+                f"— `{source.status}` ({len(source.findings)} findings) "
+                f"— scope `{source.scope_status}`"
             )
             if source.message:
-                lines.append(f"  - {source.message}")
+                lines.append(f"  - Source: {source.message}")
+            if source.scope_message:
+                lines.append(f"  - Scope: {source.scope_message}")
         lines.append("")
 
     if result.advisory_findings:
