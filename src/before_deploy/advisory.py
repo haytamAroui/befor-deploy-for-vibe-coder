@@ -51,6 +51,26 @@ class AdvisoryImport:
     source: str
     source_format: str
     findings: tuple[AdvisoryFinding, ...]
+    status: str = "COMPLETED"
+    message: str | None = None
+
+
+def advisory_error_import(
+    *,
+    input_name: str,
+    source: str,
+    source_format: str,
+    message: str,
+) -> AdvisoryImport:
+    """Create a gate-neutral advisory source error for reporting."""
+    return AdvisoryImport(
+        input_name=input_name,
+        source=source,
+        source_format=source_format,
+        findings=(),
+        status="ERROR",
+        message=message,
+    )
 
 
 @dataclass(frozen=True)
