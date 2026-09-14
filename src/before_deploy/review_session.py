@@ -210,7 +210,10 @@ def render_review_delta_markdown(delta: ReviewDelta) -> str:
         return "\n".join(lines).rstrip() + "\n"
 
     for title, items in (("Deterministic", delta.deterministic), ("Advisory", delta.advisory)):
-        counts = {state: sum(item.state == state for item in items) for state in ("NEW", "PERSISTING", "ABSENT_CURRENT")}
+        counts = {
+            state: sum(item.state == state for item in items)
+            for state in ("NEW", "PERSISTING", "ABSENT_CURRENT")
+        }
         lines.extend(
             [
                 f"## {title}",
@@ -248,6 +251,21 @@ def _compare_plane(
 
 
 def _coverage_message(current: ReviewSession, baseline: ReviewSession) -> str | None:
+    notes: list[str] = []
+    if current.policy_digest != baseline.policy_digest:
+        notes.append(
+            "The deterministic policy digest changed between sessions; deterministic "
+            "ABSENT_CURRENT findings may reflect policy/control selection changes."
+        )
+
+    current_source_names = {source.source for source in current.advisory_sources}
+    baseline_source_names = {source.source for source in baseline.advisory_sources}
+    if current_source_names != baseline_source_names:
+        notes.append(
+            "The advisory source set changed between sessions; advisory ABSENT_CURRENT "
+            "findings may reflect a provider that was not run."
+        )
+
     degraded = [
         f"current:{source.source}:{source.status}/{source.scope_status}"
         for source in current.advisory_sources
@@ -258,12 +276,13 @@ def _coverage_message(current: ReviewSession, baseline: ReviewSession) -> str | 
         for source in baseline.advisory_sources
         if source.status != "COMPLETED" or source.scope_status not in {"MATCHED", "NOT_CHECKED"}
     )
-    if not degraded:
-        return None
-    return (
-        "Advisory coverage differs or is incomplete for one or more sources; "
-        "ABSENT_CURRENT findings require human interpretation. States: " + ", ".join(degraded)
-    )
+    if degraded:
+        notes.append(
+            "Advisory coverage differs or is incomplete for one or more sources; "
+            "ABSENT_CURRENT findings require human interpretation. States: "
+            + ", ".join(degraded)
+        )
+    return " ".join(notes) or None
 
 
 def _repository_identity(repository: Path) -> tuple[str, str]:
