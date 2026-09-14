@@ -137,7 +137,11 @@ class _Change:
 
 def _workspace_changes(root: Path) -> dict[str, _Change]:
     changes: dict[str, _Change] = {}
-    _merge_changes(changes, _diff_changes(root, ["diff", "--name-status", "-z", "--find-renames"]), "WORKTREE")
+    _merge_changes(
+        changes,
+        _diff_changes(root, ["diff", "--name-status", "-z", "--find-renames"]),
+        "WORKTREE",
+    )
     _merge_changes(
         changes,
         _diff_changes(root, ["diff", "--cached", "--name-status", "-z", "--find-renames"]),
@@ -188,19 +192,25 @@ def _diff_changes(root: Path, args: list[str]) -> list[_Change]:
     changes: list[_Change] = []
     index = 0
     while index < len(tokens):
-        token = tokens[index]
-        if "\t" not in token:
-            raise ValueError("Git returned an unexpected name-status record")
-        raw_status, raw_path = token.split("\t", 1)
+        raw_status = tokens[index]
+        index += 1
+        if index >= len(tokens):
+            raise ValueError("Git returned an incomplete name-status record")
         status_code = raw_status[:1]
-        path = _safe_git_path(raw_path)
+        if status_code not in {"A", "C", "D", "M", "R", "T", "U"}:
+            raise ValueError("Git returned an unexpected name-status code")
+
+        first_path = _safe_git_path(tokens[index])
+        index += 1
         previous_path = None
+        path = first_path
         if status_code in {"R", "C"}:
-            index += 1
             if index >= len(tokens):
                 raise ValueError("Git returned an incomplete rename/copy record")
-            previous_path = path
+            previous_path = first_path
             path = _safe_git_path(tokens[index])
+            index += 1
+
         changes.append(
             _Change(
                 path=path,
@@ -209,7 +219,6 @@ def _diff_changes(root: Path, args: list[str]) -> list[_Change]:
                 previous_path=previous_path,
             )
         )
-        index += 1
     return changes
 
 
