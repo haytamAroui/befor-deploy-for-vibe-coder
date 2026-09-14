@@ -26,7 +26,7 @@ jobs:
       - name: Synchronize locked development environment
         run: uv sync --frozen --all-extras
       - name: Lint
-        run: uv run ruff check src tests
+        run: uv run ruff check src tests scripts/validate_review_benchmark_corpus.py
       - name: Run tests
         run: uv run pytest
       - name: Run review benchmark smoke test
@@ -34,7 +34,20 @@ jobs:
           uv run before-deploy benchmark
           --corpus fixtures/review-benchmark/smoke-corpus.json
           --advisory-file fixtures/review-benchmark/smoke-advisory.json
-          --output-dir reports/benchmark
+          --output-dir reports/benchmark-smoke
+      - name: Validate maintained review benchmark corpus
+        run: >-
+          uv run python scripts/validate_review_benchmark_corpus.py
+          --repository .
+          --corpus fixtures/review-benchmark-v1/corpus.json
+          --manifest fixtures/review-benchmark-v1/manifest.json
+          --oracle-advisory fixtures/review-benchmark-v1/oracle-advisory.json
+      - name: Run maintained review benchmark oracle regression
+        run: >-
+          uv run before-deploy benchmark
+          --corpus fixtures/review-benchmark-v1/corpus.json
+          --advisory-file fixtures/review-benchmark-v1/oracle-advisory.json
+          --output-dir reports/benchmark-seed-v1
       - name: Run deterministic self-scan
         run: uv run before-deploy scan . --policy rules/strict-ci-policy.yaml --output-dir reports
       - name: Retain redacted reports
