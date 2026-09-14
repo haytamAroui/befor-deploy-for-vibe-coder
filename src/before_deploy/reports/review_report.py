@@ -26,6 +26,8 @@ def render_review_json(result: UnifiedReviewResult) -> str:
                 "source": source.source,
                 "source_format": source.source_format,
                 "finding_count": len(source.findings),
+                "status": source.status,
+                "message": source.message,
             }
             for source in result.advisory_sources
         ],
@@ -54,6 +56,7 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
         "",
         f"- Deterministic findings: **{len(result.scan.findings)}**",
         f"- Advisory findings: **{len(result.advisory_findings)}**",
+        f"- Advisory source errors: **{sum(source.status == 'ERROR' for source in result.advisory_sources)}**",
         f"- Location correlations: **{len(result.correlations)}**",
         "",
     ]
@@ -63,8 +66,10 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
         for source in result.advisory_sources:
             lines.append(
                 f"- `{source.input_name}` — `{source.source}` / `{source.source_format}` "
-                f"({len(source.findings)} findings)"
+                f"— `{source.status}` ({len(source.findings)} findings)"
             )
+            if source.message:
+                lines.append(f"  - {source.message}")
         lines.append("")
 
     if result.advisory_findings:
