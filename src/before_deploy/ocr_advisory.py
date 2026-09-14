@@ -146,7 +146,17 @@ def run_ocr_advisory(repository: Path, options: OcrAdvisoryOptions) -> AdvisoryI
                 scope_message=preflight_message,
             )
 
-        final_paths = _manifest_selected_paths(review_payload)
+        try:
+            final_paths = _manifest_selected_paths(review_payload)
+        except ValueError as error:
+            return _error(
+                f"OpenCodeReview final manifest was unusable: {type(error).__name__}",
+                scope_status="INVALID_MANIFEST",
+                scope_message=(
+                    "The supported OCR run-manifest was present but malformed; "
+                    "OCR findings were discarded"
+                ),
+            )
         if final_paths is None:
             final_scope_status = "PREFLIGHT_ONLY"
             final_scope_message = (
