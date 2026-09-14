@@ -36,10 +36,15 @@ class _Provider:
         return self.imported
 
 
-def _finding(*, authority: str = "ADVISORY", gate_effect: str = "NONE") -> AdvisoryFinding:
+def _finding(
+    *,
+    source: str = "fake-reviewer",
+    authority: str = "ADVISORY",
+    gate_effect: str = "NONE",
+) -> AdvisoryFinding:
     return AdvisoryFinding(
         finding_id="ADV-1",
-        source="fake-reviewer",
+        source=source,
         title="Possible issue",
         message="Provider claim",
         category="bug",
@@ -52,12 +57,13 @@ def _finding(*, authority: str = "ADVISORY", gate_effect: str = "NONE") -> Advis
     )
 
 
-def _import(*findings: AdvisoryFinding) -> AdvisoryImport:
+def _import(*findings: AdvisoryFinding, status: str = "COMPLETED") -> AdvisoryImport:
     return AdvisoryImport(
         input_name="provider-native-name",
         source="fake-reviewer",
         source_format="fake-json-v1",
         findings=tuple(findings),
+        status=status,
     )
 
 
@@ -111,6 +117,36 @@ def test_provider_source_identity_mismatch_is_discarded(tmp_path: Path):
     assert result.scope_status == "PARTIAL"
     assert result.scope_message == "provider reviewed a subset"
     assert "inconsistent source identity" in (result.message or "")
+
+
+def test_provider_finding_source_identity_mismatch_is_discarded(tmp_path: Path):
+    provider = _Provider(imported=_import(_finding(source="deterministic-core")))
+
+    result = execute_advisory_provider(provider, AdvisoryProviderRequest(repository=tmp_path))
+
+    assert result.status == "ERROR"
+    assert result.findings == ()
+    assert "inconsistent finding source identity" in (result.message or "")
+
+
+def test_provider_cannot_return_findings_with_error_status(tmp_path: Path):
+    provider = _Provider(imported=_import(_finding(), status="ERROR"))
+
+    result = execute_advisory_provider(provider, AdvisoryProviderRequest(repository=tmp_path))
+
+    assert result.status == "ERROR"
+    assert result.findings == ()
+    assert "findings with ERROR status" in (result.message or "")
+
+
+def test_provider_unknown_status_is_discarded(tmp_path: Path):
+    provider = _Provider(imported=_import(status="MAYBE"))
+
+    result = execute_advisory_provider(provider, AdvisoryProviderRequest(repository=tmp_path))
+
+    assert result.status == "ERROR"
+    assert result.findings == ()
+    assert "unsupported status" in (result.message or "")
 
 
 def test_invalid_common_scope_is_rejected_before_provider_runs(tmp_path: Path):
