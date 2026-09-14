@@ -347,24 +347,20 @@ def _review(args: argparse.Namespace) -> int:
         }
         (output_dir / "review.json").write_text(review_reports["json"], encoding="utf-8")
         (output_dir / "review.md").write_text(review_reports["markdown"], encoding="utf-8")
-        (output_dir / "review-session.json").write_text(
-            render_review_session_json(session),
-            encoding="utf-8",
-        )
-        if delta is not None:
-            (output_dir / "review-delta.json").write_text(
-                render_review_delta_json(delta),
-                encoding="utf-8",
-            )
-            (output_dir / "review-delta.md").write_text(
-                render_review_delta_markdown(delta),
-                encoding="utf-8",
-            )
+        session_artifact_error = _write_review_session_artifacts(output_dir, session, delta)
+        if session_artifact_error:
+            print(f"before-deploy: WARNING: {session_artifact_error}", file=sys.stderr)
 
         if args.format == "terminal":
             _print_review_terminal_summary(review, output_dir)
+            if session_artifact_error is None:
+                print(f"Review session: {output_dir / 'review-session.json'}")
             if delta is not None:
-                _print_review_delta_terminal(delta, output_dir)
+                _print_review_delta_terminal(
+                    delta,
+                    output_dir,
+                    reports_available=session_artifact_error is None,
+                )
         elif args.format == "json":
             print(review_reports["json"], end="")
         elif args.format == "markdown":
@@ -385,6 +381,27 @@ def _build_review_delta(baseline_path: Path | None, session):
     except (OSError, ValueError) as error:
         return review_delta_error(session, baseline_path, error)
     return compare_review_sessions(session, baseline)
+
+
+def _write_review_session_artifacts(output_dir: Path, session, delta) -> str | None:
+    """Write diagnostic session artifacts without allowing them to become release authority."""
+    try:
+        (output_dir / "review-session.json").write_text(
+            render_review_session_json(session),
+            encoding="utf-8",
+        )
+        if delta is not None:
+            (output_dir / "review-delta.json").write_text(
+                render_review_delta_json(delta),
+                encoding="utf-8",
+            )
+            (output_dir / "review-delta.md").write_text(
+                render_review_delta_markdown(delta),
+                encoding="utf-8",
+            )
+    except OSError as error:
+        return f"review session artifacts could not be written: {type(error).__name__}"
+    return None
 
 
 def _review_preview(args: argparse.Namespace) -> int:
@@ -484,14 +501,10 @@ def _print_review_terminal_summary(review, output_dir: Path) -> None:
         f"location_correlations={len(review.correlations)}, "
         "authority=ADVISORY, gate_effect=NONE"
     )
-    print(
-        "Unified review: "
-        f"{output_dir / 'review.json'}, {output_dir / 'review.md'}, "
-        f"{output_dir / 'review-session.json'}"
-    )
+    print(f"Unified review: {output_dir / 'review.json'}, {output_dir / 'review.md'}")
 
 
-def _print_review_delta_terminal(delta, output_dir: Path) -> None:
+def _print_review_delta_terminal(delta, output_dir: Path, *, reports_available: bool) -> None:
     if delta.status != "COMPLETE":
         print(f"Review delta: {delta.status} — {delta.message or 'comparison unavailable'}")
     else:
@@ -504,7 +517,11 @@ def _print_review_delta_terminal(delta, output_dir: Path) -> None:
             f"deterministic_new={deterministic_new}, advisory_new={advisory_new}, "
             f"deterministic_absent={deterministic_absent}, advisory_absent={advisory_absent}"
         )
-    print(f"Review delta reports: {output_dir / 'review-delta.json'}, {output_dir / 'review-delta.md'}")
+    if reports_available:
+        print(
+            f"Review delta reports: {output_dir / 'review-delta.json'}, "
+            f"{output_dir / 'review-delta.md'}"
+        )
 
 
 def _print_review_preview_terminal(preview, output_dir: Path) -> None:
