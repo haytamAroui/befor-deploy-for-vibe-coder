@@ -22,6 +22,11 @@ from before_deploy.orchestrator import ScanOrchestrator, configured_controls
 from before_deploy.policy import load_policy
 from before_deploy.reports import render_json, render_markdown, render_sarif
 from before_deploy.reports.review_report import render_review_json, render_review_markdown
+from before_deploy.review_preview import (
+    build_review_preview,
+    render_review_preview_json,
+    render_review_preview_markdown,
+)
 
 EXIT_CODES = {
     GateOutcome.PASS: 0,
@@ -49,6 +54,32 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_scan_arguments(review, formats=("terminal", "json", "markdown", "sarif"))
     review.add_argument(
+        "--preview",
+        action="store_true",
+        help=(
+            "show deterministic changed-file selection and exclusion reasons only; "
+            "does not run the security scan, OCR, or other advisory inputs"
+        ),
+    )
+    review.add_argument(
+        "--from",
+        "--ocr-from",
+        dest="review_from",
+        help="source ref for branch-range review; requires --to",
+    )
+    review.add_argument(
+        "--to",
+        "--ocr-to",
+        dest="review_to",
+        help="target ref for branch-range review; requires --from",
+    )
+    review.add_argument(
+        "--commit",
+        "--ocr-commit",
+        dest="review_commit",
+        help="single commit review mode; mutually exclusive with --from/--to",
+    )
+    review.add_argument(
         "--advisory-file",
         type=Path,
         action="append",
@@ -66,9 +97,6 @@ def build_parser() -> argparse.ArgumentParser:
             "repository code to its configured LLM provider; its findings remain advisory"
         ),
     )
-    review.add_argument("--ocr-from", help="optional OCR source ref; requires --ocr-to")
-    review.add_argument("--ocr-to", help="optional OCR target ref; requires --ocr-from")
-    review.add_argument("--ocr-commit", help="optional single commit for OCR review")
     review.add_argument(
         "--ocr-timeout-seconds",
         type=int,
@@ -283,6 +311,10 @@ def _scan(args: argparse.Namespace) -> int:
 
 def _review(args: argparse.Namespace) -> int:
     try:
+        if args.preview:
+            return _review_preview(args)
+        _validate_review_scope_usage(args)
+
         result = _execute_scan(args)
         output_dir = args.output_dir.resolve()
         scan_reports = _write_scan_reports(result, output_dir)
@@ -310,6 +342,39 @@ def _review(args: argparse.Namespace) -> int:
         return EXIT_CODES[GateOutcome.ERROR]
 
 
+def _review_preview(args: argparse.Namespace) -> int:
+    if args.format == "sarif":
+        raise ValueError("Review preview supports terminal, json, or markdown output; not SARIF")
+    preview = build_review_preview(
+        args.repository,
+        max_file_bytes=args.max_file_bytes,
+        from_ref=args.review_from,
+        to_ref=args.review_to,
+        commit=args.review_commit,
+    )
+    output_dir = args.output_dir.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    reports = {
+        "json": render_review_preview_json(preview),
+        "markdown": render_review_preview_markdown(preview),
+    }
+    (output_dir / "preview.json").write_text(reports["json"], encoding="utf-8")
+    (output_dir / "preview.md").write_text(reports["markdown"], encoding="utf-8")
+    if args.format == "json":
+        print(reports["json"], end="")
+    elif args.format == "markdown":
+        print(reports["markdown"], end="")
+    else:
+        _print_review_preview_terminal(preview, output_dir)
+    return 0
+
+
+def _validate_review_scope_usage(args: argparse.Namespace) -> None:
+    has_scope = bool(args.review_from or args.review_to or args.review_commit)
+    if has_scope and not args.ocr:
+        raise ValueError("--from/--to/--commit currently require --ocr unless --preview is used")
+
+
 def _collect_advisory_sources(args: argparse.Namespace):
     sources = []
     for path in args.advisory_file:
@@ -332,9 +397,9 @@ def _collect_advisory_sources(args: argparse.Namespace):
                 OcrAdvisoryOptions(
                     timeout_seconds=args.ocr_timeout_seconds,
                     max_output_bytes=args.ocr_max_output_bytes,
-                    from_ref=args.ocr_from,
-                    to_ref=args.ocr_to,
-                    commit=args.ocr_commit,
+                    from_ref=args.review_from,
+                    to_ref=args.review_to,
+                    commit=args.review_commit,
                 ),
             )
         )
@@ -369,6 +434,20 @@ def _print_review_terminal_summary(review, output_dir: Path) -> None:
         "authority=ADVISORY, gate_effect=NONE"
     )
     print(f"Unified review: {output_dir / 'review.json'}, {output_dir / 'review.md'}")
+
+
+def _print_review_preview_terminal(preview, output_dir: Path) -> None:
+    print(f"Before Deploy review preview: {preview.mode}")
+    print(
+        f"Changed files: total={preview.total_files}, reviewable={preview.reviewable_count}, "
+        f"excluded={preview.excluded_count}"
+    )
+    for entry in preview.entries:
+        decision = "REVIEW" if entry.will_review else f"EXCLUDE:{entry.exclude_reason}"
+        sources = ",".join(entry.sources)
+        rename = f" <- {entry.previous_path}" if entry.previous_path else ""
+        print(f"[{decision}] {entry.status} {entry.path}{rename} ({sources})")
+    print(f"Preview reports: {output_dir / 'preview.json'}, {output_dir / 'preview.md'}")
 
 
 if __name__ == "__main__":
