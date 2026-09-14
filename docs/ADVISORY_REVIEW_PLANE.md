@@ -105,7 +105,9 @@ gate_effect = NONE
 
 PR21's matching contract is deterministic: exact repository-relative path, exact normalized category, overlapping source lines, and maximum one-to-one matching. It reports precision, recall, F1, misses, unmatched predictions, and per-category metrics.
 
-See [REVIEW_BENCHMARK.md](REVIEW_BENCHMARK.md) for the corpus schema, CLI contract, matching semantics, exit behavior, and the distinction between the synthetic CI smoke fixture and a future real labeled corpus.
+PR22 adds the first maintained corpus under `fixtures/review-benchmark-v1/`: four human-curated security issues, four paired secure negative files, exact source-byte provenance, regression-test references, labeling/adjudication rules, an explicit evaluator/provider leakage boundary, and CI validation. Its oracle file is evaluator-only and is not a provider quality result.
+
+See [REVIEW_BENCHMARK.md](REVIEW_BENCHMARK.md) for the corpus/CLI contract and [REVIEW_BENCHMARK_LABELING.md](REVIEW_BENCHMARK_LABELING.md) for labeling rules.
 
 ## Architecture sources
 
@@ -118,11 +120,10 @@ No OpenCodeReview implementation code is copied into Before Deploy. This keeps B
 
 ## Next increments
 
-The trust-boundary foundation now includes deterministic review scope/preview, isolated OCR execution, scope attestation, review sessions, and the deterministic review benchmark harness. The next increments are intentionally staged:
+The trust-boundary foundation now includes deterministic review scope/preview, isolated OCR execution, scope attestation, review sessions, the deterministic benchmark harness, and a provenance-backed seed corpus. The next increments are intentionally staged:
 
-1. seed a real labeled benchmark corpus with provenance and benchmark CI;
-2. replace hard-coded live OCR execution with an `AdvisoryProvider` runtime;
-3. add deterministic bounded context selection and provider execution provenance/budget contracts;
-4. build Evidence Graph v1, then semantic correlation, deduplication, and corroboration without authority upgrades;
-5. add `inspect`, `investigate`, and `explain` on top of the evidence model;
-6. add human-approved remediation, regression evidence, `verify`, and finally explicit `release` assurance.
+1. replace hard-coded live OCR execution with an `AdvisoryProvider` runtime;
+2. add deterministic bounded context selection and provider execution provenance/budget contracts;
+3. build Evidence Graph v1, then semantic correlation, deduplication, and corroboration without authority upgrades;
+4. add `inspect`, `investigate`, and `explain` on top of the evidence model;
+5. add human-approved remediation, regression evidence, `verify`, and finally explicit `release` assurance.

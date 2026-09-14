@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "name": "before-deploy-security-seed-v1",
+  "corpus": "fixtures/review-benchmark-v1/corpus.json",
+  "labeling_rules": "docs/REVIEW_BENCHMARK_LABELING.md",
+  "source_snapshot": {
+    "repository": "haytamAroui/befor-deploy-for-vibe-coder",
+    "commit": "d9e0b9d15178e98e5a261bcc26b26bd589af823f"
+  },
+  "files": [
+    {
+      "path": "fixtures/vulnerable_fastapi_authorization/app.py",
+      "role": "positive",
+      "git_blob_sha1": "44c0eae35ada215b6c2b8aa9d80044fc525a18a0"
+    },
+    {
+      "path": "fixtures/secure_fastapi_authorization/app.py",
+      "role": "negative",
+      "git_blob_sha1": "cfe386635ba67f6f459d256b012091cad793eb63"
+    },
+    {
+      "path": "fixtures/vulnerable_fastapi_file_upload/app.py",
+      "role": "positive",
+      "git_blob_sha1": "e3207285b6f4477e73bcf21fe17d07b704cf3c40"
+    },
+    {
+      "path": "fixtures/secure_fastapi_file_upload/app.py",
+      "role": "negative",
+      "git_blob_sha1": "7dec858aefa34187b43770a35f82ee1a02d4edf4"
+    },
+    {
+      "path": "fixtures/vulnerable_python_data_integrity/app.py",
+      "role": "positive",
+      "git_blob_sha1": "346bdd92fbb86a707fadd203b396ed1e75870439"
+    },
+    {
+      "path": "fixtures/secure_python_data_integrity/app.py",
+      "role": "negative",
+      "git_blob_sha1": "0fd31c1309510640d6b35cae58406ad8dfeedb32"
+    },
+    {
+      "path": "fixtures/vulnerable_python_sensitive_data/app.py",
+      "role": "positive",
+      "git_blob_sha1": "f50524eea3a6943f1a4af37cf29b6306382f0471"
+    },
+    {
+      "path": "fixtures/secure_python_sensitive_data/app.py",
+      "role": "negative",
+      "git_blob_sha1": "9221275195a581e32536707fb0ade1b85091e78a"
+    }
+  ],
+  "labels": [
+    {
+      "id": "BD-SEC-AUTHZ-001",
+      "path": "fixtures/vulnerable_fastapi_authorization/app.py",
+      "start_line": 11,
+      "end_line": 11,
+      "category": "security",
+      "severity": "high",
+      "control_id": "SEC-API-AUTHZ-001",
+      "evidence_test": "tests/integration/test_scan_fixtures.py::test_fastapi_authorization_vulnerable_fixture_blocks_and_redacts_names",
+      "rationale": "The authenticated route has no recognized authorization marker before creating an account-scoped resource."
+    },
+    {
+      "id": "BD-SEC-UPLOAD-001",
+      "path": "fixtures/vulnerable_fastapi_file_upload/app.py",
+      "start_line": 8,
+      "end_line": 8,
+      "category": "security",
+      "severity": "high",
+      "control_id": "SEC-API-UPLOAD-001",
+      "evidence_test": "tests/integration/test_scan_fixtures.py::test_fastapi_file_upload_vulnerable_fixture_blocks_and_redacts_filename",
+      "rationale": "The request-controlled upload filename is passed directly to a filesystem sink."
+    },
+    {
+      "id": "BD-SEC-INTEGRITY-001",
+      "path": "fixtures/vulnerable_python_data_integrity/app.py",
+      "start_line": 2,
+      "end_line": 3,
+      "category": "security",
+      "severity": "high",
+      "control_id": "SEC-DATA-INTEGRITY-001",
+      "evidence_test": "tests/integration/test_scan_fixtures.py::test_python_data_integrity_vulnerable_fixture_blocks_and_redacts_sql",
+      "rationale": "The function performs destructive DELETE and UPDATE operations without any WHERE predicate; the pair is one root-cause review issue."
+    },
+    {
+      "id": "BD-SEC-SENSITIVE-001",
+      "path": "fixtures/vulnerable_python_sensitive_data/app.py",
+      "start_line": 5,
+      "end_line": 6,
+      "category": "security",
+      "severity": "high",
+      "control_id": "SEC-SENSITIVE-DATA-PYTHON-001",
+      "evidence_test": "tests/integration/test_scan_fixtures.py::test_python_sensitive_data_vulnerable_fixture_blocks_and_redacts_fields",
+      "rationale": "Two adjacent logger calls expose credential-like user fields; they are labeled as one root-cause review issue."
+    }
+  ]
+}

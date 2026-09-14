@@ -1,0 +1,59 @@
+{
+  "source": {
+    "provider": "before-deploy-benchmark-oracle"
+  },
+  "findings": [
+    {
+      "finding_id": "ORACLE-AUTHZ",
+      "title": "Authenticated route lacks authorization",
+      "message": "The authenticated account route has no recognized authorization marker.",
+      "category": "security",
+      "severity": "high",
+      "confidence": 1.0,
+      "location": {
+        "path": "fixtures/vulnerable_fastapi_authorization/app.py",
+        "start_line": 11,
+        "end_line": 11
+      }
+    },
+    {
+      "finding_id": "ORACLE-UPLOAD",
+      "title": "Upload filename reaches filesystem sink",
+      "message": "The request-controlled upload filename is used directly as a filesystem path.",
+      "category": "security",
+      "severity": "high",
+      "confidence": 1.0,
+      "location": {
+        "path": "fixtures/vulnerable_fastapi_file_upload/app.py",
+        "start_line": 8,
+        "end_line": 8
+      }
+    },
+    {
+      "finding_id": "ORACLE-INTEGRITY",
+      "title": "Destructive SQL is unscoped",
+      "message": "The function performs destructive SQL mutations without a WHERE predicate.",
+      "category": "security",
+      "severity": "high",
+      "confidence": 1.0,
+      "location": {
+        "path": "fixtures/vulnerable_python_data_integrity/app.py",
+        "start_line": 2,
+        "end_line": 3
+      }
+    },
+    {
+      "finding_id": "ORACLE-SENSITIVE",
+      "title": "Sensitive user fields are logged",
+      "message": "Credential-like user fields are emitted through logging calls.",
+      "category": "security",
+      "severity": "high",
+      "confidence": 1.0,
+      "location": {
+        "path": "fixtures/vulnerable_python_sensitive_data/app.py",
+        "start_line": 5,
+        "end_line": 6
+      }
+    }
+  ]
+}
