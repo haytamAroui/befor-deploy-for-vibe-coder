@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from json import loads
 
 from before_deploy.advisory import AdvisoryFinding, AdvisoryImport, UnifiedReviewResult
+from before_deploy.cli import _build_review_delta, _write_review_session_artifacts, build_parser
 from before_deploy.models import (
     Confidence,
     Finding,
@@ -162,6 +163,36 @@ def test_baseline_parse_failure_is_represented_as_gate_neutral_delta_error(tmp_p
     assert delta.current_session_id == "current"
     assert delta.baseline_session_id is None
     assert "ValueError" in (delta.message or "")
+
+
+def test_cli_baseline_helper_keeps_malformed_baseline_diagnostic_only(tmp_path):
+    current = _session("current")
+    baseline = tmp_path / "broken-session.json"
+    baseline.write_text("{broken", encoding="utf-8")
+
+    delta = _build_review_delta(baseline, current)
+
+    assert delta is not None
+    assert delta.status == "ERROR"
+    assert delta.current_session_id == "current"
+
+
+def test_session_artifact_write_failure_returns_warning_instead_of_raising(tmp_path):
+    current = _session("current")
+    missing_output_dir = tmp_path / "does-not-exist"
+
+    warning = _write_review_session_artifacts(missing_output_dir, current, None)
+
+    assert warning is not None
+    assert "could not be written" in warning
+
+
+def test_cli_exposes_explicit_baseline_session_argument():
+    args = build_parser().parse_args(
+        ["review", ".", "--baseline-session", "reports/previous/review-session.json"]
+    )
+
+    assert args.baseline_session.as_posix() == "reports/previous/review-session.json"
 
 
 def test_build_review_session_captures_advisory_source_health_and_fingerprints(tmp_path):
