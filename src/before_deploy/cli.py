@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from before_deploy.advisory import build_unified_review, load_advisory_file
+from before_deploy.advisory import advisory_error_import, build_unified_review, load_advisory_file
 from before_deploy.controls import native_controls
 from before_deploy.controls.dependency_audit import DependencyAuditControl
 from before_deploy.controls.external import ExternalToolConfig
@@ -17,6 +17,7 @@ from before_deploy.controls.provenance import ProvenanceControl
 from before_deploy.controls.semgrep import SemgrepControl
 from before_deploy.controls.trivy_config import TrivyConfigControl
 from before_deploy.models import GateOutcome
+from before_deploy.ocr_advisory import OcrAdvisoryOptions, run_ocr_advisory
 from before_deploy.orchestrator import ScanOrchestrator, configured_controls
 from before_deploy.policy import load_policy
 from before_deploy.reports import render_json, render_markdown, render_sarif
@@ -56,6 +57,29 @@ def build_parser() -> argparse.ArgumentParser:
             "optional advisory JSON input; repeatable. Accepts the Before Deploy advisory "
             "schema and OpenCodeReview JSON output. Advisory findings never affect the gate"
         ),
+    )
+    review.add_argument(
+        "--ocr",
+        action="store_true",
+        help=(
+            "opt in to OpenCodeReview using the configured local `ocr` CLI. OCR may send "
+            "repository code to its configured LLM provider; its findings remain advisory"
+        ),
+    )
+    review.add_argument("--ocr-from", help="optional OCR source ref; requires --ocr-to")
+    review.add_argument("--ocr-to", help="optional OCR target ref; requires --ocr-from")
+    review.add_argument("--ocr-commit", help="optional single commit for OCR review")
+    review.add_argument(
+        "--ocr-timeout-seconds",
+        type=int,
+        default=900,
+        help="wall-clock limit for OCR advisory execution (default: 900)",
+    )
+    review.add_argument(
+        "--ocr-max-output-bytes",
+        type=int,
+        default=2_000_000,
+        help="maximum accepted OCR JSON output size (default: 2000000)",
     )
     return parser
 
@@ -259,11 +283,11 @@ def _scan(args: argparse.Namespace) -> int:
 
 def _review(args: argparse.Namespace) -> int:
     try:
-        advisory_sources = tuple(load_advisory_file(path) for path in args.advisory_file)
         result = _execute_scan(args)
         output_dir = args.output_dir.resolve()
         scan_reports = _write_scan_reports(result, output_dir)
 
+        advisory_sources = _collect_advisory_sources(args)
         review = build_unified_review(result, advisory_sources)
         review_reports = {
             "json": render_review_json(review),
@@ -286,6 +310,37 @@ def _review(args: argparse.Namespace) -> int:
         return EXIT_CODES[GateOutcome.ERROR]
 
 
+def _collect_advisory_sources(args: argparse.Namespace):
+    sources = []
+    for path in args.advisory_file:
+        try:
+            sources.append(load_advisory_file(path))
+        except (OSError, ValueError) as error:
+            sources.append(
+                advisory_error_import(
+                    input_name=path.name,
+                    source="advisory-file",
+                    source_format="unknown",
+                    message=f"Advisory input could not be loaded: {type(error).__name__}",
+                )
+            )
+
+    if args.ocr:
+        sources.append(
+            run_ocr_advisory(
+                args.repository,
+                OcrAdvisoryOptions(
+                    timeout_seconds=args.ocr_timeout_seconds,
+                    max_output_bytes=args.ocr_max_output_bytes,
+                    from_ref=args.ocr_from,
+                    to_ref=args.ocr_to,
+                    commit=args.ocr_commit,
+                ),
+            )
+        )
+    return tuple(sources)
+
+
 def _print_terminal_summary(result, output_dir: Path) -> None:
     outcome = result.decision.outcome.value
     print(f"Before Deploy: {outcome}")
@@ -305,9 +360,11 @@ def _print_terminal_summary(result, output_dir: Path) -> None:
 
 def _print_review_terminal_summary(review, output_dir: Path) -> None:
     _print_terminal_summary(review.scan, output_dir)
+    advisory_errors = sum(source.status == "ERROR" for source in review.advisory_sources)
     print(
         "Advisory review: "
         f"findings={len(review.advisory_findings)}, "
+        f"source_errors={advisory_errors}, "
         f"location_correlations={len(review.correlations)}, "
         "authority=ADVISORY, gate_effect=NONE"
     )
