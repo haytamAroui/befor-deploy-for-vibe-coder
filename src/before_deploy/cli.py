@@ -1,4 +1,4 @@
-"""Command-line interface for deterministic pre-deployment scans."""
+"""Command-line interface for deterministic pre-deployment scans and advisory review."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from before_deploy.advisory import build_unified_review, load_advisory_file
 from before_deploy.controls import native_controls
 from before_deploy.controls.dependency_audit import DependencyAuditControl
 from before_deploy.controls.external import ExternalToolConfig
@@ -19,6 +20,7 @@ from before_deploy.models import GateOutcome
 from before_deploy.orchestrator import ScanOrchestrator, configured_controls
 from before_deploy.policy import load_policy
 from before_deploy.reports import render_json, render_markdown, render_sarif
+from before_deploy.reports.review_report import render_review_json, render_review_markdown
 
 EXIT_CODES = {
     GateOutcome.PASS: 0,
@@ -36,34 +38,55 @@ def build_parser() -> argparse.ArgumentParser:
         description="Run deterministic pre-deployment security controls.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
+
     scan = subparsers.add_parser("scan", help="scan a repository and apply a policy profile")
-    scan.add_argument("repository", type=Path, help="repository directory to scan")
-    scan.add_argument(
+    _add_scan_arguments(scan, formats=("terminal", "json", "markdown", "sarif"))
+
+    review = subparsers.add_parser(
+        "review",
+        help="combine the deterministic gate with non-authoritative advisory review findings",
+    )
+    _add_scan_arguments(review, formats=("terminal", "json", "markdown", "sarif"))
+    review.add_argument(
+        "--advisory-file",
+        type=Path,
+        action="append",
+        default=[],
+        help=(
+            "optional advisory JSON input; repeatable. Accepts the Before Deploy advisory "
+            "schema and OpenCodeReview JSON output. Advisory findings never affect the gate"
+        ),
+    )
+    return parser
+
+
+def _add_scan_arguments(parser: argparse.ArgumentParser, *, formats: tuple[str, ...]) -> None:
+    parser.add_argument("repository", type=Path, help="repository directory to scan")
+    parser.add_argument(
         "--policy",
         type=Path,
         default=Path("rules/default-policy.yaml"),
         help="policy YAML file (default: rules/default-policy.yaml)",
     )
-    scan.add_argument("--waivers", type=Path, help="optional narrowly scoped waiver YAML file")
-    scan.add_argument(
+    parser.add_argument("--waivers", type=Path, help="optional narrowly scoped waiver YAML file")
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("reports"),
-        help="directory for report.json, report.md, and report.sarif",
+        help="directory for report artifacts",
     )
-    scan.add_argument(
+    parser.add_argument(
         "--max-file-bytes",
         type=int,
         default=1_000_000,
         help="maximum included file size in bytes (default: 1000000)",
     )
-    scan.add_argument(
+    parser.add_argument(
         "--format",
-        choices=("terminal", "json", "markdown", "sarif"),
+        choices=formats,
         default="terminal",
-        help="format printed to stdout; all report files are still written",
+        help="format printed to stdout; report files are still written",
     )
-    return parser
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -72,6 +95,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "scan":
         return _scan(args)
+    if args.command == "review":
+        return _review(args)
     parser.error(f"Unsupported command: {args.command}")
     return 20
 
@@ -188,26 +213,35 @@ def _controls_for_profile(profile, policy_path: Path):
     return tuple(controls)
 
 
+def _execute_scan(args: argparse.Namespace):
+    profile = load_policy(args.policy)
+    controls = configured_controls(profile, _controls_for_profile(profile, args.policy))
+    return ScanOrchestrator(controls).scan(
+        args.repository,
+        args.policy,
+        waiver_path=args.waivers,
+        max_file_bytes=args.max_file_bytes,
+    )
+
+
+def _write_scan_reports(result, output_dir: Path) -> dict[str, str]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    reports = {
+        "json": render_json(result),
+        "markdown": render_markdown(result),
+        "sarif": render_sarif(result),
+    }
+    (output_dir / "report.json").write_text(reports["json"], encoding="utf-8")
+    (output_dir / "report.md").write_text(reports["markdown"], encoding="utf-8")
+    (output_dir / "report.sarif").write_text(reports["sarif"], encoding="utf-8")
+    return reports
+
+
 def _scan(args: argparse.Namespace) -> int:
     try:
-        profile = load_policy(args.policy)
-        controls = configured_controls(profile, _controls_for_profile(profile, args.policy))
-        result = ScanOrchestrator(controls).scan(
-            args.repository,
-            args.policy,
-            waiver_path=args.waivers,
-            max_file_bytes=args.max_file_bytes,
-        )
+        result = _execute_scan(args)
         output_dir = args.output_dir.resolve()
-        output_dir.mkdir(parents=True, exist_ok=True)
-        reports = {
-            "json": render_json(result),
-            "markdown": render_markdown(result),
-            "sarif": render_sarif(result),
-        }
-        (output_dir / "report.json").write_text(reports["json"], encoding="utf-8")
-        (output_dir / "report.md").write_text(reports["markdown"], encoding="utf-8")
-        (output_dir / "report.sarif").write_text(reports["sarif"], encoding="utf-8")
+        reports = _write_scan_reports(result, output_dir)
 
         if args.format == "terminal":
             _print_terminal_summary(result, output_dir)
@@ -217,6 +251,35 @@ def _scan(args: argparse.Namespace) -> int:
             print(reports["markdown"], end="")
         else:
             print(reports["sarif"], end="")
+        return EXIT_CODES[result.decision.outcome]
+    except (OSError, ValueError) as error:
+        print(f"before-deploy: ERROR: {error}", file=sys.stderr)
+        return EXIT_CODES[GateOutcome.ERROR]
+
+
+def _review(args: argparse.Namespace) -> int:
+    try:
+        advisory_sources = tuple(load_advisory_file(path) for path in args.advisory_file)
+        result = _execute_scan(args)
+        output_dir = args.output_dir.resolve()
+        scan_reports = _write_scan_reports(result, output_dir)
+
+        review = build_unified_review(result, advisory_sources)
+        review_reports = {
+            "json": render_review_json(review),
+            "markdown": render_review_markdown(review),
+        }
+        (output_dir / "review.json").write_text(review_reports["json"], encoding="utf-8")
+        (output_dir / "review.md").write_text(review_reports["markdown"], encoding="utf-8")
+
+        if args.format == "terminal":
+            _print_review_terminal_summary(review, output_dir)
+        elif args.format == "json":
+            print(review_reports["json"], end="")
+        elif args.format == "markdown":
+            print(review_reports["markdown"], end="")
+        else:
+            print(scan_reports["sarif"], end="")
         return EXIT_CODES[result.decision.outcome]
     except (OSError, ValueError) as error:
         print(f"before-deploy: ERROR: {error}", file=sys.stderr)
@@ -238,6 +301,17 @@ def _print_terminal_summary(result, output_dir: Path) -> None:
     if result.decision.error_control_ids:
         print("Control errors: " + ", ".join(result.decision.error_control_ids))
     print(f"Reports: {output_dir / 'report.json'}, {output_dir / 'report.md'}, {output_dir / 'report.sarif'}")
+
+
+def _print_review_terminal_summary(review, output_dir: Path) -> None:
+    _print_terminal_summary(review.scan, output_dir)
+    print(
+        "Advisory review: "
+        f"findings={len(review.advisory_findings)}, "
+        f"location_correlations={len(review.correlations)}, "
+        "authority=ADVISORY, gate_effect=NONE"
+    )
+    print(f"Unified review: {output_dir / 'review.json'}, {output_dir / 'review.md'}")
 
 
 if __name__ == "__main__":
