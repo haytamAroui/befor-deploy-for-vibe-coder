@@ -6,6 +6,29 @@ Before Deploy can optionally run OpenCodeReview (OCR) as a **non-authoritative a
 
 The adapter exists to gain OCR-style broad bug discovery without allowing an LLM review result to issue `PASS`, remove a block, create a waiver, suppress a deterministic finding, or mutate policy.
 
+## Provider runtime boundary
+
+Live OCR execution is now reached through the generic advisory-provider runtime:
+
+```text
+before-deploy review --ocr
+        |
+        v
+OcrAdvisoryProvider
+        |
+        v
+execute_advisory_provider(...)
+        |
+        v
+bounded OCR adapter
+```
+
+The provider runtime owns the common authority boundary and structurally forces returned findings to `authority=ADVISORY` and `gate_effect=NONE`. It also converts normal provider exceptions, invalid provider identity, and malformed provider-result status into advisory source errors rather than deterministic gate failures.
+
+OCR-specific process isolation and scope attestation remain in this adapter. The lower-level `run_ocr_advisory(...)` function remains an implementation-level compatibility surface; CLI orchestration no longer calls it directly.
+
+See [ADVISORY_PROVIDER_RUNTIME.md](ADVISORY_PROVIDER_RUNTIME.md) for the provider-independent contract.
+
 ## Usage
 
 Workspace review:
@@ -150,6 +173,8 @@ OCR is advisory, so OCR failure is also advisory.
 
 If OCR is missing, times out, exits non-zero, produces no result, exceeds the accepted size limit, emits unusable JSON, violates the deterministic scope, drifts after preflight, or emits a malformed supported manifest, Before Deploy records an advisory source error and discards OCR findings.
 
+The generic provider runtime adds a second containment boundary around the adapter: a normal uncaught provider exception or malformed provider result is also converted to an advisory source error.
+
 The deterministic scan still owns the process exit code. For example, if the deterministic decision is `PASS` and OCR times out or fails scope attestation, the release decision remains `PASS`; the unified review clearly reports the OCR source error. Conversely, OCR success can never override a deterministic `BLOCK` or `ERROR`.
 
 This avoids two authority leaks: an optional AI outage cannot become an implicit release gate, and an advisory provider cannot silently widen its review scope beyond Before Deploy's deterministic selection contract.
@@ -187,6 +212,8 @@ Before Deploy deterministic preview
        final manifest check
               |
               v
+     provider runtime
+              |
       ADVISORY findings
       gate_effect = NONE
               |
