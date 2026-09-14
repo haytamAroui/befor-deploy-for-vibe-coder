@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "benchmark": {
+    "name": "before-deploy-security-seed-v1",
+    "defects": [
+      {
+        "id": "BD-SEC-AUTHZ-001",
+        "path": "fixtures/vulnerable_fastapi_authorization/app.py",
+        "start_line": 11,
+        "end_line": 11,
+        "category": "security",
+        "severity": "high"
+      },
+      {
+        "id": "BD-SEC-UPLOAD-001",
+        "path": "fixtures/vulnerable_fastapi_file_upload/app.py",
+        "start_line": 8,
+        "end_line": 8,
+        "category": "security",
+        "severity": "high"
+      },
+      {
+        "id": "BD-SEC-INTEGRITY-001",
+        "path": "fixtures/vulnerable_python_data_integrity/app.py",
+        "start_line": 2,
+        "end_line": 3,
+        "category": "security",
+        "severity": "high"
+      },
+      {
+        "id": "BD-SEC-SENSITIVE-001",
+        "path": "fixtures/vulnerable_python_sensitive_data/app.py",
+        "start_line": 5,
+        "end_line": 6,
+        "category": "security",
+        "severity": "high"
+      }
+    ]
+  }
+}
