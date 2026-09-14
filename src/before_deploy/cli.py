@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from before_deploy.advisory import advisory_error_import, build_unified_review, load_advisory_file
+from before_deploy.advisory_provider import AdvisoryProviderRequest, execute_advisory_provider
 from before_deploy.controls import native_controls
 from before_deploy.controls.dependency_audit import DependencyAuditControl
 from before_deploy.controls.external import ExternalToolConfig
@@ -17,7 +18,7 @@ from before_deploy.controls.provenance import ProvenanceControl
 from before_deploy.controls.semgrep import SemgrepControl
 from before_deploy.controls.trivy_config import TrivyConfigControl
 from before_deploy.models import GateOutcome
-from before_deploy.ocr_advisory import OcrAdvisoryOptions, run_ocr_advisory
+from before_deploy.ocr_provider import OcrAdvisoryProvider
 from before_deploy.orchestrator import ScanOrchestrator, configured_controls
 from before_deploy.policy import load_policy
 from before_deploy.reports import render_json, render_markdown, render_sarif
@@ -514,12 +515,15 @@ def _collect_advisory_sources(args: argparse.Namespace):
             )
 
     if args.ocr:
+        provider = OcrAdvisoryProvider(
+            timeout_seconds=args.ocr_timeout_seconds,
+            max_output_bytes=args.ocr_max_output_bytes,
+        )
         sources.append(
-            run_ocr_advisory(
-                args.repository,
-                OcrAdvisoryOptions(
-                    timeout_seconds=args.ocr_timeout_seconds,
-                    max_output_bytes=args.ocr_max_output_bytes,
+            execute_advisory_provider(
+                provider,
+                AdvisoryProviderRequest(
+                    repository=args.repository,
                     max_file_bytes=args.max_file_bytes,
                     from_ref=args.review_from,
                     to_ref=args.review_to,
