@@ -7,6 +7,7 @@ from hashlib import sha1
 from json import loads
 from pathlib import Path, PurePosixPath
 from re import fullmatch
+from subprocess import CompletedProcess, run
 from typing import Any, Mapping
 
 from before_deploy.review_benchmark import BenchmarkCorpus, load_benchmark_corpus
@@ -72,7 +73,8 @@ def validate_benchmark_corpus_provenance(
     if not _resolve_under_root(root, labeling_rules).is_file():
         raise ValueError("Benchmark labeling rules file does not exist")
 
-    source_roles = _validate_source_files(manifest, root)
+    source_roles, source_blobs = _validate_source_files(manifest, root)
+    _validate_source_snapshot_membership(root, source_commit, source_blobs)
     _validate_canonical_taxonomy(corpus)
     _validate_label_provenance(manifest, corpus, source_roles, root)
 
@@ -94,12 +96,15 @@ def git_blob_sha1(content: bytes) -> str:
     return sha1(header + content, usedforsecurity=False).hexdigest()
 
 
-def _validate_source_files(manifest: Mapping[str, Any], root: Path) -> dict[str, str]:
+def _validate_source_files(
+    manifest: Mapping[str, Any], root: Path
+) -> tuple[dict[str, str], dict[str, str]]:
     raw_files = manifest.get("files")
     if not isinstance(raw_files, list) or not raw_files:
         raise ValueError("Benchmark corpus manifest files must be a non-empty array")
 
     source_roles: dict[str, str] = {}
+    source_blobs: dict[str, str] = {}
     for index, raw in enumerate(raw_files):
         if not isinstance(raw, Mapping):
             raise ValueError(f"Benchmark source file {index + 1} must be an object")
@@ -122,7 +127,55 @@ def _validate_source_files(manifest: Mapping[str, Any], root: Path) -> dict[str,
                 f"expected {expected_blob}, got {actual_blob}"
             )
         source_roles[path] = role
-    return source_roles
+        source_blobs[path] = expected_blob
+    return source_roles, source_blobs
+
+
+def _validate_source_snapshot_membership(
+    root: Path,
+    source_commit: str,
+    source_blobs: Mapping[str, str],
+) -> None:
+    commit_check = _run_git(root, "cat-file", "-e", f"{source_commit}^{{commit}}")
+    if commit_check.returncode != 0:
+        raise ValueError(
+            "Benchmark source snapshot commit is unavailable in local Git history: "
+            f"{source_commit}"
+        )
+
+    for path, expected_blob in source_blobs.items():
+        tree_entry = _run_git(root, "ls-tree", "-z", "--full-tree", source_commit, "--", path)
+        if tree_entry.returncode != 0:
+            raise ValueError(
+                f"Unable to resolve benchmark source {path} at snapshot commit {source_commit}"
+            )
+        entries = [entry for entry in tree_entry.stdout.split(b"\0") if entry]
+        if len(entries) != 1:
+            raise ValueError(
+                f"Benchmark source path is absent or ambiguous at snapshot commit: {path}"
+            )
+        metadata, separator, _ = entries[0].partition(b"\t")
+        fields = metadata.decode("ascii", errors="strict").split()
+        if not separator or len(fields) != 3 or fields[1] != "blob":
+            raise ValueError(f"Benchmark source path is not a file at snapshot commit: {path}")
+        snapshot_blob = fields[2].lower()
+        if snapshot_blob != expected_blob:
+            raise ValueError(
+                f"Snapshot blob mismatch for benchmark source {path}: "
+                f"commit {source_commit} has {snapshot_blob}, manifest declares {expected_blob}"
+            )
+
+
+def _run_git(root: Path, *arguments: str) -> CompletedProcess[bytes]:
+    try:
+        return run(
+            ["git", *arguments],
+            cwd=root,
+            check=False,
+            capture_output=True,
+        )
+    except OSError as error:
+        raise ValueError("Git is required to validate benchmark source snapshot provenance") from error
 
 
 def _validate_canonical_taxonomy(corpus: BenchmarkCorpus) -> None:
