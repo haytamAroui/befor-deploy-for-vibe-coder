@@ -67,17 +67,12 @@ def collect_inventory(
         if path.is_dir():
             continue
         relative = path.relative_to(root)
-        if _is_excluded(relative):
-            excluded_count += 1
-            continue
-        try:
-            if path.stat().st_size > max_file_bytes:
-                excluded_count += 1
-                continue
-            if not path.is_file():
-                excluded_count += 1
-                continue
-        except OSError:
+        reason = repository_path_exclusion_reason(
+            root,
+            relative,
+            max_file_bytes=max_file_bytes,
+        )
+        if reason is not None:
             excluded_count += 1
             continue
         included.append(path)
@@ -88,6 +83,33 @@ def collect_inventory(
         excluded_file_count=excluded_count,
         limitations=tuple(limitations),
     )
+
+
+def repository_path_exclusion_reason(
+    root: Path,
+    relative_path: Path,
+    *,
+    max_file_bytes: int = DEFAULT_MAX_FILE_BYTES,
+) -> str | None:
+    """Return the canonical deterministic reason a repository path is outside scan scope."""
+    if max_file_bytes <= 0:
+        raise ValueError("max_file_bytes must be greater than zero")
+    if relative_path.is_absolute() or ".." in relative_path.parts:
+        raise ValueError("relative_path must stay inside the repository root")
+    if relative_path.name in EXCLUDED_FILE_NAMES:
+        return "excluded_file_name"
+    if any(part in EXCLUDED_DIRECTORY_NAMES for part in relative_path.parts[:-1]):
+        return "excluded_directory"
+
+    path = root / relative_path
+    try:
+        if path.stat().st_size > max_file_bytes:
+            return "too_large"
+        if not path.is_file():
+            return "not_regular_file"
+    except OSError:
+        return "unreadable"
+    return None
 
 
 def compute_repository_digest(inventory: RepositoryInventory) -> str:
@@ -157,6 +179,7 @@ def relative_paths(inventory: RepositoryInventory) -> Iterable[Path]:
 
 
 def _is_excluded(relative_path: Path) -> bool:
+    """Legacy name-only exclusion predicate retained for compatibility inside the package."""
     return (
         relative_path.name in EXCLUDED_FILE_NAMES
         or any(part in EXCLUDED_DIRECTORY_NAMES for part in relative_path.parts[:-1])
