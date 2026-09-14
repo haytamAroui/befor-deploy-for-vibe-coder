@@ -38,7 +38,6 @@ def run_ocr_advisory(repository: Path, options: OcrAdvisoryOptions) -> AdvisoryI
     repository = repository.resolve()
     with TemporaryDirectory(prefix="before-deploy-ocr-") as temp_dir:
         output_path = Path(temp_dir) / "ocr-review.json"
-        stderr_path = Path(temp_dir) / "ocr-stderr.log"
         command = [
             executable,
             "review",
@@ -57,15 +56,14 @@ def run_ocr_advisory(repository: Path, options: OcrAdvisoryOptions) -> AdvisoryI
             command.extend(["--from", options.from_ref, "--to", options.to_ref])
 
         try:
-            with stderr_path.open("wb") as stderr_file:
-                completed = run(
-                    command,
-                    stdin=DEVNULL,
-                    stdout=DEVNULL,
-                    stderr=stderr_file,
-                    timeout=options.timeout_seconds,
-                    check=False,
-                )
+            completed = run(
+                command,
+                stdin=DEVNULL,
+                stdout=DEVNULL,
+                stderr=DEVNULL,
+                timeout=options.timeout_seconds,
+                check=False,
+            )
         except TimeoutExpired:
             return _error(
                 f"OpenCodeReview exceeded the advisory timeout of {options.timeout_seconds} seconds"
