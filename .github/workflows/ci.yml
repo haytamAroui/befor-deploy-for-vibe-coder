@@ -29,6 +29,12 @@ jobs:
         run: uv run ruff check src tests
       - name: Run tests
         run: uv run pytest
+      - name: Run review benchmark smoke test
+        run: >-
+          uv run before-deploy benchmark
+          --corpus fixtures/review-benchmark/smoke-corpus.json
+          --advisory-file fixtures/review-benchmark/smoke-advisory.json
+          --output-dir reports/benchmark
       - name: Run deterministic self-scan
         run: uv run before-deploy scan . --policy rules/strict-ci-policy.yaml --output-dir reports
       - name: Retain redacted reports

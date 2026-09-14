@@ -1,0 +1,19 @@
+{
+  "source": {
+    "provider": "ci-smoke-reviewer"
+  },
+  "findings": [
+    {
+      "finding_id": "SMOKE-ADV-1",
+      "title": "Synthetic benchmark finding",
+      "message": "Synthetic finding used only to exercise the benchmark command in CI.",
+      "category": "bug",
+      "severity": "high",
+      "location": {
+        "path": "src/example.py",
+        "start_line": 11,
+        "end_line": 11
+      }
+    }
+  ]
+}

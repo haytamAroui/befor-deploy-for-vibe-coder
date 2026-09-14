@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "benchmark": {
+    "name": "ci-smoke-synthetic-v1",
+    "defects": [
+      {
+        "id": "SMOKE-BUG-1",
+        "path": "src/example.py",
+        "start_line": 10,
+        "end_line": 12,
+        "category": "bug",
+        "severity": "high"
+      }
+    ]
+  }
+}

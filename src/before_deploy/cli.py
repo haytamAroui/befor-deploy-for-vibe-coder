@@ -22,6 +22,11 @@ from before_deploy.orchestrator import ScanOrchestrator, configured_controls
 from before_deploy.policy import load_policy
 from before_deploy.reports import render_json, render_markdown, render_sarif
 from before_deploy.reports.review_report import render_review_json, render_review_markdown
+from before_deploy.review_benchmark import (
+    evaluate_advisory_output,
+    render_benchmark_json,
+    render_benchmark_markdown,
+)
 from before_deploy.review_preview import (
     build_review_preview,
     render_review_preview_json,
@@ -44,6 +49,7 @@ EXIT_CODES = {
     GateOutcome.WAIVER_REQUIRED: 11,
     GateOutcome.ERROR: 20,
 }
+BENCHMARK_INPUT_ERROR_EXIT = 2
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -126,6 +132,35 @@ def build_parser() -> argparse.ArgumentParser:
         default=2_000_000,
         help="maximum accepted OCR JSON output size (default: 2000000)",
     )
+
+    benchmark = subparsers.add_parser(
+        "benchmark",
+        help="score advisory review JSON against a labeled defect corpus",
+    )
+    benchmark.add_argument(
+        "--corpus",
+        type=Path,
+        required=True,
+        help="versioned labeled benchmark corpus JSON",
+    )
+    benchmark.add_argument(
+        "--advisory-file",
+        type=Path,
+        required=True,
+        help="advisory result JSON to score; OpenCodeReview JSON is supported",
+    )
+    benchmark.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("reports/benchmark"),
+        help="directory for benchmark.json and benchmark.md",
+    )
+    benchmark.add_argument(
+        "--format",
+        choices=("terminal", "json", "markdown"),
+        default="terminal",
+        help="format printed to stdout; benchmark artifacts are still written",
+    )
     return parser
 
 
@@ -166,6 +201,8 @@ def main(argv: list[str] | None = None) -> int:
         return _scan(args)
     if args.command == "review":
         return _review(args)
+    if args.command == "benchmark":
+        return _benchmark(args)
     parser.error(f"Unsupported command: {args.command}")
     return 20
 
@@ -373,6 +410,30 @@ def _review(args: argparse.Namespace) -> int:
         return EXIT_CODES[GateOutcome.ERROR]
 
 
+def _benchmark(args: argparse.Namespace) -> int:
+    """Score advisory output; benchmark quality never becomes release authority."""
+    try:
+        result = evaluate_advisory_output(args.corpus, args.advisory_file)
+        output_dir = args.output_dir.resolve()
+        output_dir.mkdir(parents=True, exist_ok=True)
+        reports = {
+            "json": render_benchmark_json(result),
+            "markdown": render_benchmark_markdown(result),
+        }
+        (output_dir / "benchmark.json").write_text(reports["json"], encoding="utf-8")
+        (output_dir / "benchmark.md").write_text(reports["markdown"], encoding="utf-8")
+        if args.format == "json":
+            print(reports["json"], end="")
+        elif args.format == "markdown":
+            print(reports["markdown"], end="")
+        else:
+            _print_benchmark_terminal(result, output_dir)
+        return 0
+    except (OSError, ValueError) as error:
+        print(f"before-deploy benchmark: ERROR: {error}", file=sys.stderr)
+        return BENCHMARK_INPUT_ERROR_EXIT
+
+
 def _build_review_delta(baseline_path: Path | None, session):
     if baseline_path is None:
         return None
@@ -536,6 +597,18 @@ def _print_review_preview_terminal(preview, output_dir: Path) -> None:
         rename = f" <- {entry.previous_path}" if entry.previous_path else ""
         print(f"[{decision}] {entry.status} {entry.path}{rename} ({sources})")
     print(f"Preview reports: {output_dir / 'preview.json'}, {output_dir / 'preview.md'}")
+
+
+def _print_benchmark_terminal(result, output_dir: Path) -> None:
+    print(f"Before Deploy review benchmark: {result.corpus_name}")
+    print(f"Source: {result.source} / {result.source_format}")
+    print(
+        "Metrics: "
+        f"TP={result.true_positives}, FP={result.false_positives}, FN={result.false_negatives}, "
+        f"precision={result.precision:.4f}, recall={result.recall:.4f}, F1={result.f1:.4f}"
+    )
+    print("Authority: BENCHMARK_DIAGNOSTIC, gate_effect=NONE")
+    print(f"Benchmark reports: {output_dir / 'benchmark.json'}, {output_dir / 'benchmark.md'}")
 
 
 if __name__ == "__main__":
