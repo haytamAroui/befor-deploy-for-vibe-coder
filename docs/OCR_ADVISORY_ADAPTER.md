@@ -42,7 +42,7 @@ OCR must already be installed and configured separately. Enabling `--ocr` may se
 
 ## Fixed execution contract
 
-The adapter resolves only the executable named `ocr` from `PATH` and invokes it without a shell. It does not accept an arbitrary executable path or arbitrary command arguments.
+The adapter resolves only the executable named `ocr` from `PATH` and invokes it without a shell. It does not accept an arbitrary executable path or arbitrary extra command arguments.
 
 The fixed command shape is equivalent to:
 
@@ -68,15 +68,17 @@ or:
 
 Those modes are mutually exclusive, and `--from` / `--to` must be supplied together.
 
+Repository paths and refs are passed as discrete process arguments rather than interpolated into a shell command. They are still inputs to OCR and Git and are not treated as deterministic security evidence by Before Deploy.
+
 ## Isolation and bounds
 
 The adapter:
 
-- uses `shell=False` semantics;
-- supplies no project-controlled command fragments;
+- invokes OCR without a shell;
+- does not concatenate repository content or refs into a shell command;
 - disables stdin;
 - discards OCR stdout;
-- writes OCR stderr to a temporary file that is **not** imported into Before Deploy reports;
+- discards OCR stderr rather than importing provider/tool diagnostics into assurance artifacts;
 - forces OCR JSON output into a temporary directory;
 - applies a default 900-second wall-clock timeout;
 - accepts at most 2,000,000 bytes of OCR JSON by default;
@@ -90,11 +92,13 @@ The timeout and maximum accepted JSON size may be narrowed or expanded explicitl
 --ocr-max-output-bytes
 ```
 
+The JSON size setting is an **acceptance limit checked after OCR returns**, not an operating-system filesystem quota while OCR is running. It prevents oversized OCR output from entering the unified assurance model, but it does not claim to cap temporary-file growth during the external OCR process.
+
 ## Failure semantics
 
 OCR is advisory, so OCR failure is also advisory.
 
-If OCR is missing, times out, exits non-zero, produces no result, exceeds the size limit, or emits unusable JSON, Before Deploy records an advisory source with:
+If OCR is missing, times out, exits non-zero, produces no result, exceeds the accepted size limit, or emits unusable JSON, Before Deploy records an advisory source with:
 
 ```text
 status = ERROR
@@ -118,7 +122,7 @@ and the unified advisory artifacts:
 - `review.json`
 - `review.md`
 
-Each advisory source includes its status, finding count, and a bounded error message when applicable. Raw OCR stderr is not copied into these artifacts.
+Each advisory source includes its status, finding count, and a bounded error message when applicable. Raw OCR stdout/stderr and model-private fields are not copied into these artifacts.
 
 ## Trust boundary
 
