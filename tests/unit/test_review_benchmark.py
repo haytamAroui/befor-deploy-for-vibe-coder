@@ -5,6 +5,7 @@ from json import loads
 import pytest
 
 from before_deploy.advisory import AdvisoryFinding
+from before_deploy.cli import main
 from before_deploy.models import Location
 from before_deploy.review_benchmark import (
     BenchmarkCorpus,
@@ -44,6 +45,42 @@ def _finding(
 
 def _corpus(*defects: ExpectedDefect) -> BenchmarkCorpus:
     return BenchmarkCorpus(name="unit-corpus", defects=tuple(defects))
+
+
+def _write_sample_inputs(tmp_path):
+    corpus_path = tmp_path / "corpus.json"
+    corpus_path.write_text(
+        """{
+          "schema_version": 1,
+          "benchmark": {
+            "name": "sample",
+            "defects": [
+              {"id":"BUG-1","path":"src/app.py","start_line":7,"end_line":8,"category":"bug"}
+            ]
+          }
+        }""",
+        encoding="utf-8",
+    )
+    advisory_path = tmp_path / "advisory.json"
+    advisory_path.write_text(
+        """{
+          "source": {"provider": "sample-reviewer"},
+          "findings": [
+            {
+              "finding_id":"ADV-1",
+              "title":"Possible bug",
+              "message":"Possible bug",
+              "path":"src/app.py",
+              "start_line":7,
+              "end_line":7,
+              "category":"bug",
+              "severity":"high"
+            }
+          ]
+        }""",
+        encoding="utf-8",
+    )
+    return corpus_path, advisory_path
 
 
 def test_exact_path_category_and_line_overlap_match():
@@ -250,6 +287,50 @@ def test_load_corpus_rejects_duplicate_ids_and_unsafe_paths(tmp_path):
         load_benchmark_corpus(traversal)
 
 
+def test_load_corpus_rejects_schema_and_invalid_line_contracts(tmp_path):
+    unsupported = tmp_path / "unsupported.json"
+    unsupported.write_text(
+        """{
+          "schema_version": 2,
+          "benchmark": {"name": "future", "defects": []}
+        }""",
+        encoding="utf-8",
+    )
+    reversed_lines = tmp_path / "reversed-lines.json"
+    reversed_lines.write_text(
+        """{
+          "schema_version": 1,
+          "benchmark": {
+            "name": "bad-lines",
+            "defects": [
+              {"id":"D1","path":"src/a.py","start_line":9,"end_line":3,"category":"bug"}
+            ]
+          }
+        }""",
+        encoding="utf-8",
+    )
+    zero_line = tmp_path / "zero-line.json"
+    zero_line.write_text(
+        """{
+          "schema_version": 1,
+          "benchmark": {
+            "name": "bad-line",
+            "defects": [
+              {"id":"D1","path":"src/a.py","start_line":0,"category":"bug"}
+            ]
+          }
+        }""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Unsupported benchmark corpus schema"):
+        load_benchmark_corpus(unsupported)
+    with pytest.raises(ValueError, match="end_line before start_line"):
+        load_benchmark_corpus(reversed_lines)
+    with pytest.raises(ValueError, match="positive integer"):
+        load_benchmark_corpus(zero_line)
+
+
 def test_evaluate_accepts_ocr_json_and_renders_machine_and_human_reports(tmp_path):
     corpus_path = tmp_path / "corpus.json"
     corpus_path.write_text(
@@ -284,3 +365,57 @@ def test_evaluate_accepts_ocr_json_and_renders_machine_and_human_reports(tmp_pat
     assert payload["review_benchmark"]["gate_effect"] == "NONE"
     assert "Precision: **1.0000**" in rendered_markdown
     assert "diagnostics only" in rendered_markdown
+
+
+def test_benchmark_cli_writes_reports_and_returns_zero(tmp_path, capsys):
+    corpus_path, advisory_path = _write_sample_inputs(tmp_path)
+    output_dir = tmp_path / "reports"
+
+    exit_code = main(
+        [
+            "benchmark",
+            "--corpus",
+            str(corpus_path),
+            "--advisory-file",
+            str(advisory_path),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "F1=1.0000" in captured.out
+    assert "Authority: BENCHMARK_DIAGNOSTIC, gate_effect=NONE" in captured.out
+    assert captured.err == ""
+    assert (output_dir / "benchmark.json").is_file()
+    assert (output_dir / "benchmark.md").is_file()
+    payload = loads((output_dir / "benchmark.json").read_text(encoding="utf-8"))
+    assert payload["review_benchmark"]["true_positives"] == 1
+    assert payload["review_benchmark"]["gate_effect"] == "NONE"
+
+
+def test_benchmark_cli_input_error_is_non_gate_exit_and_writes_no_reports(tmp_path, capsys):
+    invalid_corpus = tmp_path / "invalid.json"
+    invalid_corpus.write_text("{}", encoding="utf-8")
+    advisory_path = tmp_path / "advisory.json"
+    advisory_path.write_text('{"findings": []}', encoding="utf-8")
+    output_dir = tmp_path / "reports"
+
+    exit_code = main(
+        [
+            "benchmark",
+            "--corpus",
+            str(invalid_corpus),
+            "--advisory-file",
+            str(advisory_path),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert captured.out == ""
+    assert "before-deploy benchmark: ERROR:" in captured.err
+    assert not output_dir.exists()
