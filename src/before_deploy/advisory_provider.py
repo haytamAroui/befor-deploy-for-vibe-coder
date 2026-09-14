@@ -50,6 +50,15 @@ def execute_advisory_provider(
 ) -> AdvisoryImport:
     """Execute one provider and structurally force its result to remain advisory-only."""
     identity = provider.identity
+    identity_error = _validate_identity(identity)
+    if identity_error is not None:
+        return advisory_error_import(
+            input_name="advisory-provider",
+            source="advisory-provider",
+            source_format="unknown",
+            message=identity_error,
+        )
+
     request_error = _validate_request(request)
     if request_error is not None:
         return _provider_error(identity, request_error)
@@ -74,11 +83,31 @@ def execute_advisory_provider(
             scope_status=imported.scope_status,
             scope_message=imported.scope_message,
         )
+    if imported.status not in {"COMPLETED", "ERROR"}:
+        return _provider_error(
+            identity,
+            f"Advisory provider {identity.provider_id!r} returned unsupported status {imported.status!r}",
+            scope_status=imported.scope_status,
+            scope_message=imported.scope_message,
+        )
+    if imported.status == "ERROR" and imported.findings:
+        return _provider_error(
+            identity,
+            f"Advisory provider {identity.provider_id!r} returned findings with ERROR status",
+            scope_status=imported.scope_status,
+            scope_message=imported.scope_message,
+        )
+    if any(finding.source != identity.source for finding in imported.findings):
+        return _provider_error(
+            identity,
+            f"Advisory provider {identity.provider_id!r} returned inconsistent finding source identity",
+            scope_status=imported.scope_status,
+            scope_message=imported.scope_message,
+        )
 
     findings = tuple(
         replace(
             finding,
-            source=identity.source,
             authority=ADVISORY_AUTHORITY,
             gate_effect=ADVISORY_GATE_EFFECT,
         )
@@ -91,6 +120,14 @@ def execute_advisory_provider(
         source_format=identity.source_format,
         findings=findings,
     )
+
+
+def _validate_identity(identity: AdvisoryProviderIdentity) -> str | None:
+    for field_name in ("provider_id", "input_name", "source", "source_format"):
+        value = getattr(identity, field_name)
+        if not isinstance(value, str) or not value.strip():
+            return f"Advisory provider identity field {field_name!r} must be non-empty text"
+    return None
 
 
 def _validate_request(request: AdvisoryProviderRequest) -> str | None:
