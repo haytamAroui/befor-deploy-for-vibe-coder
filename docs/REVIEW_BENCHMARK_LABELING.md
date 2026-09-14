@@ -30,9 +30,11 @@ Separate independently actionable root causes should receive separate IDs.
 
 Use the narrowest contiguous source range that contains the review issue. Prefer the sink or decision point over a whole function when the smaller anchor is sufficient.
 
-Every maintained source file is pinned by its exact Git blob SHA-1 in the manifest. The validator recomputes the Git object identifier from repository bytes and fails on drift. The identifier is a reproducibility mechanism only; it is not an authenticity or collision-resistance claim.
+Every maintained source file is pinned by its exact Git blob SHA-1 in the manifest. The validator recomputes the Git object identifier from current repository bytes and also requires the same blob to be present at that path in the declared `source_snapshot.commit`. The snapshot commit must therefore be available in local Git history during validation.
 
-When source bytes change, the label must be re-reviewed. Update the blob identifier and source range in the same reviewed change.
+The blob identifier is a reproducibility and snapshot-membership mechanism only; it is not an authenticity or collision-resistance claim.
+
+When source bytes change, the label must be re-reviewed. Update the blob identifier, source snapshot, and source range as necessary in the same reviewed change.
 
 ## Positive and negative sources
 
