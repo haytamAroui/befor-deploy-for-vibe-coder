@@ -27,6 +27,15 @@ from before_deploy.review_preview import (
     render_review_preview_json,
     render_review_preview_markdown,
 )
+from before_deploy.review_session import (
+    build_review_session,
+    compare_review_sessions,
+    load_review_session,
+    render_review_delta_json,
+    render_review_delta_markdown,
+    render_review_session_json,
+    review_delta_error,
+)
 
 EXIT_CODES = {
     GateOutcome.PASS: 0,
@@ -87,6 +96,14 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "optional advisory JSON input; repeatable. Accepts the Before Deploy advisory "
             "schema and OpenCodeReview JSON output. Advisory findings never affect the gate"
+        ),
+    )
+    review.add_argument(
+        "--baseline-session",
+        type=Path,
+        help=(
+            "optional prior review-session.json for NEW/PERSISTING/ABSENT_CURRENT comparison; "
+            "baseline errors never affect the deterministic gate"
         ),
     )
     review.add_argument(
@@ -321,15 +338,33 @@ def _review(args: argparse.Namespace) -> int:
 
         advisory_sources = _collect_advisory_sources(args)
         review = build_unified_review(result, advisory_sources)
+        session = build_review_session(review)
+        delta = _build_review_delta(args.baseline_session, session)
+
         review_reports = {
             "json": render_review_json(review),
             "markdown": render_review_markdown(review),
         }
         (output_dir / "review.json").write_text(review_reports["json"], encoding="utf-8")
         (output_dir / "review.md").write_text(review_reports["markdown"], encoding="utf-8")
+        (output_dir / "review-session.json").write_text(
+            render_review_session_json(session),
+            encoding="utf-8",
+        )
+        if delta is not None:
+            (output_dir / "review-delta.json").write_text(
+                render_review_delta_json(delta),
+                encoding="utf-8",
+            )
+            (output_dir / "review-delta.md").write_text(
+                render_review_delta_markdown(delta),
+                encoding="utf-8",
+            )
 
         if args.format == "terminal":
             _print_review_terminal_summary(review, output_dir)
+            if delta is not None:
+                _print_review_delta_terminal(delta, output_dir)
         elif args.format == "json":
             print(review_reports["json"], end="")
         elif args.format == "markdown":
@@ -340,6 +375,16 @@ def _review(args: argparse.Namespace) -> int:
     except (OSError, ValueError) as error:
         print(f"before-deploy: ERROR: {error}", file=sys.stderr)
         return EXIT_CODES[GateOutcome.ERROR]
+
+
+def _build_review_delta(baseline_path: Path | None, session):
+    if baseline_path is None:
+        return None
+    try:
+        baseline = load_review_session(baseline_path)
+    except (OSError, ValueError) as error:
+        return review_delta_error(session, baseline_path, error)
+    return compare_review_sessions(session, baseline)
 
 
 def _review_preview(args: argparse.Namespace) -> int:
@@ -439,7 +484,27 @@ def _print_review_terminal_summary(review, output_dir: Path) -> None:
         f"location_correlations={len(review.correlations)}, "
         "authority=ADVISORY, gate_effect=NONE"
     )
-    print(f"Unified review: {output_dir / 'review.json'}, {output_dir / 'review.md'}")
+    print(
+        "Unified review: "
+        f"{output_dir / 'review.json'}, {output_dir / 'review.md'}, "
+        f"{output_dir / 'review-session.json'}"
+    )
+
+
+def _print_review_delta_terminal(delta, output_dir: Path) -> None:
+    if delta.status != "COMPLETE":
+        print(f"Review delta: {delta.status} — {delta.message or 'comparison unavailable'}")
+    else:
+        deterministic_new = sum(item.state == "NEW" for item in delta.deterministic)
+        advisory_new = sum(item.state == "NEW" for item in delta.advisory)
+        deterministic_absent = sum(item.state == "ABSENT_CURRENT" for item in delta.deterministic)
+        advisory_absent = sum(item.state == "ABSENT_CURRENT" for item in delta.advisory)
+        print(
+            "Review delta: COMPLETE "
+            f"deterministic_new={deterministic_new}, advisory_new={advisory_new}, "
+            f"deterministic_absent={deterministic_absent}, advisory_absent={advisory_absent}"
+        )
+    print(f"Review delta reports: {output_dir / 'review-delta.json'}, {output_dir / 'review-delta.md'}")
 
 
 def _print_review_preview_terminal(preview, output_dir: Path) -> None:
