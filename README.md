@@ -346,19 +346,47 @@ Artifacts are designed around bounded content, hashes, lineage, authority metada
 
 ## MCP, Claude Code, and Codex
 
-### MCP
+### MCP (`preflight-mcp`)
 
-Run the bounded stdio MCP server:
+Run the bounded stdio MCP server directly from GitHub or locally. It exposes diagnostic, verification, and release surfaces while deliberately not exposing human approval, patch generation, or workspace materialization as autonomous tools.
+
+#### Run directly from GitHub (zero installation needed)
+Any user can run `preflight-mcp` directly without cloning the repository using [`uvx`](https://docs.astral.sh/uv/concepts/tools/):
 
 ```bash
-uv run preflight-mcp
-# or using the backwards-compatible alias:
-# uv run before-deploy-mcp
+uvx --from git+https://github.com/haytamAroui/preflight.git --with "mcp>=2,<3" preflight-mcp
 ```
 
-It exposes diagnostic, verification, and release surfaces while deliberately not exposing human approval, patch generation, or workspace materialization as autonomous tools.
+#### Run locally
+Inside the cloned repository:
 
-See [`docs/MCP_API_SURFACE.md`](docs/MCP_API_SURFACE.md).
+```bash
+uv run --with "mcp>=2,<3" preflight-mcp
+# or using the backwards-compatible alias:
+# uv run --with "mcp>=2,<3" before-deploy-mcp
+```
+
+#### Agent & IDE Configuration (Claude Desktop, Cursor, Antigravity)
+Add this to your MCP configuration file (e.g., `claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "preflight": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/haytamAroui/preflight.git",
+        "--with",
+        "mcp>=2,<3",
+        "preflight-mcp"
+      ]
+    }
+  }
+}
+```
+
+See [`docs/MCP_API_SURFACE.md`](docs/MCP_API_SURFACE.md) for tool schema and capability contracts.
 
 ### Claude Code
 

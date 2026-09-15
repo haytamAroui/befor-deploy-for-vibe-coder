@@ -65,6 +65,12 @@ pip install "mcp>=2,<3"
 preflight-mcp
 ```
 
+or run directly from GitHub without cloning:
+
+```text
+uvx --from git+https://github.com/haytamAroui/preflight.git --with "mcp>=2,<3" preflight-mcp
+```
+
 or during repository development:
 
 ```text
