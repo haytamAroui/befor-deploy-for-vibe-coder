@@ -266,7 +266,9 @@ See [`docs/RELEASE_DISPOSITION.md`](docs/RELEASE_DISPOSITION.md) and [`docs/ADVI
 
 What is enforced rather than only documented: [`tests/unit/test_architecture_boundary.py`](tests/unit/test_architecture_boundary.py) runs a real `scan` in an interpreter where the advisory plane cannot be imported and no provider credential is present, and fails the build if the scan engine (`orchestrator`, `policy`, `controls/`, `domains/`, `models`) gains a module-scope advisory import.
 
-Known exception, stated rather than implied: the human-authority chain (`verification`, `human_approval_patch`, `regression_evidence`) still links to the advisory plane at module scope, because `remediation_proposal` calls the evidence-explanation validators at runtime. Advisory data still cannot enter a `ReleaseDisposition` — that exclusion is enforced in `release_disposition.py` — but those modules cannot be *imported* without the advisory plane present. Closing that gap means moving the explanation contract into a neutral module, which is a design change, not an import change.
+Known exception, stated rather than implied: the human-authority chain (`verification`, `human_approval_patch`, `regression_evidence`) still links to the advisory plane at module scope, because `remediation_proposal` calls the evidence-explanation validators at runtime. Advisory data still cannot enter a `ReleaseDisposition` — that exclusion is enforced in `release_disposition.py` — but those modules cannot be *imported* without the advisory plane present. Closing that gap means moving the proposal/explanation contract into a neutral module that both planes depend on, which is a design change rather than an import change.
+
+That residual coupling is frozen in the same test as an **exact set**, so it can only shrink: a new module-scope dependency on the advisory plane fails the build, and so does removing a listed one without updating the list. The drift this project actually suffered — the deterministic half quietly acquiring requirements on the model stack — is now a test failure instead of a convention.
 
 ---
 

@@ -6,16 +6,24 @@ from dataclasses import dataclass
 from hashlib import sha256
 from json import JSONDecodeError, dumps, loads
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from before_deploy.evidence_investigation import EvidenceInvestigationRequest
 from before_deploy.models import to_primitive
 from before_deploy.remediation_proposal import (
-    RemediationProposalRequest,
-    RemediationProposalResult,
     remediation_proposal_to_primitive,
     validate_remediation_proposal,
 )
+
+if TYPE_CHECKING:
+    # Proposal and investigation request/result types appear only in annotations (this module has
+    # `from __future__ import annotations`). Importing them under TYPE_CHECKING narrows this
+    # module's dependency on the advisory plane to the two validators it genuinely calls at
+    # runtime; it does not remove it, because validating a proposal is a runtime contract.
+    from before_deploy.evidence_investigation import EvidenceInvestigationRequest
+    from before_deploy.remediation_proposal import (
+        RemediationProposalRequest,
+        RemediationProposalResult,
+    )
 
 HUMAN_APPROVAL_SCHEMA_VERSION = 1
 HUMAN_APPROVAL_AUTHORITY = "HUMAN_APPROVAL_WORKFLOW"

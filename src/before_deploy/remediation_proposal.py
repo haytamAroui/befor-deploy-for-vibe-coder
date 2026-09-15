@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from json import JSONDecodeError, dumps, loads
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from before_deploy.evidence_explanation import (
     EvidenceExplanationRequest,
@@ -15,8 +15,12 @@ from before_deploy.evidence_explanation import (
     validate_evidence_explanation,
     validate_evidence_explanation_request,
 )
-from before_deploy.evidence_investigation import EvidenceInvestigationRequest
 from before_deploy.models import to_primitive
+
+if TYPE_CHECKING:
+    # Annotation-only (this module has `from __future__ import annotations`); the explanation
+    # validators above stay a runtime import because this module calls them.
+    from before_deploy.evidence_investigation import EvidenceInvestigationRequest
 
 REMEDIATION_PROPOSAL_SCHEMA_VERSION = 1
 REMEDIATION_PROPOSAL_REQUEST_AUTHORITY = "REMEDIATION_CONTEXT"

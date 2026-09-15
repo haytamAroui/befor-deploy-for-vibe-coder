@@ -220,3 +220,112 @@ def test_blocker_and_sandbox_are_effective(tmp_path):
     result = _run_with_advisory_plane_blocked(tmp_path, body)
     assert result.returncode == 0, f"stdout={result.stdout}\nstderr={result.stderr}"
     assert "no provider credential" in result.stdout
+
+
+#: Modules that *are* the advisory, evidence, and evaluation-lab plane. They are expected to be
+#: unimportable when the plane is blocked, because importing one of these is what "the plane"
+#: means.
+ADVISORY_PLANE_MODULES: frozenset[str] = frozenset(
+    {
+        "before_deploy.advisory",
+        "before_deploy.advisory_context",
+        "before_deploy.advisory_execution",
+        "before_deploy.advisory_provider",
+        "before_deploy.assurance_case",
+        "before_deploy.assurance_comparison",
+        "before_deploy.caller_experiment",
+        "before_deploy.caller_pilot",
+        "before_deploy.caller_pilot_runner",
+        "before_deploy.caller_pilot_runner_cli",
+        "before_deploy.comparative_benchmark",
+        "before_deploy.comparative_benchmark_cli",
+        "before_deploy.evidence_artifact",
+        "before_deploy.evidence_challenge",
+        "before_deploy.evidence_correlation",
+        "before_deploy.evidence_corroboration",
+        "before_deploy.evidence_explanation",
+        "before_deploy.evidence_graph",
+        "before_deploy.evidence_inspect",
+        "before_deploy.evidence_investigation",
+        "before_deploy.ocr_advisory",
+        "before_deploy.ocr_provider",
+        "before_deploy.real_world_validation",
+        "before_deploy.real_world_validation_cli",
+        "before_deploy.reports.review_report",
+        "before_deploy.review_benchmark",
+        "before_deploy.review_benchmark_corpus",
+        "before_deploy.review_session",
+    }
+)
+
+#: Deterministic-side modules that still cannot be imported without the advisory plane present.
+#: This is a bug to shrink, not a design to defend. The known cause is that the human-authority
+#: chain validates advisory artifacts through validators that live in the plane:
+#: ``human_approval_patch`` *calls* ``validate_remediation_proposal`` and
+#: ``remediation_proposal_to_primitive``, and ``remediation_proposal`` *calls*
+#: ``validate_evidence_explanation*``. Removing these needs the proposal/explanation contract
+#: moved into a neutral module that both planes depend on. When that lands, delete the entries
+#: here -- this set is exact, so it fails on shrinkage too rather than going stale.
+DETERMINISTIC_MODULES_REACHING_THE_ADVISORY_PLANE: frozenset[str] = frozenset(
+    {
+        "before_deploy.entrypoint",
+        "before_deploy.human_approval_patch",
+        "before_deploy.mcp_server",
+        "before_deploy.platform_api",
+        "before_deploy.regression_entrypoint",
+        "before_deploy.regression_evidence",
+        "before_deploy.release_disposition",
+        "before_deploy.release_entrypoint",
+        "before_deploy.remediation_proposal",
+        "before_deploy.verification",
+        "before_deploy.verification_entrypoint",
+        "before_deploy.verification_history",
+        "before_deploy.verification_history_entrypoint",
+    }
+)
+
+#: Walks every ``before_deploy`` module and reports the ones that will not import. Comparing this
+#: to the frozen sets above is what makes the boundary a ratchet: coupling may shrink, never grow.
+_WALK_BODY = (
+    "import importlib, pkgutil\n"
+    "import before_deploy\n"
+    "for _module in sorted(\n"
+    "    item.name for item in pkgutil.walk_packages(before_deploy.__path__, 'before_deploy.')\n"
+    "):\n"
+    "    try:\n"
+    "        importlib.import_module(_module)\n"
+    "    except Exception:\n"
+    "        print(_module)\n"
+)
+
+
+def _blocked_modules(tmp_path: Path) -> set[str]:
+    result = _run_with_advisory_plane_blocked(tmp_path, _WALK_BODY)
+    assert result.returncode == 0, f"stdout={result.stdout}\nstderr={result.stderr}"
+    return {line.strip() for line in result.stdout.splitlines() if line.strip()}
+
+
+def test_advisory_coupling_is_a_ratchet_that_only_shrinks(tmp_path):
+    """No module outside the frozen sets may depend on the advisory plane.
+
+    A new dependency here means the deterministic half quietly grew a requirement on the model
+    stack, which is exactly the drift this module exists to stop.
+    """
+    blocked = _blocked_modules(tmp_path)
+    allowed = ADVISORY_PLANE_MODULES | DETERMINISTIC_MODULES_REACHING_THE_ADVISORY_PLANE
+
+    new_coupling = sorted(blocked - allowed)
+    assert new_coupling == [], (
+        "new dependency on the advisory plane: "
+        + ", ".join(new_coupling)
+        + "\nImport the plane lazily inside the command that needs it, or move the shared contract"
+        " out of the plane. Do not add an entry to the frozen set."
+    )
+
+    removed = sorted(allowed - blocked)
+    assert removed == [], (
+        "advisory coupling decreased: "
+        + ", ".join(removed)
+        + "\nDelete these from ADVISORY_PLANE_MODULES / "
+        "DETERMINISTIC_MODULES_REACHING_THE_ADVISORY_PLANE so the frozen set stays accurate."
+    )
