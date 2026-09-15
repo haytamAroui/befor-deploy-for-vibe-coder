@@ -9,6 +9,13 @@ from before_deploy.evidence_correlation import (
     build_evidence_correlation,
     evidence_correlation_to_primitive,
 )
+from before_deploy.evidence_corroboration import (
+    CORROBORATION_STATUS_MULTI_EXECUTION_EXACT_CLAIM,
+    CORROBORATION_STATUS_REPEATED_EXACT_CLAIM,
+    SIGNAL_DETERMINISTIC_COLOCATION,
+    build_evidence_corroboration,
+    evidence_corroboration_to_primitive,
+)
 from before_deploy.evidence_graph import build_evidence_graph, evidence_graph_to_primitive
 from before_deploy.models import to_primitive
 
@@ -17,6 +24,7 @@ def render_review_json(result: UnifiedReviewResult) -> str:
     """Render a machine-readable review without allowing advisory findings into policy."""
     graph = build_evidence_graph(result.scan, result.advisory_sources)
     correlation = build_evidence_correlation(result, graph)
+    corroboration = build_evidence_corroboration(graph, correlation)
     payload = {
         "schema_version": 1,
         "authority_contract": {
@@ -26,6 +34,9 @@ def render_review_json(result: UnifiedReviewResult) -> str:
             "correlation_semantics": "location_overlap_only",
             "deduplication_semantics": "exact_advisory_fingerprint_only",
             "correlation_authority": "diagnostic_only",
+            "corroboration_semantics": "exact_claim_provenance_only",
+            "corroboration_authority": "diagnostic_only",
+            "deterministic_colocation_semantics": "context_not_semantic_agreement",
             "advisory_content_trust": "untrusted",
             "advisory_scope_attestation": "diagnostic_only",
             "advisory_execution_provenance": "diagnostic_only",
@@ -51,6 +62,7 @@ def render_review_json(result: UnifiedReviewResult) -> str:
         "correlations": to_primitive(result.correlations),
         "evidence_graph": evidence_graph_to_primitive(graph),
         "evidence_correlation": evidence_correlation_to_primitive(correlation),
+        "evidence_corroboration": evidence_corroboration_to_primitive(corroboration),
     }
     return dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
@@ -60,12 +72,25 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
     decision = result.scan.decision.outcome.value
     graph = build_evidence_graph(result.scan, result.advisory_sources)
     correlation = build_evidence_correlation(result, graph)
+    corroboration = build_evidence_corroboration(graph, correlation)
     nonmatched_scope = sum(
         source.scope_status not in {"MATCHED", "NOT_CHECKED"}
         for source in result.advisory_sources
     )
     duplicate_occurrences = sum(
         max(0, group.occurrence_count - 1) for group in correlation.duplicate_groups
+    )
+    repeated_claims = sum(
+        item.status == CORROBORATION_STATUS_REPEATED_EXACT_CLAIM
+        for item in corroboration.assessments
+    )
+    multi_execution_claims = sum(
+        item.status == CORROBORATION_STATUS_MULTI_EXECUTION_EXACT_CLAIM
+        for item in corroboration.assessments
+    )
+    deterministic_colocations = sum(
+        SIGNAL_DETERMINISTIC_COLOCATION in item.signals
+        for item in corroboration.assessments
     )
     lines = [
         "# Before Deploy Unified Review",
@@ -82,7 +107,9 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
         "- Evidence Graph v1 records typed lineage and has `gate_effect=NONE`.",
         "- Graph-backed correlation is diagnostic only and uses repository-relative location overlap.",
         "- Deduplication collapses only exact advisory fingerprints in a diagnostic unique view.",
-        "- Correlation and deduplication never modify `PolicyDecision` or finding authority.",
+        "- Corroboration records exact-claim repetition and provenance facts; it does not alter provider confidence.",
+        "- Deterministic co-location is context only and does not assert semantic agreement.",
+        "- Correlation, deduplication, and corroboration never modify `PolicyDecision` or finding authority.",
         "",
         "## Summary",
         "",
@@ -90,12 +117,16 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
         f"- Advisory finding occurrences: **{len(result.advisory_findings)}**",
         f"- Unique advisory claims: **{len(correlation.unique_advisory_node_ids)}**",
         f"- Exact duplicate advisory occurrences: **{duplicate_occurrences}**",
+        f"- Repeated exact claims without multi-execution provenance: **{repeated_claims}**",
+        f"- Exact claims observed across multiple executions: **{multi_execution_claims}**",
+        f"- Advisory claims with deterministic co-location context: **{deterministic_colocations}**",
         f"- Advisory source errors: **{sum(source.status == 'ERROR' for source in result.advisory_sources)}**",
         f"- Advisory scope states other than MATCHED/NOT_CHECKED: **{nonmatched_scope}**",
         f"- Graph-backed location correlations: **{len(correlation.correlations)}**",
         f"- Evidence graph: **{len(graph.nodes)} nodes / {len(graph.edges)} edges**",
         f"- Evidence graph SHA-256: `{graph.graph_sha256}`",
         f"- Correlation SHA-256: `{correlation.correlation_sha256}`",
+        f"- Corroboration SHA-256: `{corroboration.corroboration_sha256}`",
         "",
     ]
 
@@ -143,6 +174,26 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
                 f"- `{group.fingerprint}` — occurrences **{group.occurrence_count}**, "
                 f"canonical graph node `{group.canonical_node_id}`"
             )
+        lines.append("")
+
+    if corroboration.assessments:
+        lines.extend(["## Advisory corroboration", ""])
+        for item in corroboration.assessments:
+            signal_text = ", ".join(f"`{signal}`" for signal in item.signals) or "none"
+            lines.append(
+                f"- `{item.advisory_node_id}` — status `{item.status}`, "
+                f"occurrences **{item.occurrence_count}**, signals {signal_text}"
+            )
+            if item.provider_ids:
+                lines.append(
+                    "  - Providers observed: "
+                    + ", ".join(f"`{provider}`" for provider in item.provider_ids)
+                )
+            if item.attested_model_identities:
+                lines.append(
+                    "  - Attested models observed: "
+                    + ", ".join(f"`{model}`" for model in item.attested_model_identities)
+                )
         lines.append("")
 
     if result.advisory_findings:
