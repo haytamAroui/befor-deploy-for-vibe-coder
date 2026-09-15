@@ -9,7 +9,9 @@ Before Deploy has two different execution planes:
 
 The advisory provider runtime makes that separation a code-level contract instead of a convention tied to OpenCodeReview (OCR).
 
-PR23 introduces a provider-independent request/identity interface and moves the `review --ocr` path behind it. PR24 adds deterministic context preparation before provider execution. OCR remains the first implementation; future native or third-party reviewers must use the same authority and context boundaries.
+PR23 introduced the provider-independent execution boundary. PR24 added deterministic context preparation. PR25 adds explicit execution provenance: implementation/model/configuration identity, budgets, timing, context lineage, and raw-to-normalized output digests.
+
+OCR remains the first implementation; future native or third-party reviewers must use the same authority, context, and provenance boundaries.
 
 ## Core contract
 
@@ -17,6 +19,7 @@ An advisory provider implements:
 
 ```text
 identity -> AdvisoryProviderIdentity
+execution_descriptor(request) -> AdvisoryExecutionDescriptor
 review(request: AdvisoryProviderRequest) -> AdvisoryImport
 ```
 
@@ -33,7 +36,17 @@ context
 
 `context` is either supplied by a trusted caller or built by the runtime before provider execution. In both cases the runtime validates it before the provider is called.
 
-Provider-specific execution settings stay on the provider implementation. For OCR today those include its timeout and accepted JSON-output size.
+The execution descriptor contains only redaction-safe provider metadata:
+
+```text
+implementation
+implementation_version
+model identity + attestation state
+configuration[]
+budgets[]
+```
+
+Provider-specific settings stay on provider implementations. For OCR those include its timeout and accepted JSON-output size.
 
 The runtime is invoked through:
 
@@ -54,7 +67,7 @@ authority = ADVISORY
 gate_effect = NONE
 ```
 
-This is true even if a provider attempts to return fields such as:
+This is true even if a provider attempts to return:
 
 ```text
 authority = DETERMINISTIC
@@ -65,14 +78,17 @@ Those values are rewritten before the result enters the unified review model.
 
 A provider therefore cannot create `PASS`, `BLOCK`, `WAIVER_REQUIRED`, `ERROR`, a waiver, or any other deterministic policy effect.
 
-The deterministic context manifest has its own non-authoritative metadata:
+The deterministic context manifest and execution provenance have their own non-authoritative metadata:
 
 ```text
 authority = ADVISORY_CONTEXT
 gate_effect = NONE
+
+authority = ADVISORY_EXECUTION
+gate_effect = NONE
 ```
 
-Context selection constrains provider input; it does not become release authority.
+More provider metadata never grants more release authority.
 
 ## Stable provider identity
 
@@ -89,11 +105,51 @@ The returned `AdvisoryImport` must agree with the declared `source` and `source_
 
 This prevents a provider from presenting itself as the deterministic core or another provider in the unified review plane.
 
-PR25 will extend provider execution provenance with model/config/context/budget/timing lineage. PR24 intentionally records only deterministic source-context lineage and a bounded context summary.
+## Execution identity and provenance
+
+Before invocation, the runtime validates and canonicalizes `AdvisoryExecutionDescriptor`.
+
+The descriptor separates:
+
+- provider implementation identity/version;
+- model identity and whether that identity is actually attested;
+- redaction-safe configuration parameters;
+- provider-declared execution budgets.
+
+Configuration parameter and budget names must be unique and are canonicalized by name.
+
+`configuration_sha256` hashes only the canonical configuration list. Model identity, implementation identity, budgets, context, timing, and output digests remain separate fields.
+
+After execution begins, the runtime records:
+
+```text
+context_sha256
+context selected file/byte counts
+started_at
+completed_at
+duration_ms
+raw-output digest/size when available
+normalized_output_sha256
+result_status
+```
+
+`duration_ms` uses a monotonic clock; UTC timestamps provide human/audit chronology.
+
+See [ADVISORY_EXECUTION_PROVENANCE.md](ADVISORY_EXECUTION_PROVENANCE.md) for the complete lineage contract.
+
+## Model identity
+
+Model identity is never guessed.
+
+`ATTESTED` requires both a provider and model name.
+
+`UNATTESTED` requires a reason explaining why the integration cannot bind the execution to a trustworthy provider/model identity.
+
+OCR currently reports `UNATTESTED` because its accepted JSON contract does not attest the configured LLM provider/model. Before Deploy does not infer those fields from unrelated local configuration or environment state.
 
 ## Deterministic context preparation
 
-Before calling a provider, the runtime now ensures that `AdvisoryProviderRequest.context` is a validated `AdvisoryContext`.
+Before calling a provider, the runtime ensures that `AdvisoryProviderRequest.context` is a validated `AdvisoryContext`.
 
 If the caller does not provide one, the runtime builds it from the request scope using the deterministic context selector.
 
@@ -110,20 +166,66 @@ For range and commit modes, bytes are read from the resolved target Git tree rat
 
 See [ADVISORY_CONTEXT.md](ADVISORY_CONTEXT.md) for the full selection and provenance contract.
 
+## Raw-to-normalized lineage
+
+The advisory JSON loader records a content-free digest of the exact accepted raw JSON bytes:
+
+```text
+sha256
+size_bytes
+media_type
+schema/source_format
+```
+
+For live OCR this digest is computed while the bounded temporary output still exists. Raw OCR JSON is not copied into the unified report.
+
+After source/status validation and structural authority enforcement, the provider runtime computes `normalized_output_sha256` over the normalized advisory source fields and findings, excluding the execution object itself.
+
+This gives the trace:
+
+```text
+context_sha256
+      |
+      v
+provider execution
+      |
+      v
+raw_output.sha256
+      |
+      v
+normalization + authority enforcement
+      |
+      v
+normalized_output_sha256
+```
+
 ## Failure isolation
 
-Provider execution and context preparation are isolated from release authority.
+Provider execution, descriptor validation, and context preparation are isolated from release authority.
 
-If context preparation fails, a provider raises a normal Python exception, returns the wrong result type, violates its declared identity, or receives an invalid common review scope, the runtime converts the failure into:
+Failures before provider invocation produce an advisory source error with no execution provenance because no execution occurred. Examples include:
+
+- invalid request scope;
+- context preparation/integrity failure;
+- invalid execution descriptor.
+
+Failures after execution begins retain execution provenance. Examples include:
+
+- provider exception;
+- unsupported return type;
+- source identity mismatch;
+- invalid status semantics;
+- invalid raw-output provenance.
+
+In every case:
 
 ```text
 status = ERROR
 findings = []
+gate_effect = NONE
 ```
 
-under that provider's advisory identity.
-
-The deterministic scan result and its process exit code remain unchanged.
+The deterministic scan result and process exit code remain unchanged.
 
 `KeyboardInterrupt`, `SystemExit`, and other `BaseException` subclasses are not swallowed by this boundary.
 
@@ -144,6 +246,18 @@ Provider-specific scope attestation remains inside each provider implementation.
 
 `OcrAdvisoryProvider` maps the generic request into the existing bounded `OcrAdvisoryOptions` and isolated OCR execution path.
 
+OCR declares:
+
+```text
+implementation = open-code-review-cli
+implementation_version = null
+model.status = UNATTESTED
+```
+
+and redaction-safe configuration including its Before Deploy adapter contract, audience, JSON format, and supported OCR manifest schema.
+
+It also declares accepted JSON-output and timeout budgets.
+
 OCR is a transitional case because the external CLI chooses its own file set instead of directly consuming `AdvisoryContext.files`.
 
 Before OCR starts, the provider compares:
@@ -154,7 +268,7 @@ Before Deploy deterministic preview reviewable paths
 AdvisoryContext selected paths
 ```
 
-If they differ, OCR is not invoked and the source reports `CONTEXT_LIMITED`. This prevents OCR from silently widening beyond the aggregate/encoding/path constraints established by PR24.
+If they differ, OCR is not invoked and the source reports `CONTEXT_LIMITED`.
 
 If the sets match, the existing OCR two-stage contract still applies:
 
@@ -162,7 +276,9 @@ If the sets match, the existing OCR two-stage contract still applies:
 2. the final OCR run manifest, when supported, must not expand or drift from preflight;
 3. violating findings are discarded.
 
-The legacy lower-level `run_ocr_advisory(...)` function remains an implementation-level compatibility surface and retains its existing tests. The supported orchestration path is:
+The legacy lower-level `run_ocr_advisory(...)` function remains an implementation-level compatibility surface.
+
+The supported orchestration path is:
 
 ```text
 before-deploy review --ocr
@@ -171,6 +287,7 @@ before-deploy review --ocr
 execute_advisory_provider
         |
         +--> deterministic AdvisoryContext
+        +--> execution descriptor
         |
         v
 OcrAdvisoryProvider
@@ -179,26 +296,22 @@ OcrAdvisoryProvider
 bounded OCR adapter + scope attestation
         |
         v
-AdvisoryImport
+raw artifact digest -> normalized AdvisoryImport
+        |
+        v
+AdvisoryExecutionProvenance
         |
         v
 ADVISORY / gate_effect=NONE
 ```
 
-## Context visibility
+## Reporting
 
-A successful provider result includes a bounded context summary in its advisory source metadata:
+`review.json` includes structured `raw_artifact` and `execution` fields per advisory source.
 
-```text
-context_sha256=<digest>
-selected_files=<count>
-selected_bytes=<used>/<budget>
-excluded_files=<count>
-```
+`review.md` summarizes provider/implementation/model state, duration, context/config/normalized digests, and raw-output digest/size when available.
 
-The context module also provides content-free JSON and Markdown renderers for inspection and future artifact persistence. Raw source content is never serialized by those renderers.
-
-PR25 will turn this context identity into explicit provider execution provenance rather than treating the source message as the long-term attestation format.
+Raw repository content, provider raw output, chain-of-thought, credentials, and stderr/stdout are not embedded into execution provenance.
 
 ## Dependency direction
 
@@ -211,6 +324,7 @@ CLI
 AdvisoryProvider runtime
  |
  +--> deterministic context selector
+ +--> execution provenance
  |
  +--> OCR provider
  +--> future providers
@@ -224,26 +338,21 @@ Deterministic PolicyDecision never depends on provider output.
 
 Providers may consume deterministic context manifests and exact materialized source bytes. They do not feed semantic judgments back into deterministic policy evaluation.
 
-## What PR24 does not add
+## What PR25 does not add
 
-PR24 does not add:
+PR25 does not add:
 
 - a second AI provider;
 - provider auto-discovery;
-- arbitrary executable or prompt configuration;
 - native LLM execution;
 - semantic/model-driven context ranking;
 - embeddings or vector search;
 - AST/function-level chunking;
-- model/config/token/cost provenance;
-- provider timing attestations;
-- Evidence Graph correlation;
+- provider cost accounting where the provider does not expose trustworthy usage data;
+- verified OCR model identity that OCR itself does not attest;
+- Evidence Graph nodes;
 - any policy setting that promotes AI severity into a deterministic block.
 
-Those concerns remain deliberately staged.
+## Next increment
 
-## Next increments
-
-PR25 adds provider execution provenance and budget/timing contracts, including first-class model/config/context lineage.
-
-PR26 can then build Evidence Graph v1 on top of provider results whose input scope and execution lineage are explicit.
+PR26 builds Evidence Graph v1 on top of explicit deterministic context, provider execution lineage, raw/normalized artifacts, advisory findings, deterministic observations, and policy decisions.

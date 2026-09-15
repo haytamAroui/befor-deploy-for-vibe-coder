@@ -19,6 +19,7 @@ def render_review_json(result: UnifiedReviewResult) -> str:
             "correlation_semantics": "location_overlap_only",
             "advisory_content_trust": "untrusted",
             "advisory_scope_attestation": "diagnostic_only",
+            "advisory_execution_provenance": "diagnostic_only",
         },
         "deterministic_scan": to_primitive(result.scan),
         "advisory_sources": [
@@ -31,6 +32,8 @@ def render_review_json(result: UnifiedReviewResult) -> str:
                 "message": source.message,
                 "scope_status": source.scope_status,
                 "scope_message": source.scope_message,
+                "raw_artifact": to_primitive(source.raw_artifact),
+                "execution": to_primitive(source.execution),
             }
             for source in result.advisory_sources
         ],
@@ -58,6 +61,7 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
         "- Imported AI or third-party findings are `ADVISORY` with `gate_effect=NONE`.",
         "- Advisory message content is untrusted input and is not deterministic evidence.",
         "- Advisory scope attestation is diagnostic only and cannot change release status.",
+        "- Advisory execution provenance is diagnostic lineage, not release authority.",
         "- Correlation means source-location overlap only; it does not prove semantic agreement.",
         "",
         "## Summary",
@@ -82,6 +86,29 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
                 lines.append(f"  - Source: {source.message}")
             if source.scope_message:
                 lines.append(f"  - Scope: {source.scope_message}")
+            if source.execution is not None:
+                execution = source.execution
+                version = execution.implementation_version or "UNATTESTED"
+                model = (
+                    f"{execution.model.provider}/{execution.model.model}"
+                    if execution.model.status == "ATTESTED"
+                    else "UNATTESTED"
+                )
+                lines.append(
+                    f"  - Execution: provider=`{execution.provider_id}`, "
+                    f"implementation=`{execution.implementation}@{version}`, model=`{model}`, "
+                    f"duration_ms=`{execution.duration_ms}`"
+                )
+                lines.append(
+                    f"  - Lineage: context=`{execution.context_sha256}`, "
+                    f"config=`{execution.configuration_sha256}`, "
+                    f"normalized=`{execution.normalized_output_sha256}`"
+                )
+                if execution.raw_output is not None:
+                    lines.append(
+                        f"  - Raw output: sha256=`{execution.raw_output.sha256}`, "
+                        f"bytes=`{execution.raw_output.size_bytes}`"
+                    )
         lines.append("")
 
     if result.advisory_findings:

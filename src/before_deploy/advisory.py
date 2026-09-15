@@ -8,6 +8,7 @@ from json import dumps, loads
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable, Mapping
 
+from before_deploy.advisory_execution import AdvisoryExecutionProvenance, AdvisoryRawArtifact
 from before_deploy.models import Location, ScanResult
 
 ADVISORY_AUTHORITY = "ADVISORY"
@@ -45,7 +46,7 @@ class AdvisoryFinding:
 
 @dataclass(frozen=True)
 class AdvisoryImport:
-    """One imported advisory result file and its normalized findings."""
+    """One imported advisory result plus content-free raw/execution lineage."""
 
     input_name: str
     source: str
@@ -55,6 +56,8 @@ class AdvisoryImport:
     message: str | None = None
     scope_status: str = "NOT_CHECKED"
     scope_message: str | None = None
+    raw_artifact: AdvisoryRawArtifact | None = None
+    execution: AdvisoryExecutionProvenance | None = None
 
 
 def advisory_error_import(
@@ -103,10 +106,11 @@ class UnifiedReviewResult:
 def load_advisory_file(path: Path) -> AdvisoryImport:
     """Load canonical advisory JSON or OpenCodeReview JSON without importing raw code fields."""
     try:
-        payload = loads(path.read_text(encoding="utf-8"))
+        raw_bytes = path.read_bytes()
+        payload = loads(raw_bytes.decode("utf-8"))
     except OSError:
         raise
-    except ValueError as error:
+    except (UnicodeDecodeError, ValueError) as error:
         raise ValueError(f"Invalid advisory JSON in {path.name}: {error}") from error
 
     source, source_format, raw_findings = _extract_findings(payload)
@@ -119,6 +123,12 @@ def load_advisory_file(path: Path) -> AdvisoryImport:
         source=source,
         source_format=source_format,
         findings=findings,
+        raw_artifact=AdvisoryRawArtifact(
+            sha256=sha256(raw_bytes).hexdigest(),
+            size_bytes=len(raw_bytes),
+            media_type="application/json",
+            schema=source_format,
+        ),
     )
 
 
