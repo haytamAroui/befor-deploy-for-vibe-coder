@@ -23,7 +23,8 @@ from before_deploy.agent_orchestration import (
     AgentReviewResult,
 )
 from before_deploy.agent_routing import NativeModelRouter
-from before_deploy.agent_runtime import AgentBudget, AgentContextItem
+from before_deploy.agent_runtime import AgentBudget, AgentContextItem, AgentRuntime
+from before_deploy.agent_snapshot_tools import SnapshotRepositoryTools
 from before_deploy.agent_tool_executor import BoundedRepositoryTools
 from before_deploy.agent_tools import RepositoryToolPolicy
 from before_deploy.models import Location
@@ -73,10 +74,7 @@ class NativeAgentAdvisoryProvider:
             model=model,
             configuration=(
                 AdvisoryExecutionParameter(name="routes", value=route_value),
-                AdvisoryExecutionParameter(
-                    name="specialists",
-                    value=",".join(self.specialist_ids),
-                ),
+                AdvisoryExecutionParameter(name="specialists", value=",".join(self.specialist_ids)),
                 AdvisoryExecutionParameter(
                     name="scope_expansion",
                     value="enabled" if self.tool_policy.allow_scope_expansion else "disabled",
@@ -89,9 +87,7 @@ class NativeAgentAdvisoryProvider:
                 AdvisoryExecutionBudget(
                     "max_tool_result_bytes", self.budget.max_tool_result_bytes, "bytes"
                 ),
-                AdvisoryExecutionBudget(
-                    "max_input_tokens", self.budget.max_input_tokens, "tokens"
-                ),
+                AdvisoryExecutionBudget("max_input_tokens", self.budget.max_input_tokens, "tokens"),
                 AdvisoryExecutionBudget(
                     "max_output_tokens", self.budget.max_output_tokens, "tokens"
                 ),
@@ -128,10 +124,6 @@ class NativeAgentAdvisoryProvider:
             for file, entry in zip(context.files, context.manifest.selected, strict=True)
         )
         starting_paths = tuple(file.path for file in context.files)
-
-        # Workspace exploration can safely use the current repository index. Historical
-        # RANGE/COMMIT contexts are exact Git snapshots; until revision-aware expansion is
-        # available, disable expansion rather than mixing workspace bytes into that evidence.
         historical_scope = context.manifest.mode in {"RANGE", "COMMIT"}
         effective_policy = RepositoryToolPolicy(
             allowed_tools=self.tool_policy.allowed_tools,
@@ -143,15 +135,16 @@ class NativeAgentAdvisoryProvider:
             max_read_lines=self.tool_policy.max_read_lines,
         )
         try:
-            tools = BoundedRepositoryTools(
-                request.repository,
-                starting_paths=starting_paths,
-                policy=effective_policy,
-            )
+            if historical_scope:
+                tools = SnapshotRepositoryTools(context.files, policy=effective_policy)
+            else:
+                tools = BoundedRepositoryTools(
+                    request.repository,
+                    starting_paths=starting_paths,
+                    policy=effective_policy,
+                )
             orchestration = AgentReviewOrchestrator(
-                runtime=__import__(
-                    "before_deploy.agent_runtime", fromlist=["AgentRuntime"]
-                ).AgentRuntime(budget=self.budget)
+                runtime=AgentRuntime(budget=self.budget)
             ).run(
                 model_factory=self.router,
                 tools=tools,
@@ -172,7 +165,6 @@ class NativeAgentAdvisoryProvider:
             )
 
         findings = tuple(_finding_from_claim(claim) for claim in orchestration.accepted_claims)
-        raw = _orchestration_artifact(orchestration)
         return AdvisoryImport(
             input_name="agent",
             source=NATIVE_AGENT_SOURCE,
@@ -186,11 +178,11 @@ class NativeAgentAdvisoryProvider:
             scope_status="CONTEXT_LIMITED" if historical_scope else "MATCHED",
             scope_message=(
                 "Historical scope uses exact deterministic changed-file snapshot; dynamic "
-                "repository expansion is disabled until revision-aware tooling is available"
+                "expansion outside that snapshot is disabled"
                 if historical_scope
                 else "Native agent started from the exact deterministic advisory context"
             ),
-            raw_artifact=raw,
+            raw_artifact=_orchestration_artifact(orchestration),
         )
 
 
