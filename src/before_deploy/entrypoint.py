@@ -1,4 +1,4 @@
-"""Installed command dispatcher, including persisted evidence inspection."""
+"""Installed command dispatcher for persisted evidence diagnostics."""
 
 from __future__ import annotations
 
@@ -15,15 +15,29 @@ from before_deploy.evidence_inspect import (
     render_evidence_inspection_markdown,
     render_evidence_inspection_terminal,
 )
+from before_deploy.evidence_investigation import (
+    DEFAULT_MAX_INVESTIGATION_RESPONSE_BYTES,
+    build_evidence_investigation_request,
+    load_evidence_investigation_response,
+    render_evidence_investigation_json,
+    render_evidence_investigation_markdown,
+    render_evidence_investigation_request_json,
+    render_evidence_investigation_request_markdown,
+    render_evidence_investigation_request_terminal,
+    render_evidence_investigation_terminal,
+)
 
 INSPECT_INPUT_ERROR_EXIT = 2
+INVESTIGATE_INPUT_ERROR_EXIT = 2
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Dispatch inspect without changing the established scan/review/benchmark parser."""
+    """Dispatch evidence diagnostics without changing established gate commands."""
     args = list(sys.argv[1:] if argv is None else argv)
     if args and args[0] == "inspect":
         return _inspect(args[1:])
+    if args and args[0] == "investigate":
+        return _investigate(args[1:])
     if args in (["-h"], ["--help"]):
         print(_top_level_help(), end="")
         return 0
@@ -34,8 +48,9 @@ def _top_level_help() -> str:
     text = legacy_build_parser().format_help().rstrip()
     return (
         text
-        + "\n\nAdditional diagnostic command:\n"
+        + "\n\nAdditional diagnostic commands:\n"
         + "  inspect             inspect one finding in a persisted review.json without rerunning providers or policy\n"
+        + "  investigate         build bounded investigation context and optionally import a structured advisory response\n"
     )
 
 
@@ -89,6 +104,109 @@ def _inspect(argv: list[str]) -> int:
     except (OSError, ValueError) as error:
         print(f"before-deploy inspect: ERROR: {error}", file=sys.stderr)
         return INSPECT_INPUT_ERROR_EXIT
+
+
+def _investigate(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="before-deploy investigate",
+        description=(
+            "Build a bounded advisory investigation request from one validated inspection trace and "
+            "optionally import a strict structured response. Investigation never changes release policy."
+        ),
+    )
+    parser.add_argument("review_json", type=Path, help="persisted review.json produced by before-deploy review")
+    parser.add_argument(
+        "selector",
+        help="exact finding node ID, exact finding fingerprint, or advisory finding ID",
+    )
+    parser.add_argument(
+        "--response-file",
+        type=Path,
+        help=(
+            "optional before-deploy-investigation-v1 JSON response. Without this option the command "
+            "writes only the deterministic investigation request packet"
+        ),
+    )
+    parser.add_argument(
+        "--max-response-bytes",
+        type=int,
+        default=DEFAULT_MAX_INVESTIGATION_RESPONSE_BYTES,
+        help=(
+            "maximum accepted structured investigation response size "
+            f"(default: {DEFAULT_MAX_INVESTIGATION_RESPONSE_BYTES})"
+        ),
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("reports/investigate"),
+        help="directory for investigation request/result artifacts",
+    )
+    parser.add_argument(
+        "--format",
+        choices=("terminal", "json", "markdown"),
+        default="terminal",
+        help="format printed to stdout; investigation artifacts are still written",
+    )
+    args = parser.parse_args(argv)
+
+    try:
+        artifact = load_review_evidence(args.review_json)
+        inspection = build_evidence_inspection(artifact, args.selector)
+        request = build_evidence_investigation_request(inspection)
+        request_reports = {
+            "json": render_evidence_investigation_request_json(request),
+            "markdown": render_evidence_investigation_request_markdown(request),
+        }
+        output_dir = args.output_dir.resolve()
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "investigation-request.json").write_text(
+            request_reports["json"], encoding="utf-8"
+        )
+        (output_dir / "investigation-request.md").write_text(
+            request_reports["markdown"], encoding="utf-8"
+        )
+
+        if args.response_file is None:
+            if args.format == "json":
+                print(request_reports["json"], end="")
+            elif args.format == "markdown":
+                print(request_reports["markdown"], end="")
+            else:
+                print(render_evidence_investigation_request_terminal(request), end="")
+                print(
+                    "Investigation request: "
+                    f"{output_dir / 'investigation-request.json'}, "
+                    f"{output_dir / 'investigation-request.md'}"
+                )
+            return 0
+
+        result = load_evidence_investigation_response(
+            args.response_file,
+            request,
+            max_bytes=args.max_response_bytes,
+        )
+        reports = {
+            "json": render_evidence_investigation_json(result),
+            "markdown": render_evidence_investigation_markdown(result),
+        }
+        (output_dir / "investigation.json").write_text(reports["json"], encoding="utf-8")
+        (output_dir / "investigation.md").write_text(reports["markdown"], encoding="utf-8")
+
+        if args.format == "json":
+            print(reports["json"], end="")
+        elif args.format == "markdown":
+            print(reports["markdown"], end="")
+        else:
+            print(render_evidence_investigation_terminal(result), end="")
+            print(
+                f"Investigation reports: {output_dir / 'investigation.json'}, "
+                f"{output_dir / 'investigation.md'}"
+            )
+        return 0
+    except (OSError, ValueError) as error:
+        print(f"before-deploy investigate: ERROR: {error}", file=sys.stderr)
+        return INVESTIGATE_INPUT_ERROR_EXIT
 
 
 if __name__ == "__main__":
