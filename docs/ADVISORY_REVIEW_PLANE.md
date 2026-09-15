@@ -57,6 +57,27 @@ Provider failure becomes an advisory source error rather than a deterministic ga
 
 See [ADVISORY_PROVIDER_RUNTIME.md](ADVISORY_PROVIDER_RUNTIME.md) for the provider interface, failure semantics, identity contract, and staged roadmap.
 
+## Deterministic advisory context
+
+Before any live advisory provider runs, the runtime now prepares or validates a deterministic `AdvisoryContext`.
+
+The selector starts from the provider-independent changed-file scope, materializes exact source bytes, applies per-file and aggregate byte limits, records deterministic exclusions, hashes each selected file, and computes a canonical content-free context digest.
+
+Context metadata is explicitly non-authoritative:
+
+```text
+authority = ADVISORY_CONTEXT
+gate_effect = NONE
+```
+
+Workspace mode uses current working-tree bytes while rejecting symlinked paths. Branch-range and commit modes read bytes from the resolved target Git tree, so context identity does not accidentally depend on unrelated current checkout contents.
+
+Changed files are considered in stable repository-relative path order. Aggregate budgeting includes whole files only; a file that would exceed the remaining budget is excluded as `context_budget` rather than being partially copied.
+
+Successful provider results expose a bounded context summary containing the context digest, selected-file count, selected-byte budget usage, and exclusion count. Full context JSON/Markdown renderers serialize only metadata and hashes, never raw source.
+
+See [ADVISORY_CONTEXT.md](ADVISORY_CONTEXT.md) for the source-byte, hashing, budget, exclusion, and integrity-validation contract.
+
 ## OpenCodeReview ingestion
 
 The advisory loader accepts OpenCodeReview JSON emitted by `ocr review --format json`. It supports a top-level array or the common object containers `comments`, `results`, and `issues`.
@@ -72,7 +93,9 @@ The importer intentionally retains only bounded review metadata:
 
 It intentionally discards model-private or raw-code fields such as `thinking`, `existing_code`, and `suggestion_code`. Advisory message content remains untrusted and is not deterministic evidence.
 
-Live OCR execution retains its existing deterministic preflight/final-manifest scope attestation behind `OcrAdvisoryProvider`; PR23 does not weaken or duplicate that contract.
+Live OCR execution retains its existing deterministic preflight/final-manifest scope attestation behind `OcrAdvisoryProvider`.
+
+Because OCR currently chooses its own file set rather than directly consuming `AdvisoryContext.files`, the OCR provider now requires its deterministic preview set to equal the bounded context set before OCR starts. A mismatch reports `CONTEXT_LIMITED` and produces no findings. This failure remains gate-neutral.
 
 ## Canonical advisory schema
 
@@ -139,10 +162,9 @@ No OpenCodeReview implementation code is copied into Before Deploy. This keeps B
 
 ## Next increments
 
-The trust-boundary foundation now includes deterministic review scope/preview, isolated OCR execution, scope attestation, review sessions, the deterministic benchmark harness, a provenance-backed seed corpus, and a provider-independent advisory runtime. The next increments are intentionally staged:
+The trust-boundary foundation now includes deterministic review scope/preview, isolated OCR execution, scope attestation, review sessions, the deterministic benchmark harness, a provenance-backed seed corpus, a provider-independent advisory runtime, and deterministic content-bound provider context. The next increments are intentionally staged:
 
-1. add deterministic, reproducible bounded context selection with inspectable provenance;
-2. add provider execution provenance, configuration identity, and budget/timing contracts;
-3. build Evidence Graph v1, then semantic correlation, deduplication, and corroboration without authority upgrades;
-4. add `inspect`, `investigate`, and `explain` on top of the evidence model;
-5. add human-approved remediation, regression evidence, `verify`, and finally explicit `release` assurance.
+1. add provider execution provenance, configuration identity, and budget/timing contracts;
+2. build Evidence Graph v1, then semantic correlation, deduplication, and corroboration without authority upgrades;
+3. add `inspect`, `investigate`, and `explain` on top of the evidence model;
+4. add human-approved remediation, regression evidence, `verify`, and finally explicit `release` assurance.
