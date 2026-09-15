@@ -1,5 +1,5 @@
 name: Caller Pilot Live OpenAI
-# Experiment rerun marker: 2026-09-15
+# Canonical experiment model: GPT-5.6 Luna
 
 on:
   push:
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      OPENAI_MODEL: gpt-5.6-sol
+      OPENAI_MODEL: gpt-5.6-luna
       OPENAI_REASONING_EFFORT: medium
     steps:
       - name: Detect external model credential
@@ -33,7 +33,7 @@ jobs:
         run: |
           if [[ -n "${OPENAI_API_KEY}" ]]; then
             echo "available=true" >> "${GITHUB_OUTPUT}"
-            echo "External OpenAI credential detected; running blinded pilot." >> "${GITHUB_STEP_SUMMARY}"
+            echo "External OpenAI credential detected; running blinded pilot with ${OPENAI_MODEL}." >> "${GITHUB_STEP_SUMMARY}"
           else
             echo "available=false" >> "${GITHUB_OUTPUT}"
             echo "OPENAI_API_KEY is not configured; live pilot was not executed." >> "${GITHUB_STEP_SUMMARY}"
