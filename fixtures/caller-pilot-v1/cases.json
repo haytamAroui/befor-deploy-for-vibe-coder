@@ -1,0 +1,21 @@
+{
+  "schema_version": "before-deploy-caller-pilot-cases-v1",
+  "pilot": {
+    "name": "before-deploy-caller-pilot-v1",
+    "repository": "repo",
+    "cases": [
+      {"id":"STATIC-A","class":"STATIC-SUFFICIENT","initial_path":"static_helpers.py","initial_start_line":1,"initial_end_line":2,"symbol":"authorize_static_a","regions":[{"path":"static_helpers.py","start_line":1,"end_line":2},{"path":"static_callers.py","start_line":4,"end_line":5}],"defect_id":"STATIC-A"},
+      {"id":"STATIC-B","class":"STATIC-SUFFICIENT","initial_path":"static_helpers.py","initial_start_line":5,"initial_end_line":6,"symbol":"tenant_static_b","regions":[{"path":"static_helpers.py","start_line":5,"end_line":6},{"path":"static_callers.py","start_line":8,"end_line":9}],"defect_id":"STATIC-B"},
+      {"id":"STATIC-C","class":"STATIC-SUFFICIENT","initial_path":"static_helpers.py","initial_start_line":9,"initial_end_line":10,"symbol":"owner_static_c","regions":[{"path":"static_helpers.py","start_line":9,"end_line":10},{"path":"static_callers.py","start_line":12,"end_line":13}],"defect_id":"STATIC-C"},
+      {"id":"STATIC-D","class":"STATIC-SUFFICIENT","initial_path":"static_helpers.py","initial_start_line":13,"initial_end_line":14,"symbol":"can_delete_static_d","regions":[{"path":"static_helpers.py","start_line":13,"end_line":14},{"path":"static_callers.py","start_line":16,"end_line":17}],"defect_id":"STATIC-D"},
+      {"id":"EXP-A","class":"EXPLORATION-REQUIRED","initial_path":"exploration_helpers.py","initial_start_line":1,"initial_end_line":2,"symbol":"access_mode_exp_a","regions":[{"path":"exploration_helpers.py","start_line":1,"end_line":2},{"path":"exploration_callers.py","start_line":10,"end_line":12}],"defect_id":"EXP-A"},
+      {"id":"EXP-B","class":"EXPLORATION-REQUIRED","initial_path":"exploration_helpers.py","initial_start_line":5,"initial_end_line":6,"symbol":"normalize_upload_name_exp_b","regions":[{"path":"exploration_helpers.py","start_line":5,"end_line":6},{"path":"exploration_callers.py","start_line":15,"end_line":16}],"defect_id":"EXP-B"},
+      {"id":"EXP-C","class":"EXPLORATION-REQUIRED","initial_path":"exploration_helpers.py","initial_start_line":9,"initial_end_line":10,"symbol":"target_url_exp_c","regions":[{"path":"exploration_helpers.py","start_line":9,"end_line":10},{"path":"exploration_callers.py","start_line":19,"end_line":20}],"defect_id":"EXP-C"},
+      {"id":"EXP-D","class":"EXPLORATION-REQUIRED","initial_path":"exploration_helpers.py","initial_start_line":13,"initial_end_line":14,"symbol":"billing_units_exp_d","regions":[{"path":"exploration_helpers.py","start_line":13,"end_line":14},{"path":"exploration_callers.py","start_line":23,"end_line":24}],"defect_id":"EXP-D"},
+      {"id":"TRAP-A","class":"FALSE-POSITIVE-TRAP","initial_path":"trap_helpers.py","initial_start_line":1,"initial_end_line":2,"symbol":"normalize_upload_name_trap_a","regions":[{"path":"trap_helpers.py","start_line":1,"end_line":2},{"path":"trap_callers.py","start_line":13,"end_line":16}]},
+      {"id":"TRAP-B","class":"FALSE-POSITIVE-TRAP","initial_path":"trap_helpers.py","initial_start_line":5,"initial_end_line":6,"symbol":"target_url_trap_b","regions":[{"path":"trap_helpers.py","start_line":5,"end_line":6},{"path":"trap_callers.py","start_line":19,"end_line":20}]},
+      {"id":"TRAP-C","class":"FALSE-POSITIVE-TRAP","initial_path":"trap_helpers.py","initial_start_line":9,"initial_end_line":10,"symbol":"raw_html_trap_c","regions":[{"path":"trap_helpers.py","start_line":9,"end_line":10},{"path":"trap_callers.py","start_line":23,"end_line":24}]},
+      {"id":"TRAP-D","class":"FALSE-POSITIVE-TRAP","initial_path":"trap_helpers.py","initial_start_line":13,"initial_end_line":14,"symbol":"shell_arg_trap_d","regions":[{"path":"trap_helpers.py","start_line":13,"end_line":14},{"path":"trap_callers.py","start_line":27,"end_line":28}]}
+    ]
+  }
+}
