@@ -78,9 +78,11 @@ def invoke_openai(request: Any) -> Mapping[str, object]:
                     "initial-context-only claim, locate the finding inside that initial source range. "
                     "For a claim whose concrete impact requires caller evidence, locate the finding at "
                     "the concrete caller operation or call site shown in the cited caller observation, "
-                    "not at the helper definition. For a caller-dependent issue, request FIND_CALLERS "
-                    "only when it is available and necessary. Return FINAL with an empty claims array "
-                    "when no concrete issue is supported."
+                    "not at the helper definition. A claim must select one primary evidence ID; an "
+                    "optional secondary evidence ID may be selected when both helper and caller evidence "
+                    "are material. For a caller-dependent issue, request FIND_CALLERS only when it is "
+                    "available and necessary. Return FINAL with an empty claims array when no concrete "
+                    "issue is supported."
                 ),
             },
             {
@@ -134,7 +136,8 @@ def invoke_openai(request: Any) -> Mapping[str, object]:
     if not isinstance(api_payload, Mapping):
         raise RuntimeError("OpenAI Responses API returned a non-object payload")
 
-    turn = _extract_structured_turn(api_payload)
+    raw_turn = _extract_structured_turn(api_payload)
+    turn = _normalize_turn(raw_turn, blinded_request, constraints)
     usage = _usage(api_payload.get("usage"))
     result = dict(turn)
     result["schema_version"] = BRIDGE_RESPONSE_SCHEMA
@@ -312,15 +315,15 @@ def _response_schema(
         "type": "object",
         "properties": {
             "action": {"type": "string", "enum": list(allowed_actions)},
-            "call_id": {"type": ["string", "null"], "minLength": 1},
-            "symbol": {"enum": symbol_values},
+            "call_id": {"type": ["string", "null"]},
+            "symbol": {"type": ["string", "null"], "enum": symbol_values},
             "claims": {
                 "type": "array",
                 "items": {
                     "type": "object",
                     "properties": {
-                        "title": {"type": "string", "minLength": 1},
-                        "message": {"type": "string", "minLength": 1},
+                        "title": {"type": "string"},
+                        "message": {"type": "string"},
                         "category": {
                             "type": "string",
                             "enum": [
@@ -338,32 +341,35 @@ def _response_schema(
                             "type": "string",
                             "enum": ["critical", "high", "medium", "low", "info"],
                         },
-                        "evidence_ids": {
-                            "type": "array",
-                            "minItems": 1,
-                            "uniqueItems": True,
-                            "items": {"type": "string", "enum": list(evidence_ids)},
+                        "evidence_id": {"type": "string", "enum": list(evidence_ids)},
+                        "secondary_evidence_id": {
+                            "type": ["string", "null"],
+                            "enum": [None, *evidence_ids],
                         },
                         "path": {
+                            "type": ["string", "null"],
                             "enum": [None, *paths],
                             "description": "Repository-relative path where the concrete issue manifests.",
                         },
                         "start_line": {
+                            "type": ["integer", "null"],
                             "enum": [None, *lines],
                             "description": "Absolute repository source line where the concrete issue manifests.",
                         },
                         "end_line": {
+                            "type": ["integer", "null"],
                             "enum": [None, *lines],
                             "description": "Absolute repository source line where the concrete issue ends.",
                         },
-                        "confidence": {"type": ["string", "null"], "minLength": 1},
+                        "confidence": {"type": ["string", "null"]},
                     },
                     "required": [
                         "title",
                         "message",
                         "category",
                         "severity",
-                        "evidence_ids",
+                        "evidence_id",
+                        "secondary_evidence_id",
                         "path",
                         "start_line",
                         "end_line",
@@ -376,6 +382,88 @@ def _response_schema(
         "required": ["action", "call_id", "symbol", "claims"],
         "additionalProperties": False,
     }
+
+
+def _normalize_turn(
+    turn: Mapping[str, object],
+    request: Mapping[str, object],
+    constraints: Mapping[str, object],
+) -> Mapping[str, object]:
+    action = turn.get("action")
+    if action == "FIND_CALLERS":
+        symbol = constraints.get("tool_symbol")
+        if not isinstance(symbol, str) or not symbol:
+            raise RuntimeError("FIND_CALLERS output has no visible allowed symbol")
+        step = request.get("step")
+        if isinstance(step, bool) or not isinstance(step, int) or step <= 0:
+            raise RuntimeError("caller pilot request step is invalid")
+        return {
+            "action": "FIND_CALLERS",
+            "call_id": f"call-{step}",
+            "symbol": symbol,
+            "claims": [],
+        }
+    if action != "FINAL":
+        raise RuntimeError("OpenAI structured output action is invalid")
+
+    raw_claims = turn.get("claims")
+    if not isinstance(raw_claims, list):
+        raise RuntimeError("OpenAI FINAL output has no claims array")
+    claims: list[dict[str, object]] = []
+    for raw in raw_claims:
+        if not isinstance(raw, Mapping):
+            continue
+        title = raw.get("title")
+        message = raw.get("message")
+        if not isinstance(title, str) or not title.strip():
+            continue
+        if not isinstance(message, str) or not message.strip():
+            continue
+        primary = raw.get("evidence_id")
+        if not isinstance(primary, str) or not primary:
+            continue
+        evidence_ids = [primary]
+        secondary = raw.get("secondary_evidence_id")
+        if isinstance(secondary, str) and secondary and secondary != primary:
+            evidence_ids.append(secondary)
+
+        path = raw.get("path")
+        start = raw.get("start_line")
+        end = raw.get("end_line")
+        if not isinstance(path, str) or not path:
+            path = None
+            start = None
+            end = None
+        elif isinstance(start, int) and not isinstance(start, bool) and start > 0:
+            if not isinstance(end, int) or isinstance(end, bool) or end <= 0:
+                end = start
+            elif end < start:
+                start, end = end, start
+        else:
+            path = None
+            start = None
+            end = None
+
+        confidence = raw.get("confidence")
+        if isinstance(confidence, str):
+            confidence = confidence.strip() or None
+        elif confidence is not None:
+            confidence = None
+
+        claims.append(
+            {
+                "title": title.strip(),
+                "message": message.strip(),
+                "category": raw.get("category"),
+                "severity": raw.get("severity"),
+                "evidence_ids": evidence_ids,
+                "path": path,
+                "start_line": start,
+                "end_line": end,
+                "confidence": confidence,
+            }
+        )
+    return {"action": "FINAL", "call_id": None, "symbol": None, "claims": claims}
 
 
 def _extract_structured_turn(payload: Mapping[str, object]) -> Mapping[str, object]:
