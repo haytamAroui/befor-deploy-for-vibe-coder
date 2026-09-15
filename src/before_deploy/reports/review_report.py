@@ -5,6 +5,10 @@ from __future__ import annotations
 from json import dumps
 
 from before_deploy.advisory import UnifiedReviewResult
+from before_deploy.evidence_correlation import (
+    build_evidence_correlation,
+    evidence_correlation_to_primitive,
+)
 from before_deploy.evidence_graph import build_evidence_graph, evidence_graph_to_primitive
 from before_deploy.models import to_primitive
 
@@ -12,6 +16,7 @@ from before_deploy.models import to_primitive
 def render_review_json(result: UnifiedReviewResult) -> str:
     """Render a machine-readable review without allowing advisory findings into policy."""
     graph = build_evidence_graph(result.scan, result.advisory_sources)
+    correlation = build_evidence_correlation(result, graph)
     payload = {
         "schema_version": 1,
         "authority_contract": {
@@ -19,6 +24,8 @@ def render_review_json(result: UnifiedReviewResult) -> str:
             "advisory_authority": "ADVISORY",
             "advisory_gate_effect": "NONE",
             "correlation_semantics": "location_overlap_only",
+            "deduplication_semantics": "exact_advisory_fingerprint_only",
+            "correlation_authority": "diagnostic_only",
             "advisory_content_trust": "untrusted",
             "advisory_scope_attestation": "diagnostic_only",
             "advisory_execution_provenance": "diagnostic_only",
@@ -43,6 +50,7 @@ def render_review_json(result: UnifiedReviewResult) -> str:
         "advisory_findings": to_primitive(result.advisory_findings),
         "correlations": to_primitive(result.correlations),
         "evidence_graph": evidence_graph_to_primitive(graph),
+        "evidence_correlation": evidence_correlation_to_primitive(correlation),
     }
     return dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
@@ -51,9 +59,13 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
     """Render a human review summary with the trust boundary stated explicitly."""
     decision = result.scan.decision.outcome.value
     graph = build_evidence_graph(result.scan, result.advisory_sources)
+    correlation = build_evidence_correlation(result, graph)
     nonmatched_scope = sum(
         source.scope_status not in {"MATCHED", "NOT_CHECKED"}
         for source in result.advisory_sources
+    )
+    duplicate_occurrences = sum(
+        max(0, group.occurrence_count - 1) for group in correlation.duplicate_groups
     )
     lines = [
         "# Before Deploy Unified Review",
@@ -68,17 +80,22 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
         "- Advisory scope attestation is diagnostic only and cannot change release status.",
         "- Advisory execution provenance is diagnostic lineage, not release authority.",
         "- Evidence Graph v1 records typed lineage and has `gate_effect=NONE`.",
-        "- Correlation means source-location overlap only; it does not prove semantic agreement.",
+        "- Graph-backed correlation is diagnostic only and uses repository-relative location overlap.",
+        "- Deduplication collapses only exact advisory fingerprints in a diagnostic unique view.",
+        "- Correlation and deduplication never modify `PolicyDecision` or finding authority.",
         "",
         "## Summary",
         "",
         f"- Deterministic findings: **{len(result.scan.findings)}**",
-        f"- Advisory findings: **{len(result.advisory_findings)}**",
+        f"- Advisory finding occurrences: **{len(result.advisory_findings)}**",
+        f"- Unique advisory claims: **{len(correlation.unique_advisory_node_ids)}**",
+        f"- Exact duplicate advisory occurrences: **{duplicate_occurrences}**",
         f"- Advisory source errors: **{sum(source.status == 'ERROR' for source in result.advisory_sources)}**",
         f"- Advisory scope states other than MATCHED/NOT_CHECKED: **{nonmatched_scope}**",
-        f"- Location correlations: **{len(result.correlations)}**",
+        f"- Graph-backed location correlations: **{len(correlation.correlations)}**",
         f"- Evidence graph: **{len(graph.nodes)} nodes / {len(graph.edges)} edges**",
         f"- Evidence graph SHA-256: `{graph.graph_sha256}`",
+        f"- Correlation SHA-256: `{correlation.correlation_sha256}`",
         "",
     ]
 
@@ -119,6 +136,15 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
                     )
         lines.append("")
 
+    if correlation.duplicate_groups:
+        lines.extend(["## Exact advisory duplicates", ""])
+        for group in correlation.duplicate_groups:
+            lines.append(
+                f"- `{group.fingerprint}` — occurrences **{group.occurrence_count}**, "
+                f"canonical graph node `{group.canonical_node_id}`"
+            )
+        lines.append("")
+
     if result.advisory_findings:
         correlation_map = {item.advisory_fingerprint: item for item in result.correlations}
         lines.extend(["## Advisory findings", ""])
@@ -135,11 +161,11 @@ def render_review_markdown(result: UnifiedReviewResult) -> str:
                 lines.append(f"- Location: `{location}`")
             if finding.confidence:
                 lines.append(f"- Confidence: `{finding.confidence}`")
-            correlation = correlation_map.get(finding.fingerprint)
-            if correlation is not None:
+            item = correlation_map.get(finding.fingerprint)
+            if item is not None:
                 lines.append(
                     "- Deterministic location overlap: "
-                    + ", ".join(f"`{item}`" for item in correlation.deterministic_fingerprints)
+                    + ", ".join(f"`{value}`" for value in item.deterministic_fingerprints)
                 )
                 lines.append("- Correlation note: location overlap only; authority is unchanged.")
             lines.extend(["", finding.message, ""])
