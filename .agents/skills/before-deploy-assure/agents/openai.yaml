@@ -1,0 +1,6 @@
+interface:
+  display_name: "Before Deploy Assurance"
+  short_description: "Operate Before Deploy through its canonical CLI contracts"
+  default_prompt: "Use Before Deploy to inspect evidence, prepare bounded advisory artifacts, and report deterministic verification/release results without bypassing approval or release authority."
+policy:
+  allow_implicit_invocation: false
