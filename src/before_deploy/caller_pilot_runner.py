@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -34,6 +35,8 @@ from before_deploy.comparative_benchmark import (
 
 BRIDGE_REQUEST_SCHEMA = "before-deploy-caller-bridge-request-v1"
 BRIDGE_RESPONSE_SCHEMA = "before-deploy-caller-bridge-response-v1"
+
+_log = logging.getLogger("before_deploy.caller_pilot_runner")
 
 
 @dataclass(frozen=True)
@@ -99,6 +102,10 @@ class SubprocessCallerModel:
         )
 
     def complete(self, request: CallerModelInput) -> CallerTurn:
+        _log.debug(
+            "bridge call: step=%d provider=%s model=%s",
+            request.step, self._provider, self._model,
+        )
         payload = _request_payload(
             request,
             provider=self._provider,
@@ -117,8 +124,13 @@ class SubprocessCallerModel:
             )
         except (OSError, subprocess.SubprocessError) as error:
             raise RuntimeError(f"caller bridge execution failed: {type(error).__name__}") from error
+        if completed.stderr:
+            _log.warning("bridge stderr: %s", completed.stderr[:2000])
         if completed.returncode != 0:
-            raise RuntimeError("caller bridge returned non-zero status")
+            stderr_hint = (completed.stderr or "")[:2000]
+            raise RuntimeError(
+                f"caller bridge returned non-zero status: {stderr_hint}"
+            )
         try:
             response = json.loads(completed.stdout)
         except ValueError as error:
@@ -143,7 +155,7 @@ def execute_caller_pilot(
     provider: str,
     model: str,
     repetitions: int = 1,
-    timeout_seconds: int = 60,
+    timeout_seconds: int = 120,
 ) -> PilotExecutionArtifacts:
     """Run paired static/exploratory variants and emit PR41/PR43 artifacts."""
     if isinstance(repetitions, bool) or not isinstance(repetitions, int) or repetitions <= 0:
@@ -168,7 +180,12 @@ def execute_caller_pilot(
             output_tokens = 0
             cost_microusd = 0
 
-            for case in definition.cases:
+            for case_index, case in enumerate(definition.cases, start=1):
+                _log.info(
+                    "case %d/%d %s/%s rep=%d case=%s",
+                    case_index, len(definition.cases),
+                    variant, role, repetition, case.case_id,
+                )
                 repository, prepared_case, evidence = prepare_initial_evidence(cases_path, case.case_id)
                 if prepared_case.symbol != case.symbol:
                     raise ValueError("Caller pilot case identity changed during preparation")
@@ -218,6 +235,7 @@ def execute_caller_pilot(
                 + "\n",
                 encoding="utf-8",
             )
+            _log.info("wrote variant artifact: %s", advisory_name)
             runs.append(
                 {
                     "run_id": f"{variant}-r{repetition}",

@@ -34,7 +34,7 @@ def _parser() -> argparse.ArgumentParser:
         help='JSON argv array for the external bridge, e.g. ["python","/abs/adapter.py"].',
     )
     parser.add_argument("--repetitions", type=int, default=1)
-    parser.add_argument("--timeout-seconds", type=int, default=60)
+    parser.add_argument("--timeout-seconds", type=int, default=120)
     return parser
 
 

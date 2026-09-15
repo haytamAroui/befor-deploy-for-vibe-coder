@@ -1,4 +1,5 @@
 import json
+import inspect
 import sys
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from before_deploy.caller_pilot_runner import (
     SubprocessCallerModel,
     _parse_bridge_response,
     _request_payload,
+    execute_caller_pilot,
 )
 
 
@@ -104,3 +106,41 @@ print(json.dumps({
     assert model.usage.input_tokens == 7
     assert model.usage.output_tokens == 5
     assert model.usage.cost_microusd == 3
+
+
+def test_bridge_stderr_included_in_nonzero_exit_error(tmp_path):
+    """Bridge stderr must appear in the RuntimeError when the bridge exits non-zero."""
+    adapter = tmp_path / "failing_adapter.py"
+    adapter.write_text(
+        """
+import sys
+print("bridge error: OpenAI HTTP 429 rate-limited", file=sys.stderr)
+sys.exit(1)
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    cases_path = Path("fixtures/caller-pilot-v1/cases.json")
+    _, case, evidence = prepare_initial_evidence(cases_path, "C-2JCP")
+    model = SubprocessCallerModel(
+        command=(sys.executable, str(adapter.resolve())),
+        provider="fixture-provider",
+        model="fixture-model",
+        enable_find_callers=False,
+        allowed_symbol=case.symbol,
+    )
+    with pytest.raises(RuntimeError, match="429 rate-limited"):
+        model.complete(
+            CallerModelInput(step=1, initial_context=(evidence,), caller_observations=())
+        )
+
+
+def test_bridge_timeout_exceeds_http_default():
+    """Runner default timeout must exceed the bridge's 110s HTTP default."""
+    sig = inspect.signature(execute_caller_pilot)
+    default = sig.parameters["timeout_seconds"].default
+    assert default >= 110, (
+        f"execute_caller_pilot timeout_seconds default ({default}) "
+        f"must be >= bridge HTTP timeout (110)"
+    )
+
