@@ -21,23 +21,23 @@ def _request(*, exploratory: bool):
     return {
         "schema_version": "before-deploy-caller-bridge-request-v1",
         "provider": "openai",
-        "model": "gpt-5.6-sol",
+        "model": "gpt-5.6-luna",
         "step": 1,
         "task": "review",
         "authority": "ADVISORY",
         "gate_effect": "NONE",
         "allowed_actions": actions,
         "tools": (
-            [{"name": "find_callers", "arguments": {"symbol": "lookup_target"}}]
+            [{"name": "find_callers", "arguments": {"symbol": "target_url"}}]
             if exploratory
             else []
         ),
         "initial_context": [
             {
-                "evidence_id": "pilot-initial:abc123",
+                "evidence_id": "pilot-initial:C-2JCP",
                 "path": "helpers_b.py",
                 "content_sha256": "hash",
-                "content": "def lookup_target(request):\n    return request.query['url']\n",
+                "content": "def target_url(request):\n    return request.query['url']\n",
             }
         ],
         "caller_observations": [],
@@ -75,10 +75,10 @@ class _FakeResponse:
         return json.dumps(self.payload).encode("utf-8")
 
 
-def test_openai_bridge_uses_blinded_request_and_actual_usage(monkeypatch):
+def test_openai_bridge_uses_blinded_request_absolute_source_range_and_actual_usage(monkeypatch):
     module = _module()
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-    monkeypatch.setenv("OPENAI_MODEL", "gpt-5.6-sol")
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-5.6-luna")
     captured = {}
 
     turn = {
@@ -101,17 +101,20 @@ def test_openai_bridge_uses_blinded_request_and_actual_usage(monkeypatch):
     assert result["usage"] == {
         "input_tokens": 100,
         "output_tokens": 10,
-        "cost_microusd": 528,
+        "cost_microusd": 28,
     }
     assert captured["request"].full_url == "https://api.openai.com/v1/responses"
     payload = json.loads(captured["request"].data.decode("utf-8"))
-    assert payload["model"] == "gpt-5.6-sol"
+    assert payload["model"] == "gpt-5.6-luna"
     assert payload["store"] is False
     assert payload["reasoning"]["effort"] == "medium"
     assert payload["text"]["format"]["strict"] is True
     assert payload["text"]["format"]["schema"]["properties"]["action"]["enum"] == ["FINAL"]
 
     model_input = json.loads(payload["input"][1]["content"])
+    assert model_input["review_protocol"] == "caller-location-v2"
+    assert model_input["initial_context"][0]["source_start_line"] == 9
+    assert model_input["initial_context"][0]["source_end_line"] == 10
     serialized = json.dumps(model_input, sort_keys=True)
     assert "case_class" not in serialized
     assert "defect_id" not in serialized
@@ -123,13 +126,13 @@ def test_openai_bridge_uses_blinded_request_and_actual_usage(monkeypatch):
 def test_openai_bridge_exposes_find_callers_only_when_runner_allows_it(monkeypatch):
     module = _module()
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-    monkeypatch.setenv("OPENAI_MODEL", "gpt-5.6-sol")
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-5.6-luna")
     captured = {}
 
     turn = {
         "action": "FIND_CALLERS",
         "call_id": "call-1",
-        "symbol": "lookup_target",
+        "symbol": "target_url",
         "claims": [],
     }
 
@@ -141,7 +144,7 @@ def test_openai_bridge_exposes_find_callers_only_when_runner_allows_it(monkeypat
     result = module.invoke_openai(_request(exploratory=True))
 
     assert result["action"] == "FIND_CALLERS"
-    assert result["symbol"] == "lookup_target"
+    assert result["symbol"] == "target_url"
     assert captured["payload"]["text"]["format"]["schema"]["properties"]["action"]["enum"] == [
         "FINAL",
         "FIND_CALLERS",
@@ -151,7 +154,7 @@ def test_openai_bridge_exposes_find_callers_only_when_runner_allows_it(monkeypat
 def test_openai_bridge_rejects_model_mismatch_before_network(monkeypatch):
     module = _module()
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-    monkeypatch.setenv("OPENAI_MODEL", "gpt-5.6-sol")
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-5.6-luna")
     request = _request(exploratory=False)
     request["model"] = "other-model"
 
@@ -159,11 +162,22 @@ def test_openai_bridge_rejects_model_mismatch_before_network(monkeypatch):
         module.invoke_openai(request)
 
 
-def test_openai_bridge_cost_uses_cached_input_rate():
+def test_openai_bridge_rejects_unknown_initial_evidence_identity(monkeypatch):
+    module = _module()
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-5.6-luna")
+    request = _request(exploratory=False)
+    request["initial_context"][0]["evidence_id"] = "pilot-initial:UNKNOWN"
+
+    with pytest.raises(ValueError, match="no blinded source range"):
+        module.invoke_openai(request)
+
+
+def test_openai_bridge_cost_uses_luna_cached_input_rate():
     module = _module()
     assert module._cost_microusd(
-        model="gpt-5.6-sol",
+        model="gpt-5.6-luna",
         input_tokens=100,
         cached_tokens=20,
         output_tokens=10,
-    ) == 528
+    ) == 28
