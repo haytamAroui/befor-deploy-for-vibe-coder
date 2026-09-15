@@ -1,0 +1,27 @@
+{
+  "name": "before-deploy-tools",
+  "owner": {
+    "name": "Before Deploy contributors",
+    "url": "https://github.com/haytamAroui/befor-deploy-for-vibe-coder"
+  },
+  "description": "Thin AI clients for Before Deploy release assurance.",
+  "plugins": [
+    {
+      "name": "before-deploy",
+      "source": "./clients/claude-code",
+      "description": "Claude Code client for Before Deploy evidence and release workflows. The deterministic CLI remains the only release authority.",
+      "author": {
+        "name": "Before Deploy contributors"
+      },
+      "repository": "https://github.com/haytamAroui/befor-deploy-for-vibe-coder",
+      "license": "MIT",
+      "category": "security",
+      "tags": [
+        "security",
+        "release-assurance",
+        "evidence",
+        "claude-code"
+      ]
+    }
+  ]
+}
