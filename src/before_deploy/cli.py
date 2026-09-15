@@ -6,8 +6,10 @@ import argparse
 import sys
 from pathlib import Path
 
-from before_deploy.advisory import advisory_error_import, build_unified_review, load_advisory_file
-from before_deploy.advisory_provider import AdvisoryProviderRequest, execute_advisory_provider
+# The advisory and evaluation-lab planes are imported lazily, inside the commands that need
+# them. `scan` is the deterministic gate, so `before-deploy scan` must import and run with no
+# advisory or provider module importable at all. This boundary is enforced by
+# tests/unit/test_architecture_boundary.py; do not hoist these imports back to module scope.
 from before_deploy.controls import native_controls
 from before_deploy.controls.dependency_audit import DependencyAuditControl
 from before_deploy.controls.external import ExternalToolConfig
@@ -18,29 +20,13 @@ from before_deploy.controls.provenance import ProvenanceControl
 from before_deploy.controls.semgrep import SemgrepControl
 from before_deploy.controls.trivy_config import TrivyConfigControl
 from before_deploy.models import GateOutcome
-from before_deploy.ocr_provider import OcrAdvisoryProvider
 from before_deploy.orchestrator import ScanOrchestrator, configured_controls
 from before_deploy.policy import load_policy
 from before_deploy.reports import render_json, render_markdown, render_sarif
-from before_deploy.reports.review_report import render_review_json, render_review_markdown
-from before_deploy.review_benchmark import (
-    evaluate_advisory_output,
-    render_benchmark_json,
-    render_benchmark_markdown,
-)
 from before_deploy.review_preview import (
     build_review_preview,
     render_review_preview_json,
     render_review_preview_markdown,
-)
-from before_deploy.review_session import (
-    build_review_session,
-    compare_review_sessions,
-    load_review_session,
-    render_review_delta_json,
-    render_review_delta_markdown,
-    render_review_session_json,
-    review_delta_error,
 )
 
 EXIT_CODES = {
@@ -365,6 +351,15 @@ def _scan(args: argparse.Namespace) -> int:
 
 
 def _review(args: argparse.Namespace) -> int:
+    # Advisory plane: imported here so that the deterministic `scan` command does not depend on
+    # it. See the module-level note above.
+    from before_deploy.advisory import build_unified_review
+    from before_deploy.reports.review_report import (
+        render_review_json,
+        render_review_markdown,
+    )
+    from before_deploy.review_session import build_review_session
+
     try:
         if args.preview:
             return _review_preview(args)
@@ -413,6 +408,13 @@ def _review(args: argparse.Namespace) -> int:
 
 def _benchmark(args: argparse.Namespace) -> int:
     """Score advisory output; benchmark quality never becomes release authority."""
+    # Evaluation-lab plane: deferred for the same reason as `_review`.
+    from before_deploy.review_benchmark import (
+        evaluate_advisory_output,
+        render_benchmark_json,
+        render_benchmark_markdown,
+    )
+
     try:
         result = evaluate_advisory_output(args.corpus, args.advisory_file)
         output_dir = args.output_dir.resolve()
@@ -436,6 +438,12 @@ def _benchmark(args: argparse.Namespace) -> int:
 
 
 def _build_review_delta(baseline_path: Path | None, session):
+    from before_deploy.review_session import (
+        compare_review_sessions,
+        load_review_session,
+        review_delta_error,
+    )
+
     if baseline_path is None:
         return None
     try:
@@ -447,6 +455,12 @@ def _build_review_delta(baseline_path: Path | None, session):
 
 def _write_review_session_artifacts(output_dir: Path, session, delta) -> str | None:
     """Write diagnostic session artifacts without allowing them to become release authority."""
+    from before_deploy.review_session import (
+        render_review_delta_json,
+        render_review_delta_markdown,
+        render_review_session_json,
+    )
+
     try:
         (output_dir / "review-session.json").write_text(
             render_review_session_json(session),
@@ -500,6 +514,13 @@ def _validate_review_scope_usage(args: argparse.Namespace) -> None:
 
 
 def _collect_advisory_sources(args: argparse.Namespace):
+    from before_deploy.advisory import advisory_error_import, load_advisory_file
+    from before_deploy.advisory_provider import (
+        AdvisoryProviderRequest,
+        execute_advisory_provider,
+    )
+    from before_deploy.ocr_provider import OcrAdvisoryProvider
+
     sources = []
     for path in args.advisory_file:
         try:

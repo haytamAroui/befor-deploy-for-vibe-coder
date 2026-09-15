@@ -10,16 +10,22 @@ from dataclasses import dataclass
 from hashlib import sha256
 from json import JSONDecodeError, dumps, loads
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from before_deploy.evidence_investigation import EvidenceInvestigationRequest
 from before_deploy.human_approval_patch import (
     PatchRequest,
     PatchResult,
     validate_patch_result,
 )
+
+if TYPE_CHECKING:
+    # These types appear only in annotations (this module has `from __future__ import
+    # annotations`), so importing them under TYPE_CHECKING keeps the authoritative release
+    # decision free of any import-time dependency on the advisory plane.
+    from before_deploy.evidence_investigation import EvidenceInvestigationRequest
+    from before_deploy.remediation_proposal import RemediationProposalRequest
+
 from before_deploy.models import to_primitive
-from before_deploy.remediation_proposal import RemediationProposalRequest
 
 PATCH_MATERIALIZATION_AUTHORIZATION_SCHEMA_VERSION = 1
 PATCH_MATERIALIZATION_AUTHORIZATION_AUTHORITY = "PATCH_MATERIALIZATION_WORKFLOW"

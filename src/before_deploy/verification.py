@@ -6,9 +6,8 @@ from dataclasses import dataclass
 from hashlib import sha256
 from json import JSONDecodeError, dumps, loads
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from before_deploy.evidence_investigation import EvidenceInvestigationRequest
 from before_deploy.human_approval_patch import PatchRequest, PatchResult
 from before_deploy.models import to_primitive
 from before_deploy.regression_evidence import (
@@ -25,7 +24,12 @@ from before_deploy.regression_evidence import (
     validate_patch_materialization_authorization,
     validate_regression_evidence,
 )
-from before_deploy.remediation_proposal import RemediationProposalRequest
+if TYPE_CHECKING:
+    # Proposed-remediation and investigation types appear only in annotations (this module has
+    # `from __future__ import annotations`). Importing them under TYPE_CHECKING keeps the
+    # deterministic verification authority from depending on the advisory plane at import time.
+    from before_deploy.evidence_investigation import EvidenceInvestigationRequest
+    from before_deploy.remediation_proposal import RemediationProposalRequest
 
 VERIFICATION_SCHEMA_VERSION = 1
 VERIFICATION_AUTHORITY = "VERIFICATION_EVIDENCE"
