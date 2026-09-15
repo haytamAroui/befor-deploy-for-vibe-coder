@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "before-deploy",
+  "displayName": "Before Deploy",
+  "description": "Thin Claude Code client for Before Deploy evidence, remediation, verification, and deterministic release-disposition workflows.",
+  "author": {
+    "name": "Before Deploy contributors",
+    "url": "https://github.com/haytamAroui/befor-deploy-for-vibe-coder"
+  },
+  "homepage": "https://github.com/haytamAroui/befor-deploy-for-vibe-coder",
+  "repository": "https://github.com/haytamAroui/befor-deploy-for-vibe-coder",
+  "license": "MIT",
+  "keywords": [
+    "security",
+    "release-assurance",
+    "evidence",
+    "claude-code"
+  ]
+}
