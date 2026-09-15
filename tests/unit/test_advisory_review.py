@@ -143,7 +143,17 @@ def test_review_json_states_authority_contract_and_omits_raw_ocr_code(tmp_path):
         "deterministic_policy_decision"
     )
     assert payload["authority_contract"]["advisory_gate_effect"] == "NONE"
+    assert payload["authority_contract"]["evidence_graph"] == "diagnostic_lineage_only"
     assert payload["deterministic_scan"]["decision"]["outcome"] == "BLOCK"
+
+    graph = payload["evidence_graph"]
+    assert graph["authority"] == "EVIDENCE_GRAPH"
+    assert graph["gate_effect"] == "NONE"
+    assert len(graph["graph_sha256"]) == 64
+    release_nodes = [node for node in graph["nodes"] if node["authority"] == "RELEASE_AUTHORITY"]
+    assert len(release_nodes) == 1
+    assert release_nodes[0]["node_type"] == "POLICY_DECISION"
+
     assert "private chain" not in rendered
     assert "password = hardcoded" not in rendered
     assert "password = getenv()" not in rendered
