@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "benchmark": {
+    "name": "real-world-5p8q",
+    "defects": [
+      {
+        "id": "D-0301",
+        "path": "fixtures/real-world-validation/rw-5p8q/vulnerable/pkg/base.py",
+        "start_line": 37,
+        "end_line": 38,
+        "category": "security",
+        "severity": "high"
+      },
+      {
+        "id": "D-0302",
+        "path": "fixtures/real-world-validation/rw-5p8q/vulnerable/pkg/html.py",
+        "start_line": 380,
+        "end_line": 382,
+        "category": "security",
+        "severity": "medium"
+      }
+    ]
+  }
+}

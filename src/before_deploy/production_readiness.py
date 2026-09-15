@@ -41,7 +41,11 @@ class ProductionReadinessEvidence:
     static_sufficient_recall_delta: float
     exploratory_supported_claim_rate: float
     exploratory_citation_correct_rate: float
-    exploratory_prediction_stability: float
+    # Gating measurement: mean pairwise Jaccard of normalized advisory claim-key sets.
+    exploratory_prediction_claim_stability: float
+    # Reported diagnostic only: mean pairwise Jaccard of exact advisory fingerprint sets. It has a
+    # floor of 0 for free-text advisory output and cannot satisfy or waive the stability threshold.
+    exploratory_exact_prediction_stability: float
     exploratory_mean_latency_ms: float
     exploratory_mean_cost_microusd: float
 
@@ -78,6 +82,8 @@ class ProductionReadinessAssessment:
     decision: str
     reason_codes: tuple[str, ...]
     real_world_recall: float
+    exploratory_prediction_claim_stability: float
+    exploratory_exact_prediction_stability: float
     schema_version: str = PRODUCTION_READINESS_SCHEMA
     authority: str = PRODUCTION_READINESS_AUTHORITY
     gate_effect: str = PRODUCTION_READINESS_GATE_EFFECT
@@ -111,7 +117,7 @@ def evaluate_production_readiness(
         reasons.append("EXPLORATORY_SUPPORTED_CLAIM_RATE_NOT_PERFECT")
     if evidence.exploratory_citation_correct_rate != 1.0:
         reasons.append("EXPLORATORY_CITATION_RATE_NOT_PERFECT")
-    if evidence.exploratory_prediction_stability < thresholds.min_prediction_stability:
+    if evidence.exploratory_prediction_claim_stability < thresholds.min_prediction_stability:
         reasons.append("INSUFFICIENT_PREDICTION_STABILITY")
     if evidence.exploratory_mean_latency_ms > thresholds.max_mean_exploratory_latency_ms:
         reasons.append("EXPLORATORY_LATENCY_BUDGET_EXCEEDED")
@@ -164,6 +170,8 @@ def evaluate_production_readiness(
         decision="READY" if not reasons else "NOT_READY",
         reason_codes=tuple(reasons),
         real_world_recall=real_world_recall,
+        exploratory_prediction_claim_stability=evidence.exploratory_prediction_claim_stability,
+        exploratory_exact_prediction_stability=evidence.exploratory_exact_prediction_stability,
     )
 
 
@@ -174,6 +182,12 @@ def render_production_readiness_json(result: ProductionReadinessAssessment) -> s
             "decision": result.decision,
             "reason_codes": list(result.reason_codes),
             "real_world_recall": result.real_world_recall,
+            "exploratory_prediction_claim_stability": (
+                result.exploratory_prediction_claim_stability
+            ),
+            "exploratory_exact_prediction_stability": (
+                result.exploratory_exact_prediction_stability
+            ),
             "authority": result.authority,
             "gate_effect": result.gate_effect,
         },
@@ -188,6 +202,12 @@ def render_production_readiness_markdown(result: ProductionReadinessAssessment) 
         f"- Decision: **{result.decision}**",
         f"- Authority: `{result.authority}` / gate effect `{result.gate_effect}`",
         f"- Real-world recall: **{result.real_world_recall:.4f}**",
+        (
+            "- Exploratory claim stability: "
+            f"**{result.exploratory_prediction_claim_stability:.4f}** "
+            "(exact fingerprint stability "
+            f"{result.exploratory_exact_prediction_stability:.4f})"
+        ),
         "",
         "## Reasons",
         "",
@@ -231,7 +251,8 @@ def _validate_evidence(value: ProductionReadinessEvidence) -> None:
     rate_fields = (
         "exploratory_supported_claim_rate",
         "exploratory_citation_correct_rate",
-        "exploratory_prediction_stability",
+        "exploratory_prediction_claim_stability",
+        "exploratory_exact_prediction_stability",
         "real_world_static_false_positive_rate",
         "real_world_exploratory_false_positive_rate",
     )

@@ -1,0 +1,35 @@
+{
+  "schema_version": "before-deploy-real-world-validation-v1",
+  "validation": {
+    "name": "real-world-seed-v1",
+    "repositories": [
+      {
+        "repository_id": "RW-3F7A",
+        "repository": "https://github.com/aio-libs/aiohttp",
+        "upstream_revision": "v3.9.1",
+        "commit": "0000000000000000000000000000000000000000",
+        "corpus": "fixtures/real-world-validation/rw-3f7a/corpus.json",
+        "provenance": "fixtures/real-world-validation/rw-3f7a/manifest.json",
+        "license_notice": "fixtures/real-world-validation/rw-3f7a/NOTICE"
+      },
+      {
+        "repository_id": "RW-9K2M",
+        "repository": "https://github.com/pallets/werkzeug",
+        "upstream_revision": "3.0.5",
+        "commit": "0000000000000000000000000000000000000000",
+        "corpus": "fixtures/real-world-validation/rw-9k2m/corpus.json",
+        "provenance": "fixtures/real-world-validation/rw-9k2m/manifest.json",
+        "license_notice": "fixtures/real-world-validation/rw-9k2m/NOTICE"
+      },
+      {
+        "repository_id": "RW-5P8Q",
+        "repository": "https://github.com/django/django",
+        "upstream_revision": "5.0.6",
+        "commit": "0000000000000000000000000000000000000000",
+        "corpus": "fixtures/real-world-validation/rw-5p8q/corpus.json",
+        "provenance": "fixtures/real-world-validation/rw-5p8q/manifest.json",
+        "license_notice": "fixtures/real-world-validation/rw-5p8q/NOTICE"
+      }
+    ]
+  }
+}

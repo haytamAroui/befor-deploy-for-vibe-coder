@@ -60,7 +60,11 @@ class TrivyConfigControl:
                 )
             )
 
-        with tempfile.TemporaryDirectory(prefix="before-deploy-trivy-config-") as temporary_dir:
+        # A timed-out scanner can leave a descendant process holding its working directory, so
+        # cleanup failures must not replace the bounded result with an exception.
+        with tempfile.TemporaryDirectory(
+            prefix="before-deploy-trivy-config-", ignore_cleanup_errors=True
+        ) as temporary_dir:
             temporary_root = Path(temporary_dir)
             stage_root = temporary_root / "stage"
             report_path = temporary_root / "trivy.json"

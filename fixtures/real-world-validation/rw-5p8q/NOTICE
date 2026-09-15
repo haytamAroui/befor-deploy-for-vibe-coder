@@ -1,0 +1,21 @@
+Real-world validation snapshot: rw-5p8q
+
+Upstream source of record: https://github.com/django/django
+Upstream license: BSD 3-Clause (see LICENSE.upstream in this directory)
+Vendored revisions:
+  vulnerable/pkg/base.py    upstream django/core/files/storage/base.py at 5.0.6
+  vulnerable/pkg/html.py    upstream django/utils/html.py at 5.0.6
+  secure/pkg/base.py        upstream django/core/files/storage/base.py at 5.0.7
+  secure/pkg/html.py        upstream django/utils/html.py at 5.0.7
+
+The vendored files are verbatim upstream bytes at the stated revisions, retrieved from
+raw.githubusercontent.com. No modification, reformatting, or re-licensing has been applied.
+
+Vendored package directories are renamed to the neutral name `pkg` so that the upstream project
+identity does not appear in model-visible paths. File basenames are preserved. The upstream path
+for each snapshot is recorded in `manifest.json` under the evaluator-only rationale fields.
+
+NOTICE and LICENSE.upstream are attribution records. They are not review inputs and are not part
+of the corpus review scope declared in `manifest.json.files`.
+
+Contact for takedown or removal requests: the repository maintainers.

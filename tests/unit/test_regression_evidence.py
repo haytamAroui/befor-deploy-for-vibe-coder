@@ -188,7 +188,7 @@ def test_materialization_result_hash_mismatch_fails_before_mutation(tmp_path, mo
     assert target.read_bytes() == before
 
 
-def test_materialization_rejects_symlink_target(tmp_path, monkeypatch):
+def test_materialization_rejects_symlink_target(tmp_path, monkeypatch, symlink_supported):
     repo, target, _, _, request, patch, authorization = _patch(tmp_path)
     real = repo / "real.py"
     real.write_text("line one\nold value\n", encoding="utf-8")

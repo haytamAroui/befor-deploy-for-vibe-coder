@@ -74,16 +74,18 @@ def _git(repository: Path, *arguments: str) -> None:
     run(["git", *arguments], cwd=repository, check=True, capture_output=True, text=True)
 
 
+# Fixture files are written with newline="\n" so the byte counts and digests asserted below
+# describe the bytes on disk on every platform, not the local line separator.
 def _repository(tmp_path: Path) -> Path:
     repository = tmp_path / "repo"
     repository.mkdir()
     _git(repository, "init")
     _git(repository, "config", "user.name", "Before Deploy Tests")
     _git(repository, "config", "user.email", "tests@before-deploy.invalid")
-    (repository / "app.py").write_text("value = 1\n", encoding="utf-8")
+    (repository / "app.py").write_text("value = 1\n", encoding="utf-8", newline="\n")
     _git(repository, "add", "app.py")
     _git(repository, "commit", "-m", "initial")
-    (repository / "app.py").write_text("value = 2\n", encoding="utf-8")
+    (repository / "app.py").write_text("value = 2\n", encoding="utf-8", newline="\n")
     return repository
 
 

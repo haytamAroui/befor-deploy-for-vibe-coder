@@ -103,6 +103,29 @@ class UnifiedReviewResult:
     correlations: tuple[ReviewCorrelation, ...]
 
 
+def advisory_claim_key(finding: AdvisoryFinding) -> str:
+    """Return the location-and-category identity of one advisory claim.
+
+    This key deliberately excludes model-authored prose (``title``/``message``) and
+    model-judgement fields (``severity``/``confidence``), so the same claim reported in different
+    words has the same key. It mirrors the deterministic benchmark matching contract of
+    ``exact_path + exact_category + line_overlap`` by keying on ``path`` and the declared
+    ``start_line`` anchor.
+
+    It is a *measurement and comparison* identity only. Exact advisory fingerprints remain the
+    deduplication and waiver identity; adopting claim keys there is a separate decision.
+    """
+    location = finding.location
+    payload = {
+        "source": finding.source,
+        "category": finding.category,
+        "path": location.path if location is not None else None,
+        "start_line": location.start_line if location is not None else None,
+    }
+    serialized = dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return sha256(serialized.encode("utf-8")).hexdigest()
+
+
 def load_advisory_file(path: Path) -> AdvisoryImport:
     """Load canonical advisory JSON or OpenCodeReview JSON without importing raw code fields."""
     try:

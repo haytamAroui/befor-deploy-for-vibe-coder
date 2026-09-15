@@ -38,7 +38,11 @@ class GitleaksControl:
 
     def run(self, context: ControlContext) -> ControlResult:
         started_at = utc_now()
-        with tempfile.TemporaryDirectory(prefix="before-deploy-gitleaks-") as temporary_dir:
+        # A timed-out scanner can leave a descendant process holding its working directory, so
+        # cleanup failures must not replace the bounded result with an exception.
+        with tempfile.TemporaryDirectory(
+            prefix="before-deploy-gitleaks-", ignore_cleanup_errors=True
+        ) as temporary_dir:
             report_path = Path(temporary_dir) / "gitleaks.json"
             arguments = (
                 "dir",

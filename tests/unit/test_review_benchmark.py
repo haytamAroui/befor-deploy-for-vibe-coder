@@ -4,7 +4,7 @@ from json import loads
 
 import pytest
 
-from before_deploy.advisory import AdvisoryFinding
+from before_deploy.advisory import AdvisoryFinding, advisory_claim_key
 from before_deploy.cli import main
 from before_deploy.models import Location
 from before_deploy.review_benchmark import (
@@ -45,6 +45,48 @@ def _finding(
 
 def _corpus(*defects: ExpectedDefect) -> BenchmarkCorpus:
     return BenchmarkCorpus(name="unit-corpus", defects=tuple(defects))
+
+
+def test_claim_key_ignores_prose_and_severity_but_tracks_anchor_and_category():
+    base = _finding("f1", path="src/app.py", start=7)
+    reworded = AdvisoryFinding(
+        finding_id="ADV-other",
+        source="test-reviewer",
+        title="completely different title",
+        message="completely different wording",
+        category="bug",
+        severity="low",
+        confidence="0.4",
+        fingerprint="f2",
+        location=Location(path="src/app.py", start_line=7, end_line=7),
+    )
+    assert advisory_claim_key(reworded) == advisory_claim_key(base)
+
+    moved = _finding("f3", path="src/app.py", start=8)
+    assert advisory_claim_key(moved) != advisory_claim_key(base)
+
+    recategorized = _finding("f4", path="src/app.py", start=7, category="security")
+    assert advisory_claim_key(recategorized) != advisory_claim_key(base)
+
+    relocated = _finding("f5", path="src/other.py", start=7)
+    assert advisory_claim_key(relocated) != advisory_claim_key(base)
+
+    unlocated = _finding("f6", path=None, start=None)
+    assert advisory_claim_key(unlocated) != advisory_claim_key(base)
+    assert advisory_claim_key(unlocated) == advisory_claim_key(_finding("f7", path=None, start=None))
+
+
+def test_benchmark_records_claim_key_for_matches_and_false_positives():
+    defect = ExpectedDefect(
+        defect_id="BUG-1", path="src/app.py", start_line=7, end_line=8, category="bug"
+    )
+    matched = _finding("f1", path="src/app.py", start=7)
+    unmatched = _finding("f2", path="src/other.py", start=3)
+    result = evaluate_findings(
+        _corpus(defect), (matched, unmatched), source="test-reviewer", source_format="unit"
+    )
+    assert result.matches[0].advisory_claim_key == advisory_claim_key(matched)
+    assert result.unmatched_predictions[0].advisory_claim_key == advisory_claim_key(unmatched)
 
 
 def _write_sample_inputs(tmp_path):

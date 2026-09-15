@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "name": "real-world-5p8q",
+  "corpus": "fixtures/real-world-validation/rw-5p8q/corpus.json",
+  "labeling_rules": "docs/REAL_WORLD_VALIDATION.md",
+  "source_snapshot": {
+    "repository": "django/django",
+    "commit": "0000000000000000000000000000000000000000"
+  },
+  "files": [
+    {
+      "path": "fixtures/real-world-validation/rw-5p8q/vulnerable/pkg/base.py",
+      "role": "positive",
+      "git_blob_sha1": "16ac22f70a8d245794565d50b8ce118d8020b471"
+    },
+    {
+      "path": "fixtures/real-world-validation/rw-5p8q/vulnerable/pkg/html.py",
+      "role": "positive",
+      "git_blob_sha1": "06e8824f5632384568f9c5e7e002d3dddc7c20e6"
+    },
+    {
+      "path": "fixtures/real-world-validation/rw-5p8q/secure/pkg/base.py",
+      "role": "negative",
+      "git_blob_sha1": "03a1b44edb6c942be3d2e012fc79eea28c90996c"
+    },
+    {
+      "path": "fixtures/real-world-validation/rw-5p8q/secure/pkg/html.py",
+      "role": "negative",
+      "git_blob_sha1": "c4932ea4cc01e01674cfeb486758c4570f9cfe84"
+    }
+  ],
+  "labels": [
+    {
+      "id": "D-0301",
+      "path": "fixtures/real-world-validation/rw-5p8q/vulnerable/pkg/base.py",
+      "start_line": 37,
+      "end_line": 38,
+      "category": "security",
+      "severity": "high",
+      "control_id": "UPSTREAM-FIX-DIFF-5P8Q-D01",
+      "evidence_test": "tests/unit/test_real_world_fixture_provenance.py::test_snapshot_rw_5p8q_storage_save_name_validated_after_selection_only",
+      "rationale": "Upstream Django Storage.save delegated name selection to get_available_name and validated the returned name only after the file had already been written, so a storage backend that overrides get_available_name, or an incoming name that the selection step returns unchanged, could carry a traversal component into the write path before any validation ran. Fixed upstream in Django 5.0.7 by validating the name both before and after get_available_name (CVE-2024-39330). Provenance: upstream diff django/core/files/storage/base.py 5.0.6 -> 5.0.7."
+    },
+    {
+      "id": "D-0302",
+      "path": "fixtures/real-world-validation/rw-5p8q/vulnerable/pkg/html.py",
+      "start_line": 380,
+      "end_line": 382,
+      "category": "security",
+      "severity": "medium",
+      "control_id": "UPSTREAM-FIX-DIFF-5P8Q-D02",
+      "evidence_test": "tests/unit/test_real_world_fixture_provenance.py::test_snapshot_rw_5p8q_urlizer_rescans_word_counts_per_part",
+      "rationale": "Upstream Django Urlizer.trim_punctuation rescanned the whole word for every wrapping punctuation pair and for every trailing character, with no memoization of per-character counts, so cost grew with the square of the token length and a crafted input string stalled the conversion. Fixed upstream in Django 5.0.7 by memoizing per-word character counts and hoisting the punctuation sets into cached properties (CVE-2024-38875). Provenance: upstream diff django/utils/html.py 5.0.6 -> 5.0.7."
+    }
+  ]
+}

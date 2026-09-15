@@ -42,7 +42,11 @@ class ProvenanceControl:
         if not bundle.is_file():
             return _error_result(self, started_at, "ATTESTATION_BUNDLE_NOT_FOUND")
 
-        with tempfile.TemporaryDirectory(prefix="before-deploy-provenance-") as temporary_dir:
+        # A timed-out command can leave a descendant process holding its working directory, so
+        # cleanup failures must not replace the bounded result with an exception.
+        with tempfile.TemporaryDirectory(
+            prefix="before-deploy-provenance-", ignore_cleanup_errors=True
+        ) as temporary_dir:
             output_path = Path(temporary_dir) / "verification.json"
             process = self._runner.run(
                 config=self._config,

@@ -1,0 +1,20 @@
+# Byte-integrity policy for content-pinned artifacts.
+#
+# Two repository artifact classes are verified by exact content:
+#
+#   * The packaged offline Go vulnerability snapshot carries a pinned SHA-256 in
+#     src/before_deploy/controls/go_vulnerabilities.py.
+#   * Every benchmark corpus manifest pins its source files by Git blob SHA-1.
+#
+# Both checks read working-tree bytes, so Git EOL conversion rewrites the very
+# bytes they verify. With core.autocrlf=true (or a blanket `text=auto` rule) a
+# Windows checkout converts these files to CRLF and the checks fail closed. That
+# is not cosmetic: a converted working tree also produces a converted wheel, so
+# the package would ship a snapshot that fails its own integrity check.
+#
+# Marking these trees as non-text disables EOL conversion and freezes the
+# committed bytes on every platform. Do not add an EOL conversion rule for these
+# paths, and re-run tests/unit/test_checkout_byte_integrity.py after changing
+# anything here.
+fixtures/** -text
+src/before_deploy/controls/data/** -text

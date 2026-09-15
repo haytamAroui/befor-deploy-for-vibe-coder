@@ -154,6 +154,107 @@ def test_comparative_benchmark_attributes_exploration_tp_and_repeated_stability(
     assert result.gate_effect == "NONE"
 
 
+def test_claim_stability_ignores_wording_and_detects_location_drift(tmp_path):
+    """Claim-key stability measures the prediction; exact stability measures the prose."""
+    corpus = _corpus(tmp_path)
+
+    def claim(title: str, message: str, start_line: int) -> dict:
+        return {
+            "title": title,
+            "message": message,
+            "category": "security",
+            "severity": "high",
+            "path": "app/service.py",
+            "start_line": start_line,
+            "end_line": start_line,
+        }
+
+    rewording_a, fps_a = _advisory(
+        tmp_path, "rewording-a.json", [claim("Missing tenant check", "first wording", 10)]
+    )
+    rewording_b, fps_b = _advisory(
+        tmp_path, "rewording-b.json", [claim("Absent tenant guard", "second wording", 10)]
+    )
+    assert set(fps_a).isdisjoint(fps_b)
+
+    drift_a, drift_fps_a = _advisory(
+        tmp_path, "drift-a.json", [claim("Caller bypass", "same wording", 10)]
+    )
+    drift_b, drift_fps_b = _advisory(
+        tmp_path, "drift-b.json", [claim("Caller bypass", "same wording", 11)]
+    )
+
+    manifest = tmp_path / "manifest.json"
+    _write(
+        manifest,
+        {
+            "schema_version": "before-deploy-comparative-benchmark-v1",
+            "benchmark": {
+                "name": "stability",
+                "runs": [
+                    _run(
+                        run_id="rewording-1",
+                        variant="rewording",
+                        role="EXPLORATORY",
+                        repetition=1,
+                        advisory_file=rewording_a.name,
+                        fingerprints=fps_a,
+                        dependency="expanded_context_used",
+                        tool_calls=1,
+                        tool_names=["find_callers"],
+                    ),
+                    _run(
+                        run_id="rewording-2",
+                        variant="rewording",
+                        role="EXPLORATORY",
+                        repetition=2,
+                        advisory_file=rewording_b.name,
+                        fingerprints=fps_b,
+                        dependency="expanded_context_used",
+                        tool_calls=1,
+                        tool_names=["find_callers"],
+                    ),
+                    _run(
+                        run_id="drift-1",
+                        variant="drift",
+                        role="EXPLORATORY",
+                        repetition=1,
+                        advisory_file=drift_a.name,
+                        fingerprints=drift_fps_a,
+                        dependency="expanded_context_used",
+                        tool_calls=1,
+                        tool_names=["find_callers"],
+                    ),
+                    _run(
+                        run_id="drift-2",
+                        variant="drift",
+                        role="EXPLORATORY",
+                        repetition=2,
+                        advisory_file=drift_b.name,
+                        fingerprints=drift_fps_b,
+                        dependency="expanded_context_used",
+                        tool_calls=1,
+                        tool_names=["find_callers"],
+                    ),
+                ],
+            },
+        },
+    )
+
+    variants = {item.variant: item for item in evaluate_comparative_manifest(corpus, manifest).variants}
+
+    rewording = variants["rewording"]
+    assert rewording.mean_recall == 1.0
+    assert rewording.prediction_stability == 1.0
+    assert rewording.exact_prediction_stability == 0.0
+
+    # A genuinely different prediction lowers both measurements, so the claim-key metric keeps
+    # discriminating power rather than saturating at 1.0.
+    drift = variants["drift"]
+    assert drift.prediction_stability == 0.0
+    assert drift.exact_prediction_stability == 0.0
+
+
 def test_comparative_benchmark_rejects_missing_finding_attribution(tmp_path):
     corpus = _corpus(tmp_path)
     advisory, _ = _advisory(

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "benchmark": {
+    "name": "real-world-3f7a",
+    "defects": [
+      {
+        "id": "D-0101",
+        "path": "fixtures/real-world-validation/rw-3f7a/vulnerable/pkg/web_urldispatcher.py",
+        "start_line": 666,
+        "end_line": 667,
+        "category": "security",
+        "severity": "high"
+      },
+      {
+        "id": "D-0102",
+        "path": "fixtures/real-world-validation/rw-3f7a/vulnerable/pkg/http_parser.py",
+        "start_line": 153,
+        "end_line": 153,
+        "category": "security",
+        "severity": "medium"
+      }
+    ]
+  }
+}

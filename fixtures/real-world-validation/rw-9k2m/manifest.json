@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "name": "real-world-9k2m",
+  "corpus": "fixtures/real-world-validation/rw-9k2m/corpus.json",
+  "labeling_rules": "docs/REAL_WORLD_VALIDATION.md",
+  "source_snapshot": {
+    "repository": "pallets/werkzeug",
+    "commit": "0000000000000000000000000000000000000000"
+  },
+  "files": [
+    {
+      "path": "fixtures/real-world-validation/rw-9k2m/vulnerable/pkg/security.py",
+      "role": "positive",
+      "git_blob_sha1": "9999509d111704b1b259f7bedf8876dca9bb66df"
+    },
+    {
+      "path": "fixtures/real-world-validation/rw-9k2m/vulnerable/pkg/formparser.py",
+      "role": "positive",
+      "git_blob_sha1": "e4b1f27fdec294785acc099e967ad1ddfdb4b53c"
+    },
+    {
+      "path": "fixtures/real-world-validation/rw-9k2m/secure/pkg/security.py",
+      "role": "negative",
+      "git_blob_sha1": "997597990e4e50558ec6d54ebb82ca1e8bba7910"
+    },
+    {
+      "path": "fixtures/real-world-validation/rw-9k2m/secure/pkg/formparser.py",
+      "role": "negative",
+      "git_blob_sha1": "3c6875e265d3560a685d2f98d4f15bfbe0559112"
+    }
+  ],
+  "labels": [
+    {
+      "id": "D-0201",
+      "path": "fixtures/real-world-validation/rw-9k2m/vulnerable/pkg/security.py",
+      "start_line": 153,
+      "end_line": 153,
+      "category": "security",
+      "severity": "high",
+      "control_id": "UPSTREAM-FIX-DIFF-9K2M-D01",
+      "evidence_test": "tests/unit/test_real_world_fixture_provenance.py::test_snapshot_rw_9k2m_safe_join_absolute_path_bypass",
+      "rationale": "Upstream werkzeug safe_join rejected absolute paths only through os.path.isabs, which on the ntpath rules of Python versions before 3.11 does not treat a leading forward slash as absolute, so a join argument beginning with `/` survived normalization and escaped the intended directory. Fixed upstream in werkzeug 3.0.6 by also rejecting a filename that starts with a forward slash (CVE-2024-49766). Provenance: upstream diff src/werkzeug/security.py 3.0.5 -> 3.0.6."
+    },
+    {
+      "id": "D-0202",
+      "path": "fixtures/real-world-validation/rw-9k2m/vulnerable/pkg/formparser.py",
+      "start_line": 379,
+      "end_line": 380,
+      "category": "security",
+      "severity": "high",
+      "control_id": "UPSTREAM-FIX-DIFF-9K2M-D02",
+      "evidence_test": "tests/unit/test_real_world_fixture_provenance.py::test_snapshot_rw_9k2m_multipart_field_size_limit_not_accumulated",
+      "rationale": "Upstream werkzeug multipart decoding wrote each incoming data event for a non-file field into an accumulating container without tracking the total size of that field, so a field delivered as many small data events bypassed max_form_memory_size, which was only enforced per event inside the decoder. Fixed upstream in werkzeug 3.0.6 by accumulating field_size across data events and raising RequestEntityTooLarge (CVE-2024-49767). Provenance: upstream diff src/werkzeug/formparser.py 3.0.5 -> 3.0.6."
+    }
+  ]
+}

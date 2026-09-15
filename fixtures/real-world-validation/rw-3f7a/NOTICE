@@ -1,0 +1,21 @@
+Real-world validation snapshot: rw-3f7a
+
+Upstream source of record: https://github.com/aio-libs/aiohttp
+Upstream license: Apache License 2.0 (see LICENSE.upstream in this directory)
+Vendored revisions:
+  vulnerable/pkg/web_urldispatcher.py  upstream aiohttp/web_urldispatcher.py at v3.9.1
+  vulnerable/pkg/http_parser.py        upstream aiohttp/http_parser.py at v3.9.1
+  secure/pkg/web_urldispatcher.py      upstream aiohttp/web_urldispatcher.py at v3.9.2
+  secure/pkg/http_parser.py            upstream aiohttp/http_parser.py at v3.9.2
+
+The vendored files are verbatim upstream bytes at the stated revisions, retrieved from
+raw.githubusercontent.com. No modification, reformatting, or re-licensing has been applied.
+
+Vendored package directories are renamed to the neutral name `pkg` so that the upstream project
+identity does not appear in model-visible paths. File basenames are preserved. The upstream path
+for each snapshot is recorded in `manifest.json` under the evaluator-only rationale fields.
+
+NOTICE and LICENSE.upstream are attribution records. They are not review inputs and are not part
+of the corpus review scope declared in `manifest.json.files`.
+
+Contact for takedown or removal requests: the repository maintainers.

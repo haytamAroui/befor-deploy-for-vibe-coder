@@ -27,6 +27,7 @@ before-deploy = "before_deploy.release_entrypoint:main"
 before-deploy-mcp = "before_deploy.mcp_server:main"
 before-deploy-benchmark-compare = "before_deploy.comparative_benchmark_cli:main"
 before-deploy-caller-pilot = "before_deploy.caller_pilot_runner_cli:main"
+before-deploy-real-world-validation = "before_deploy.real_world_validation_cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

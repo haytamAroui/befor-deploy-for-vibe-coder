@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "benchmark": {
+    "name": "real-world-9k2m",
+    "defects": [
+      {
+        "id": "D-0201",
+        "path": "fixtures/real-world-validation/rw-9k2m/vulnerable/pkg/security.py",
+        "start_line": 153,
+        "end_line": 153,
+        "category": "security",
+        "severity": "high"
+      },
+      {
+        "id": "D-0202",
+        "path": "fixtures/real-world-validation/rw-9k2m/vulnerable/pkg/formparser.py",
+        "start_line": 379,
+        "end_line": 380,
+        "category": "security",
+        "severity": "high"
+      }
+    ]
+  }
+}

@@ -21,6 +21,23 @@ The expanded controlled benchmark must satisfy all of the following with `gpt-5.
 
 A workflow or provider/protocol failure is a failed readiness run, not a skipped or successful run.
 
+### Metric definitions
+
+These definitions are frozen before the next repeated run and are changes of measurement, not of
+threshold. See `docs/EXPLORATION_HARDENING_PLAN.md` for the rationale and the recorded failing
+result that motivated them.
+
+- **Exploratory prediction stability** is the mean pairwise Jaccard similarity of the normalized
+  advisory claim-key sets across the exploratory repetitions. A claim key is the hash of
+  `{source, category, path, start_line}`, which excludes model-authored prose and model-judgement
+  fields. This is the gating measurement for the `0.70` threshold above.
+- **Exact prediction stability** is the mean pairwise Jaccard similarity of the exact advisory
+  fingerprint sets. It is reported on every run as a diagnostic, and it cannot satisfy or waive
+  the `0.70` threshold.
+
+No result of the previous run may be reused for either measurement. Both must come from the same
+new repeated run.
+
 ## 2. Operational fault tolerance
 
 Before Deploy must have deterministic tests proving that external advisory failures remain advisory failures and cannot alter deterministic release authority. The production path must cover:

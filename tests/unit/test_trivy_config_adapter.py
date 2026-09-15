@@ -1,4 +1,6 @@
 import json
+import os
+import sys
 from pathlib import Path
 
 from before_deploy.controls.base import ControlContext
@@ -20,9 +22,27 @@ def _refreshed_context(repository: Path) -> ControlContext:
 
 
 def _fake_tool(path: Path, body: str) -> Path:
-    path.write_text("#!/usr/bin/env python3\n" + body, encoding="utf-8")
-    path.chmod(path.stat().st_mode | 0o111)
-    return path
+    """Write a runnable stand-in for an external scanner and return its executable path.
+
+    POSIX executes the file directly through its shebang. Windows CreateProcess cannot
+    execute an extensionless file, so the same script is launched through a .cmd shim that
+    forwards every argument unchanged. The returned path is what the adapter is configured
+    with either way.
+    """
+    if os.name != "nt":
+        path.write_text("#!/usr/bin/env python3\n" + body, encoding="utf-8")
+        path.chmod(path.stat().st_mode | 0o111)
+        return path
+
+    script = path.with_name(f"{path.name}.py")
+    script.write_text("#!/usr/bin/env python3\n" + body, encoding="utf-8", newline="\n")
+    shim = path.with_name(f"{path.name}.cmd")
+    shim.write_text(
+        f'@echo off\r\n"{sys.executable}" "%~dp0{script.name}" %*\r\n',
+        encoding="utf-8",
+        newline="",
+    )
+    return shim
 
 
 def test_trivy_config_stages_supported_files_uses_fixed_offline_arguments_and_redacts(
@@ -280,7 +300,9 @@ time.sleep(2)
     assert timeout_result.execution.metadata["error_kind"] == "TIMEOUT"
 
 
-def test_trivy_config_fails_closed_for_oversized_report_and_source_path_escape(tmp_path):
+def test_trivy_config_fails_closed_for_oversized_report_and_source_path_escape(
+    tmp_path, symlink_supported
+):
     context = _context(tmp_path / "repository")
     (context.repository_root / "Dockerfile").write_text("FROM scratch\n", encoding="utf-8")
     context = _refreshed_context(context.repository_root)

@@ -3,6 +3,7 @@ from before_deploy.production_readiness import (
     ProductionReadinessEvidence,
     evaluate_production_readiness,
     render_production_readiness_json,
+    render_production_readiness_markdown,
 )
 
 
@@ -18,7 +19,11 @@ def _ready_evidence(**changes):
         "static_sufficient_recall_delta": 0.0,
         "exploratory_supported_claim_rate": 1.0,
         "exploratory_citation_correct_rate": 1.0,
-        "exploratory_prediction_stability": 0.80,
+        # The claim-key measurement gates the frozen threshold; the exact-fingerprint measurement is
+        # a reported diagnostic and is deliberately 0.0 here to prove it cannot block a READY
+        # decision. See docs/EXPLORATION_HARDENING_PLAN.md section 2.
+        "exploratory_prediction_claim_stability": 0.80,
+        "exploratory_exact_prediction_stability": 0.0,
         "exploratory_mean_latency_ms": 120_000.0,
         "exploratory_mean_cost_microusd": 50_000.0,
         "fault_scenarios_required": 7,
@@ -69,7 +74,7 @@ def test_controlled_benchmark_thresholds_are_not_relaxed():
             static_sufficient_recall_delta=-0.01,
             exploratory_supported_claim_rate=0.99,
             exploratory_citation_correct_rate=0.99,
-            exploratory_prediction_stability=0.69,
+            exploratory_prediction_claim_stability=0.69,
             exploratory_mean_latency_ms=300_001,
             exploratory_mean_cost_microusd=250_001,
         )
@@ -88,6 +93,22 @@ def test_controlled_benchmark_thresholds_are_not_relaxed():
         "EXPLORATORY_LATENCY_BUDGET_EXCEEDED",
         "EXPLORATORY_COST_BUDGET_EXCEEDED",
     }
+
+
+def test_stability_gates_on_claim_key_and_reports_exact_as_diagnostic():
+    ready = evaluate_production_readiness(_ready_evidence())
+    assert ready.decision == "READY"
+    assert ready.exploratory_prediction_claim_stability == 0.80
+    assert ready.exploratory_exact_prediction_stability == 0.0
+    rendered = render_production_readiness_markdown(ready)
+    assert "claim stability" in rendered
+    assert "0.0000" in rendered
+
+    failed = evaluate_production_readiness(
+        _ready_evidence(exploratory_prediction_claim_stability=0.6999)
+    )
+    assert failed.decision == "NOT_READY"
+    assert "INSUFFICIENT_PREDICTION_STABILITY" in failed.reason_codes
 
 
 def test_real_world_and_operational_evidence_are_mandatory():

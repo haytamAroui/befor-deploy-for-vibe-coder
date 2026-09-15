@@ -69,6 +69,7 @@ class ComparativeRunResult:
     exploration_attributable_tp: int
     exploration_attributable_fp: int
     prediction_fingerprints: tuple[str, ...]
+    prediction_claim_keys: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -93,6 +94,7 @@ class VariantAggregate:
     mean_input_tokens: float
     mean_output_tokens: float
     prediction_stability: float
+    exact_prediction_stability: float
 
 
 @dataclass(frozen=True)
@@ -211,8 +213,8 @@ def render_comparative_markdown(result: ComparativeBenchmarkResult) -> str:
         f"- Authority: `{result.authority}`",
         f"- Gate effect: `{result.gate_effect}`",
         "",
-        "| Variant | Role | Runs | TP | FP | FN | Precision | Recall | F1 | Supported | Citation correct | Explore TP | Explore FP | Stability | Mean tools | Mean context B | Mean latency ms | Mean cost µUSD |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Variant | Role | Runs | TP | FP | FN | Precision | Recall | F1 | Supported | Citation correct | Explore TP | Explore FP | Claim stability | Exact stability | Mean tools | Mean context B | Mean latency ms | Mean cost µUSD |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for item in result.variants:
         lines.append(
@@ -221,7 +223,8 @@ def render_comparative_markdown(result: ComparativeBenchmarkResult) -> str:
             f"{item.mean_precision:.4f} | {item.mean_recall:.4f} | {item.mean_f1:.4f} | "
             f"{item.supported_claim_rate:.4f} | {item.citation_correct_rate:.4f} | "
             f"{item.exploration_attributable_tp} | {item.exploration_attributable_fp} | "
-            f"{item.prediction_stability:.4f} | {item.mean_tool_calls:.2f} | {item.mean_context_bytes:.2f} | "
+            f"{item.prediction_stability:.4f} | {item.exact_prediction_stability:.4f} | "
+            f"{item.mean_tool_calls:.2f} | {item.mean_context_bytes:.2f} | "
             f"{item.mean_latency_ms:.2f} | {item.mean_cost_microusd:.2f} |"
         )
     lines.extend(
@@ -255,6 +258,9 @@ def _evaluate_run(corpus_path: Path, manifest_dir: Path, spec: ComparativeRunSpe
 
     matched = {item.advisory_fingerprint for item in benchmark.matches}
     false_positive = {item.advisory_fingerprint for item in benchmark.unmatched_predictions}
+    claimed = {match.advisory_claim_key for match in benchmark.matches} | {
+        item.advisory_claim_key for item in benchmark.unmatched_predictions
+    }
     supported = sum(item.supported_claim for item in attribution.values())
     citation_correct = sum(item.citation_correct for item in attribution.values())
     exploration_tp = sum(
@@ -286,6 +292,7 @@ def _evaluate_run(corpus_path: Path, manifest_dir: Path, spec: ComparativeRunSpe
         exploration_attributable_tp=exploration_tp,
         exploration_attributable_fp=exploration_fp,
         prediction_fingerprints=tuple(sorted(predicted)),
+        prediction_claim_keys=tuple(sorted(claimed)),
     )
 
 
@@ -315,14 +322,33 @@ def _aggregate_variant(variant: str, runs: tuple[ComparativeRunResult, ...]) -> 
         mean_cost_microusd=mean(item.cost_microusd for item in runs),
         mean_input_tokens=mean(item.input_tokens for item in runs),
         mean_output_tokens=mean(item.output_tokens for item in runs),
-        prediction_stability=_prediction_stability(runs),
+        prediction_stability=_claim_stability(runs),
+        exact_prediction_stability=_prediction_stability(runs),
     )
 
 
 def _prediction_stability(runs: Sequence[ComparativeRunResult]) -> float:
-    if len(runs) < 2:
+    """Mean pairwise Jaccard over exact advisory fingerprint sets.
+
+    Diagnostic only. Because an exact fingerprint hashes model-authored prose, this value has a
+    floor of 0 for any reviewer that emits free-text claims and cannot satisfy the prediction
+    stability criterion. See ``docs/EXPLORATION_HARDENING_PLAN.md``.
+    """
+    return _mean_pairwise_jaccard([set(item.prediction_fingerprints) for item in runs])
+
+
+def _claim_stability(runs: Sequence[ComparativeRunResult]) -> float:
+    """Mean pairwise Jaccard over normalized advisory claim-key sets.
+
+    Duplicate claims collapse into one set member; duplication is a precision concern recorded by
+    the benchmark precision metrics, not a stability property.
+    """
+    return _mean_pairwise_jaccard([set(item.prediction_claim_keys) for item in runs])
+
+
+def _mean_pairwise_jaccard(sets: Sequence[set[str]]) -> float:
+    if len(sets) < 2:
         return 1.0
-    sets = [set(item.prediction_fingerprints) for item in runs]
     scores: list[float] = []
     for left_index, left in enumerate(sets):
         for right in sets[left_index + 1 :]:

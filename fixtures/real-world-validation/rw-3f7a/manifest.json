@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "name": "real-world-3f7a",
+  "corpus": "fixtures/real-world-validation/rw-3f7a/corpus.json",
+  "labeling_rules": "docs/REAL_WORLD_VALIDATION.md",
+  "source_snapshot": {
+    "repository": "aio-libs/aiohttp",
+    "commit": "0000000000000000000000000000000000000000"
+  },
+  "files": [
+    {
+      "path": "fixtures/real-world-validation/rw-3f7a/vulnerable/pkg/web_urldispatcher.py",
+      "role": "positive",
+      "git_blob_sha1": "ddb6ede0dd16306a93af17357fe8ae591ba83737"
+    },
+    {
+      "path": "fixtures/real-world-validation/rw-3f7a/vulnerable/pkg/http_parser.py",
+      "role": "positive",
+      "git_blob_sha1": "85499177701a1662209eaada6bfb4a9a349a0f75"
+    },
+    {
+      "path": "fixtures/real-world-validation/rw-3f7a/secure/pkg/web_urldispatcher.py",
+      "role": "negative",
+      "git_blob_sha1": "99696533444c2b31945c23b010c20b44cf7f438a"
+    },
+    {
+      "path": "fixtures/real-world-validation/rw-3f7a/secure/pkg/http_parser.py",
+      "role": "negative",
+      "git_blob_sha1": "1877f558308ec41d01f882f1ac12ddf35c7c7688"
+    }
+  ],
+  "labels": [
+    {
+      "id": "D-0101",
+      "path": "fixtures/real-world-validation/rw-3f7a/vulnerable/pkg/web_urldispatcher.py",
+      "start_line": 666,
+      "end_line": 667,
+      "category": "security",
+      "severity": "high",
+      "control_id": "UPSTREAM-FIX-DIFF-3F7A-D01",
+      "evidence_test": "tests/unit/test_real_world_fixture_provenance.py::test_snapshot_rw_3f7a_web_urldispatcher_containment_check_guarded_by_symlink_flag",
+      "rationale": "Upstream aiohttp StaticResource._handle computed the resolved file path and then applied the directory containment check only inside the `if not self._follow_symlinks` branch, so with follow_symlinks=True no containment check ran at all and a crafted relative path resolved outside the configured static root. Fixed upstream in aiohttp 3.9.2 by normalizing the unresolved path and re-applying relative_to() on the follow_symlinks branch (CVE-2024-23334). Provenance: upstream diff aiohttp/web_urldispatcher.py v3.9.1 -> v3.9.2."
+    },
+    {
+      "id": "D-0102",
+      "path": "fixtures/real-world-validation/rw-3f7a/vulnerable/pkg/http_parser.py",
+      "start_line": 153,
+      "end_line": 153,
+      "category": "security",
+      "severity": "medium",
+      "control_id": "UPSTREAM-FIX-DIFF-3F7A-D02",
+      "evidence_test": "tests/unit/test_real_world_fixture_provenance.py::test_snapshot_rw_3f7a_http_parser_header_name_checked_before_indexing",
+      "rationale": "Upstream aiohttp header parsing indexed the parsed header name and inspected its surrounding whitespace without first rejecting an empty name, so a line whose name part is empty passed through the whitespace check by index arithmetic instead of being rejected as an invalid header. Fixed upstream in aiohttp 3.9.2 by rejecting an empty name before the whitespace check (CVE-2024-23829 request smuggling hardening). Provenance: upstream diff aiohttp/http_parser.py v3.9.1 -> v3.9.2."
+    }
+  ]
+}

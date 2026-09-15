@@ -74,7 +74,11 @@ class ExternalToolRunner:
                 error_kind="INVALID_WORKING_DIRECTORY",
             )
 
-        with tempfile.TemporaryDirectory(prefix="before-deploy-tool-home-") as tool_home:
+        # A timed-out tool can leave a descendant process holding its home directory, so cleanup
+        # failures must not replace the bounded result with an exception.
+        with tempfile.TemporaryDirectory(
+            prefix="before-deploy-tool-home-", ignore_cleanup_errors=True
+        ) as tool_home:
             environment = _minimal_environment(Path(tool_home))
             try:
                 environment.update(_validated_environment_overrides(environment_overrides))

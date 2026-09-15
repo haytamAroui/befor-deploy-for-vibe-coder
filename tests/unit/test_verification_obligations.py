@@ -159,6 +159,7 @@ def _variant(name, role, *, precision, recall, f1, explore_tp=0, explore_fp=0):
         mean_input_tokens=200.0,
         mean_output_tokens=50.0,
         prediction_stability=1.0,
+        exact_prediction_stability=1.0,
     )
 
 

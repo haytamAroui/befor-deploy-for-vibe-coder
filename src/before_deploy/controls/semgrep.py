@@ -45,7 +45,11 @@ class SemgrepControl:
         started_at = utc_now()
         if not self._rule_directory.is_dir():
             return _error_result(self, started_at, "RULE_DIRECTORY_NOT_FOUND")
-        with tempfile.TemporaryDirectory(prefix="before-deploy-semgrep-") as temporary_dir:
+        # A timed-out scanner can leave a descendant process holding its working directory, so
+        # cleanup failures must not replace the bounded result with an exception.
+        with tempfile.TemporaryDirectory(
+            prefix="before-deploy-semgrep-", ignore_cleanup_errors=True
+        ) as temporary_dir:
             report_path = Path(temporary_dir) / "semgrep.json"
             arguments = (
                 "scan",

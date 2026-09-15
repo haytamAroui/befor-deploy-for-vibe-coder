@@ -67,6 +67,7 @@ class PilotVariantMetrics:
     mean_latency_ms: float
     mean_cost_microusd: float
     prediction_stability: float
+    exact_prediction_stability: float
 
 
 @dataclass(frozen=True)
@@ -239,6 +240,12 @@ def render_pilot_markdown(result: CallerPilotAssessment) -> str:
         f"- Exploration-required recall lift: **{result.exploration_required_recall_lift:+.4f}**",
         f"- False-positive-trap rate delta: **{result.false_positive_trap_rate_delta:+.4f}**",
         f"- Static-sufficient recall delta: **{result.static_sufficient_recall_delta:+.4f}**",
+        (
+            "- Exploratory claim stability: "
+            f"**{result.exploratory_variant.prediction_stability:.4f}** "
+            "(exact fingerprint stability "
+            f"{result.exploratory_variant.exact_prediction_stability:.4f})"
+        ),
         "",
         "## Reasons",
         "",
@@ -274,6 +281,7 @@ def _variant_metrics(
         mean_latency_ms=aggregate.mean_latency_ms,
         mean_cost_microusd=aggregate.mean_cost_microusd,
         prediction_stability=aggregate.prediction_stability,
+        exact_prediction_stability=aggregate.exact_prediction_stability,
     )
 
 

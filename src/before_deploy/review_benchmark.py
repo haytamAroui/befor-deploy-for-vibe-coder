@@ -7,7 +7,7 @@ from json import dumps, loads
 from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 
-from before_deploy.advisory import AdvisoryFinding, load_advisory_file
+from before_deploy.advisory import AdvisoryFinding, advisory_claim_key, load_advisory_file
 from before_deploy.models import to_primitive
 
 BENCHMARK_SCHEMA_VERSION = 1
@@ -39,6 +39,7 @@ class BenchmarkMatch:
 
     defect_id: str
     advisory_fingerprint: str
+    advisory_claim_key: str
     path: str
     category: str
     expected_start_line: int
@@ -63,6 +64,7 @@ class BenchmarkFalsePositive:
     """An advisory finding that did not match any labeled defect."""
 
     advisory_fingerprint: str
+    advisory_claim_key: str
     path: str | None
     category: str
     start_line: int | None
@@ -197,6 +199,7 @@ def evaluate_findings(
             BenchmarkMatch(
                 defect_id=defect.defect_id,
                 advisory_fingerprint=prediction.fingerprint,
+                advisory_claim_key=advisory_claim_key(prediction),
                 path=defect.path,
                 category=defect.category,
                 expected_start_line=defect.start_line,
@@ -391,6 +394,7 @@ def _false_positive(prediction: AdvisoryFinding) -> BenchmarkFalsePositive:
     location = prediction.location
     return BenchmarkFalsePositive(
         advisory_fingerprint=prediction.fingerprint,
+        advisory_claim_key=advisory_claim_key(prediction),
         path=location.path if location else None,
         category=prediction.category,
         start_line=location.start_line if location else None,

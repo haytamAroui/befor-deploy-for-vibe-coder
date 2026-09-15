@@ -45,7 +45,11 @@ class DependencyAuditControl:
 
     def run(self, context: ControlContext) -> ControlResult:
         started_at = utc_now()
-        with tempfile.TemporaryDirectory(prefix="before-deploy-dependency-audit-") as temporary_dir:
+        # A timed-out scanner can leave a descendant process holding its working directory, so
+        # cleanup failures must not replace the bounded result with an exception.
+        with tempfile.TemporaryDirectory(
+            prefix="before-deploy-dependency-audit-", ignore_cleanup_errors=True
+        ) as temporary_dir:
             temporary_path = Path(temporary_dir)
             requirements_path, preparation_error = self._requirements_input(
                 context.repository_root, temporary_path
