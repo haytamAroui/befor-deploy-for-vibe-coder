@@ -40,6 +40,23 @@ and two unified developer-review artifacts:
 
 The process exit code is derived from the deterministic `PolicyDecision` exactly as it is for `scan`. Imported advisory findings cannot add a block, remove a block, create a waiver, suppress a finding, or turn `ERROR` into `PASS`.
 
+## Advisory provider runtime
+
+Live advisory execution is provider-independent. `review --ocr` no longer calls OCR directly from the CLI; it constructs an `OcrAdvisoryProvider` and sends an `AdvisoryProviderRequest` through the generic runtime.
+
+Every provider declares a stable identity and returns an `AdvisoryImport`. The runtime catches normal provider exceptions, rejects inconsistent provider identity, validates common scope arguments, and structurally forces every returned finding to:
+
+```text
+authority = ADVISORY
+gate_effect = NONE
+```
+
+Even a malformed provider result that attempts `authority=DETERMINISTIC` or `gate_effect=BLOCK` is normalized back to the advisory boundary before it can enter unified review.
+
+Provider failure becomes an advisory source error rather than a deterministic gate error. `KeyboardInterrupt`, `SystemExit`, and other `BaseException` subclasses are not swallowed.
+
+See [ADVISORY_PROVIDER_RUNTIME.md](ADVISORY_PROVIDER_RUNTIME.md) for the provider interface, failure semantics, identity contract, and staged roadmap.
+
 ## OpenCodeReview ingestion
 
 The advisory loader accepts OpenCodeReview JSON emitted by `ocr review --format json`. It supports a top-level array or the common object containers `comments`, `results`, and `issues`.
@@ -54,6 +71,8 @@ The importer intentionally retains only bounded review metadata:
 - optional confidence
 
 It intentionally discards model-private or raw-code fields such as `thinking`, `existing_code`, and `suggestion_code`. Advisory message content remains untrusted and is not deterministic evidence.
+
+Live OCR execution retains its existing deterministic preflight/final-manifest scope attestation behind `OcrAdvisoryProvider`; PR23 does not weaken or duplicate that contract.
 
 ## Canonical advisory schema
 
@@ -120,10 +139,10 @@ No OpenCodeReview implementation code is copied into Before Deploy. This keeps B
 
 ## Next increments
 
-The trust-boundary foundation now includes deterministic review scope/preview, isolated OCR execution, scope attestation, review sessions, the deterministic benchmark harness, and a provenance-backed seed corpus. The next increments are intentionally staged:
+The trust-boundary foundation now includes deterministic review scope/preview, isolated OCR execution, scope attestation, review sessions, the deterministic benchmark harness, a provenance-backed seed corpus, and a provider-independent advisory runtime. The next increments are intentionally staged:
 
-1. replace hard-coded live OCR execution with an `AdvisoryProvider` runtime;
-2. add deterministic bounded context selection and provider execution provenance/budget contracts;
+1. add deterministic, reproducible bounded context selection with inspectable provenance;
+2. add provider execution provenance, configuration identity, and budget/timing contracts;
 3. build Evidence Graph v1, then semantic correlation, deduplication, and corroboration without authority upgrades;
 4. add `inspect`, `investigate`, and `explain` on top of the evidence model;
 5. add human-approved remediation, regression evidence, `verify`, and finally explicit `release` assurance.
