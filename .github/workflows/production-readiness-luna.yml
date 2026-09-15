@@ -1,4 +1,4 @@
-name: Production Readiness Luna Benchmark
+name: Evaluation Lab - Repeated Blinded Model Benchmark
 
 on:
   push:
@@ -82,6 +82,11 @@ jobs:
         if: always()
         shell: bash
         run: |
+          {
+            printf '## Model evaluation (informational)\n\n'
+            printf 'This run measures `%s`, not the Preflight software. Its result\n' "${OPENAI_MODEL}"
+            printf 'keeps `gate_effect=NONE` and does not gate any release.\n'
+          } >> "${GITHUB_STEP_SUMMARY}"
           if [[ -f reports/production-readiness-luna/caller-pilot.md ]]; then
             cat reports/production-readiness-luna/caller-pilot.md >> "${GITHUB_STEP_SUMMARY}"
           fi

@@ -11,12 +11,16 @@ permissions:
   actions: read
   id-token: write
 
+# Job-level env, not step-level: a step's `if` can only see workflow/job env, so defining
+# PYPI_API_TOKEN here is what makes the publish step reachable. `secrets` cannot be used in `if`
+# at all, which is why the token is resolved through env instead.
+#
+# This workflow gates on deterministic SOFTWARE readiness only. Model-evaluation criteria
+# (docs/PRODUCTION_READINESS_CRITERIA.md §1 and §3) measure an external LLM and are produced by
+# the Evaluation Lab workflows; they retain gate_effect=NONE and never block a release.
 env:
-  READINESS_WORKFLOW: production-readiness-luna.yml
-  READINESS_BRANCH: prod/readiness-luna
-  READINESS_ARTIFACT: production-readiness-luna
-  # Evidence older than this is refused even when its commit is an ancestor of the release.
-  READINESS_MAX_AGE_DAYS: '30'
+  PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+  SELF_SCAN_POLICY: rules/strict-ci-policy.yaml
 
 jobs:
   build-and-release:
@@ -41,13 +45,23 @@ jobs:
       - name: Synchronize locked development environment
         run: uv sync --frozen --all-extras
 
-      # Evidence steps below are allowed to fail without stopping the job: the readiness gate is
-      # the single deciding step, and it must be able to report *why* something is missing.
+      # Evidence steps are allowed to fail without stopping the job: the release gate is the single
+      # deciding step, and it must be able to report *why* something is missing or failing.
       - name: Produce deterministic full-suite evidence
         continue-on-error: true
         run: |
           mkdir -p reports/release-gate
           uv run pytest --junitxml=reports/release-gate/full-suite-junit.xml
+
+      - name: Produce lint evidence
+        continue-on-error: true
+        run: |
+          mkdir -p reports/release-gate
+          # ruff exits non-zero when it finds violations; the JSON is still the evidence, and the
+          # gate rejects any non-empty array.
+          uv run ruff check --output-format json \
+            src tests scripts/validate_review_benchmark_corpus.py \
+            > reports/release-gate/lint-report.json
 
       - name: Produce operational scenario evidence
         continue-on-error: true
@@ -80,76 +94,41 @@ jobs:
             uv run pytest --junitxml=reports/release-gate/smoke-junit.xml \
               tests/integration/test_clean_install_smoke.py
 
-      - name: Resolve retained readiness evidence run
-        id: readiness
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${READINESS_WORKFLOW}/runs"
-          payload=$(curl -sf -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "${api}?status=success&branch=${READINESS_BRANCH}&per_page=5")
-
-          run_id=$(echo "${payload}" | jq -r '[.workflow_runs[]] | sort_by(.created_at) | reverse | .[0].id // empty')
-          run_sha=$(echo "${payload}" | jq -r '[.workflow_runs[]] | sort_by(.created_at) | reverse | .[0].head_sha // empty')
-          created=$(echo "${payload}" | jq -r '[.workflow_runs[]] | sort_by(.created_at) | reverse | .[0].created_at // empty')
-
-          if [[ -z "${run_id}" || -z "${run_sha}" ]]; then
-            echo "No successful ${READINESS_WORKFLOW} run exists on branch ${READINESS_BRANCH}." >&2
-            echo "Readiness evidence must be produced by CI before a release can be gated." >&2
-            exit 1
-          fi
-
-          # The evidence must describe an ancestor of the commit being released.
-          git fetch --no-tags origin "${READINESS_BRANCH}:refs/remotes/origin/${READINESS_BRANCH}" || true
-          if ! git merge-base --is-ancestor "${run_sha}" HEAD; then
-            echo "Readiness evidence commit ${run_sha} is not an ancestor of ${GITHUB_SHA}." >&2
-            exit 1
-          fi
-
-          age_days=$(( ( $(date -u +%s) - $(date -u -d "${created}" +%s) ) / 86400 ))
-          if (( age_days > READINESS_MAX_AGE_DAYS )); then
-            echo "Readiness evidence is ${age_days} days old; limit is ${READINESS_MAX_AGE_DAYS}." >&2
-            exit 1
-          fi
-
-          echo "Using readiness run ${run_id} at ${run_sha} (${age_days}d old)."
-          echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
-
-      - name: Download retained readiness evidence
-        if: steps.readiness.outputs.run_id != ''
-        uses: actions/download-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
-        with:
-          name: ${{ env.READINESS_ARTIFACT }}
-          run-id: ${{ steps.readiness.outputs.run_id }}
-          github-token: ${{ github.token }}
-          path: readiness-evidence
-
-      # The independent real-world validation report is produced by its own run; absent evidence
-      # makes the gate fail closed rather than pass by default.
-      - name: Download independent real-world validation evidence
+      - name: Produce deterministic self-scan evidence
         continue-on-error: true
-        uses: actions/download-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
-        with:
-          name: real-world-validation
-          path: readiness-evidence
+        run: |
+          mkdir -p reports/release-gate/self-scan
+          uv run before-deploy scan . \
+            --policy "${SELF_SCAN_POLICY}" \
+            --output-dir reports/release-gate/self-scan
 
-      - name: Enforce production readiness before release
-        if: always()
+      - name: Enforce software release readiness before release
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p reports/release-gate
           uv run before-deploy-readiness-gate \
-            --pilot-report readiness-evidence/caller-pilot.json \
-            --real-world-report readiness-evidence/real-world-validation.json \
+            --full-suite-report reports/release-gate/full-suite-junit.xml \
+            --lint-report reports/release-gate/lint-report.json \
+            --self-scan-report reports/release-gate/self-scan/report.json \
             --operational-report reports/release-gate/operational-junit.xml \
             --assurance-report reports/release-gate/assurance-junit.xml \
             --smoke-report reports/release-gate/smoke-junit.xml \
-            --full-suite-report reports/release-gate/full-suite-junit.xml \
+            --distribution-dir dist \
             --output-dir reports/release-gate
+
+      - name: Record model-evaluation scope in the run summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            printf '## Model evaluation (informational)\n\n'
+            printf 'Criteria §1 (repeated blinded benchmark) and §3 (independent real-world\n'
+            printf 'validation) measure an external model, not this software. They keep\n'
+            printf '`gate_effect=NONE` and are produced by the Evaluation Lab workflows\n'
+            printf '(`production-readiness-luna.yml`, `real-world-validation.yml`).\n'
+            printf 'See their run summaries; they do not gate this release.\n'
+          } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Retain release-gate evidence
         if: always()
@@ -170,7 +149,5 @@ jobs:
 
       - name: Publish package distributions to PyPI
         if: env.PYPI_API_TOKEN != ''
-        env:
-          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           uv publish --token "${PYPI_API_TOKEN}"

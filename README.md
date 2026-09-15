@@ -378,11 +378,15 @@ The benchmark stack includes:
 - blinded caller-context pilot corpora;
 - repeated-run stability metrics;
 - latency, context, token, and cost provenance;
-- a repeated GPT-5.6 Luna production-readiness workflow;
+- an Evaluation Lab for repeated blinded model benchmarks;
+- an independent real-world validation corpus of pinned pre-fix snapshots;
 - bounded transient retry handling and optional cumulative token/cost budgets;
 - frozen production-readiness criteria and a deterministic engineering-readiness evaluator.
 
-**Benchmark and readiness outputs remain diagnostic. They cannot grant an application release.**
+**Benchmark and model-evaluation outputs remain diagnostic. They cannot grant an application
+release, and they cannot block one either.** The Evaluation Lab runs independently of the release
+pipeline, so a model outage or a model update never freezes a release of unchanged software, and a
+`STOP` model result is reported rather than silently treated as a build failure.
 
 See [`docs/REVIEW_BENCHMARK.md`](docs/REVIEW_BENCHMARK.md), [`docs/CALLER_PILOT_V2.md`](docs/CALLER_PILOT_V2.md), [`docs/PROVIDER_RESILIENCE.md`](docs/PROVIDER_RESILIENCE.md), and [`docs/PRODUCTION_READINESS_CRITERIA.md`](docs/PRODUCTION_READINESS_CRITERIA.md).
 
@@ -428,7 +432,7 @@ Those boundaries are product features.
 
 Preflight is actively developed. The deterministic authority boundary is the architectural constant: advisory engines, benchmarks, integrations, and control depth can evolve without changing who is allowed to decide a release.
 
-The production-readiness framework intentionally distinguishes **implemented capability** from **proven operational maturity**. See [`docs/PRODUCTION_READINESS_CRITERIA.md`](docs/PRODUCTION_READINESS_CRITERIA.md).
+The production-readiness framework intentionally distinguishes **implemented capability** from **proven operational maturity**, and it tiers those claims. Releases are gated on **software** readiness — the deterministic engine, policy gate, CLI, packaging, self-scan, and the §2 safety invariants. Model-evaluation criteria (the repeated blinded benchmark and the independent real-world corpus) are measured and reported by the Evaluation Lab but do not gate a release. See [`docs/PRODUCTION_READINESS_CRITERIA.md`](docs/PRODUCTION_READINESS_CRITERIA.md) and [`docs/RELEASE_READINESS_GATE.md`](docs/RELEASE_READINESS_GATE.md).
 
 ---
 

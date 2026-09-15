@@ -1,4 +1,4 @@
-name: Independent Real-World Validation
+name: Real-World Corpus Provenance Validation
 
 on:
   push:
@@ -35,7 +35,11 @@ jobs:
       - name: Synchronize locked development environment
         run: uv sync --frozen --all-extras
 
-      - name: Validate real-world benchmark corpus and manifest
+      # This job validates that the pinned corpus exists and is internally consistent. It does
+      # NOT measure exploratory recall: that needs paired static/exploratory run records, and no
+      # producer for them exists yet. The release gate reports the shortfall as
+      # INSUFFICIENT_REAL_WORLD_RECALL rather than silently treating this job as §3 evidence.
+      - name: Validate pinned real-world corpus and manifest
         run: |
           mkdir -p reports/real-world-validation
           uv run before-deploy-real-world-validation \
@@ -44,11 +48,22 @@ jobs:
             --format json > reports/real-world-validation/manifest-validation.json
           cat reports/real-world-validation/manifest-validation.json
 
-      - name: Retain real-world validation evidence
+      - name: Record scope in the run summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            printf '## Real-world corpus provenance validation\n\n'
+            printf 'This job validates corpus provenance only. It does **not** measure\n'
+            printf 'exploratory known-defect recall, so it cannot satisfy the §3 release\n'
+            printf 'criterion on its own.\n'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Retain real-world corpus evidence
         if: always()
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
-          name: real-world-validation
+          name: real-world-corpus-validation
           path: reports/real-world-validation/
           if-no-files-found: warn
           retention-days: 90

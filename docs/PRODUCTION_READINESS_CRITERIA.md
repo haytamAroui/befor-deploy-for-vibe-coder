@@ -1,6 +1,26 @@
 # Production Readiness Criteria
 
-These criteria are frozen before reading the repeated `caller-pilot-v2` Luna result. They are engineering release criteria for Before Deploy itself; they do **not** give probabilistic advisory output deterministic release authority.
+These criteria are frozen before reading the repeated `caller-pilot-v2` Luna result. They are engineering maturity criteria for Before Deploy itself; they do **not** give probabilistic advisory output deterministic release authority.
+
+## Tiering: which criteria gate a release
+
+The sections below fall into two tiers, because they make two different kinds of claim. Tier A is a
+statement about software this repository builds and ships. Tier B is a measurement of an external
+model. Only Tier A blocks a release.
+
+| Tier | Sections | Evaluated by | Effect on release |
+| --- | --- | --- | --- |
+| **A — Software release readiness** | §2, §4, §5 | `before_deploy.readiness_gate` via `release.yml` | **Blocks** |
+| **B — Model evaluation** | §1, §3 | `before_deploy.production_readiness` via the Evaluation Lab workflows | **Reported only** |
+
+Tier B was previously folded into the release gate. That coupled a deterministic engine's
+shippable artifact to a live third-party model run, so an API outage, deprecation, price change, or
+model update could freeze releases of unchanged software. No criterion was deleted or relaxed by
+this tiering: all five sections are still implemented and still evaluated. See
+`docs/RELEASE_READINESS_GATE.md`.
+
+A Tier B result is required to *claim measured model maturity*. It is not required to *ship the
+tool*, and the two must not be conflated in release notes or marketing.
 
 ## 1. Repeated blinded Luna benchmark
 
@@ -84,4 +104,9 @@ Before declaring Before Deploy production-ready:
 - all required criteria above are evaluated by a deterministic readiness report;
 - no failed criterion is waived by changing thresholds after observing results.
 
-Until every section passes, the project status is **NOT_READY** or **PRODUCTION_CANDIDATE**, not production-ready.
+Until every Tier A section passes, the project status is **NOT_READY** or **PRODUCTION_CANDIDATE**,
+and the software is not releasable.
+
+Tier B has its own separate status. Until §1 and §3 pass, the advisory/model-evaluation plane must
+be described as **unvalidated** regardless of how green the software gate is, and no release note or
+marketing claim may present a green release as evidence that the model plane was measured.

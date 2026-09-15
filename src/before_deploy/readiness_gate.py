@@ -1,18 +1,30 @@
-"""Release-blocking readiness gate for Preflight itself.
+"""Release-blocking gate for the software Preflight actually ships.
 
-``before_deploy.production_readiness`` evaluates readiness but declares
-``gate_effect = "NONE"``: it reports, it does not stop anything. This module is the part
-that is allowed to stop a release.
+``before_deploy.production_readiness`` evaluates the frozen maturity criteria in
+``docs/PRODUCTION_READINESS_CRITERIA.md``. Those criteria mix two different claims, so this
+module evaluates only the ones the release artifact can be held to:
 
-Design rules:
+* **Software release readiness (blocking)** — the deterministic engine, policy gate, CLI, MCP
+  server, and packaging are healthy: criteria §2 (operational fault tolerance), §4 (full
+  assurance workflow), and §5 (release engineering).
+* **Model evaluation (non-blocking)** — criteria §1 (repeated blinded benchmark) and §3
+  (independent real-world validation) measure an external model's inter-procedural recall. That
+  is a research diagnostic with a documented ``gate_effect = NONE``, so it is *reported* here and
+  never decides whether this software may be released.
 
-* Every field of ``ProductionReadinessEvidence`` is derived from an artifact produced by
-  CI. No boolean is accepted from the command line, so a hand-written "everything passed"
-  cannot satisfy the gate.
-* The operational and CI facts are derived from JUnit reports against a frozen scenario
-  map. A scenario whose verifier is absent from the report is an *input error*, not a
-  silent pass; a scenario whose verifier failed or was skipped is a failure.
-* Missing, unreadable, or schema-invalid input fails closed.
+Holding a release hostage to live third-party model performance coupled the artifact to an
+external API's availability, pricing, and model churn. ``production_readiness.py`` and the
+``production-readiness-luna`` / ``real-world-validation`` workflows remain as the Evaluation Lab.
+
+Design rules (unchanged from the original gate):
+
+* Every field is derived from an artifact built by CI. No boolean is accepted from the command
+  line, so a hand-written "everything passed" cannot satisfy the gate.
+* The operational and CI facts are derived from JUnit reports against a frozen scenario map. A
+  scenario whose verifier is absent from the report is an *input error*, not a silent pass; a
+  scenario whose verifier failed or was skipped is a failure.
+* Missing, unreadable, or schema-invalid *blocking* input fails closed. Model-evaluation input is
+  optional by design, so its absence is ordinary state rather than an error.
 """
 
 from __future__ import annotations
@@ -26,26 +38,34 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 from xml.etree import ElementTree
 
-from .caller_pilot import CALLER_PILOT_RESULT_SCHEMA
-from .production_readiness import (
-    ProductionReadinessAssessment,
-    ProductionReadinessEvidence,
-    evaluate_production_readiness,
-    render_production_readiness_markdown,
-)
-from .real_world_validation import (
-    REAL_WORLD_VALIDATION_SCHEMA,
-    RealWorldValidationResult,
-    real_world_readiness_evidence,
-)
+SOFTWARE_GATE_SCHEMA = "before-deploy-software-release-gate-v1"
+SOFTWARE_GATE_AUTHORITY = "RELEASE_GATE"
+SOFTWARE_GATE_EFFECT = "BLOCKS_RELEASE"
 
-READINESS_GATE_SCHEMA = "before-deploy-readiness-gate-v1"
-READINESS_GATE_AUTHORITY = "RELEASE_GATE"
-READINESS_GATE_EFFECT = "BLOCKS_RELEASE"
+#: Software criteria that block a release, each with the reason code it emits when unsatisfied.
+DETERMINISTIC_CI_NOT_GREEN = "DETERMINISTIC_CI_NOT_GREEN"
+LINT_NOT_CLEAN = "LINT_NOT_CLEAN"
+SELF_SCAN_NOT_PASS = "SELF_SCAN_NOT_PASS"
+DISTRIBUTION_NOT_BUILT = "DISTRIBUTION_NOT_BUILT"
+FULL_ASSURANCE_WORKFLOW_NOT_PROVEN = "FULL_ASSURANCE_WORKFLOW_NOT_PROVEN"
+CLEAN_INSTALL_SMOKE_NOT_GREEN = "CLEAN_INSTALL_SMOKE_NOT_GREEN"
+OPERATIONAL_FAULT_COVERAGE_INCOMPLETE = "OPERATIONAL_FAULT_COVERAGE_INCOMPLETE"
 
-#: Verifiers for the operational safety flags. Each flag is true only when every declared
-#: verifier is present in the operational JUnit report and passed. Parametrized verifiers are
-#: matched by their base node id and must all pass.
+#: The self-scan outcome that certifies the tree. ``NOT_EVALUATED`` is deliberately not accepted:
+#: a scan that ran no control has not checked anything, so it cannot certify a release.
+SELF_SCAN_PASSING_OUTCOME = "PASS"
+
+#: How the independent §3 evidence was supplied. A corpus definition proves that the pinned
+#: repositories and labelled defects exist; it does not measure exploratory recall. Keeping the
+#: states distinct keeps a report honest: "not measured" is a different fact from "measured and
+#: failed", and an absent artifact is a third.
+REAL_WORLD_STATE_MEASURED = "MEASURED"
+REAL_WORLD_STATE_DEFINITION_ONLY = "DEFINITION_ONLY"
+REAL_WORLD_STATE_ABSENT = "ABSENT"
+
+#: Verifiers for the operational safety flags from criteria §2. Each flag is true only when every
+#: declared verifier is present in the operational JUnit report and passed. Parametrized verifiers
+#: are matched by their base node id and must all pass.
 OPERATIONAL_SCENARIO_TESTS: Mapping[str, tuple[str, ...]] = {
     "bounded_retry_passed": (
         "tests/unit/test_production_openai_bridge.py"
@@ -80,7 +100,7 @@ OPERATIONAL_SCENARIO_TESTS: Mapping[str, tuple[str, ...]] = {
     ),
 }
 
-#: Verifiers for the end-to-end assurance workflow.
+#: Verifiers for the end-to-end assurance workflow (criteria §4).
 ASSURANCE_WORKFLOW_TESTS: tuple[str, ...] = (
     "tests/integration/test_scan_fixtures.py"
     "::test_python_observability_policy_blocks_print_and_passes_safe_fixture",
@@ -90,8 +110,8 @@ ASSURANCE_WORKFLOW_TESTS: tuple[str, ...] = (
     "::test_secure_nextjs_fixture_passes_and_reports_nextjs_profile",
 )
 
-#: Verifiers for the clean-install smoke. These skip unless an isolated install exists, so a
-#: skipped run is correctly reported as absent evidence.
+#: Verifiers for the clean-install smoke (criteria §5). These skip unless an isolated install
+#: exists, so a skipped run is correctly reported as absent evidence.
 CLEAN_INSTALL_SMOKE_TESTS: tuple[str, ...] = (
     "tests/integration/test_clean_install_smoke.py"
     "::test_distribution_declares_every_console_entry_point",
@@ -108,7 +128,7 @@ _STATUS_SKIPPED = "skipped"
 
 
 class ReadinessGateError(RuntimeError):
-    """Raised when gate inputs are missing, unreadable, or schema-invalid."""
+    """Raised when blocking gate inputs are missing, unreadable, or schema-invalid."""
 
 
 @dataclass(frozen=True)
@@ -137,30 +157,76 @@ class ArtifactDigest:
 
 @dataclass(frozen=True)
 class GateInputs:
-    """Artifact paths supplied by the release workflow."""
+    """Artifact paths supplied by the release workflow.
 
-    pilot_report: Path
-    real_world_report: Path
+    The first seven are required and block the release. ``pilot_report`` and ``real_world_report``
+    are model-evaluation evidence: optional, reported, and never blocking.
+    """
+
+    full_suite_report: Path
+    lint_report: Path
+    self_scan_report: Path
     operational_report: Path
     assurance_report: Path
     smoke_report: Path
-    full_suite_report: Path
+    distribution_dir: Path
+    pilot_report: Path | None = None
+    real_world_report: Path | None = None
+
+
+@dataclass(frozen=True)
+class SoftwareAssessment:
+    """The blocking verdict: may this build be released?"""
+
+    decision: str
+    reason_codes: tuple[str, ...]
+    criteria: Mapping[str, bool]
+
+    @property
+    def ready(self) -> bool:
+        return self.decision == "READY"
+
+
+@dataclass(frozen=True)
+class ModelEvaluationDiagnostic:
+    """Non-blocking model-evaluation facts.
+
+    Every field is informational. Nothing here changes ``SoftwareAssessment.decision``; the frozen
+    maturity criteria for these numbers live in ``production_readiness.py`` and are gated by the
+    Evaluation Lab workflows, not by this release path.
+    """
+
+    blocking: bool = False
+    pilot_supplied: bool = False
+    pilot_decision: str | None = None
+    pilot_reason_codes: tuple[str, ...] = ()
+    exploration_required_recall_lift: float | None = None
+    false_positive_trap_rate_delta: float | None = None
+    static_sufficient_recall_delta: float | None = None
+    exploratory_prediction_stability: float | None = None
+    real_world_state: str = REAL_WORLD_STATE_ABSENT
+    real_world_repositories: int | None = None
+    real_world_known_defects: int | None = None
+    real_world_recall: float | None = None
+    real_world_decision: str | None = None
+    real_world_reason_codes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
 class ReleaseGateResult:
-    readiness: ProductionReadinessAssessment
+    software: SoftwareAssessment
+    model_evaluation: ModelEvaluationDiagnostic
     artifacts: tuple[ArtifactDigest, ...]
     operational_scenarios: Mapping[str, bool]
     fault_scenarios_required: int
     fault_scenarios_passed: int
-    schema_version: str = READINESS_GATE_SCHEMA
-    authority: str = READINESS_GATE_AUTHORITY
-    gate_effect: str = READINESS_GATE_EFFECT
+    schema_version: str = SOFTWARE_GATE_SCHEMA
+    authority: str = SOFTWARE_GATE_AUTHORITY
+    gate_effect: str = SOFTWARE_GATE_EFFECT
 
     @property
     def decision(self) -> str:
-        return self.readiness.decision
+        return self.software.decision
 
 
 def _digest(name: str, path: Path) -> ArtifactDigest:
@@ -230,6 +296,18 @@ def parse_junit_outcomes(path: Path) -> tuple[CaseOutcome, ...]:
     return tuple(outcomes)
 
 
+def _base_node_id(node_id: str) -> str:
+    """Strip a pytest parametrization suffix: ``x::test_y[a-b]`` -> ``x::test_y``.
+
+    Only the test-name segment is trimmed, and only from its first ``[``, so a path containing
+    brackets cannot be truncated by accident.
+    """
+    classname, separator, name = node_id.partition("::")
+    if not separator:
+        return node_id.split("[", 1)[0]
+    return f"{classname}::{name.split('[', 1)[0]}"
+
+
 def resolve_scenario(
     declared: Sequence[str],
     outcomes: Sequence[CaseOutcome],
@@ -238,135 +316,232 @@ def resolve_scenario(
 ) -> bool:
     """Return whether every declared verifier is present and passed.
 
-    A declared verifier with no matching case in the report means the scenario was never
-    exercised, which is an input error rather than a pass.
+    A declared verifier is matched by its base node id, so a parametrized test satisfies the
+    scenario only when **every** parameterization passed. A verifier that is absent from the report
+    is an input error: the scenario was never exercised, which is not the same as passing. A
+    verifier that failed *or skipped* does not satisfy the scenario.
     """
-    passed = True
+    index: dict[str, list[str]] = {}
+    for outcome in outcomes:
+        index.setdefault(_base_node_id(outcome.node_id), []).append(outcome.status)
+
+    satisfied = True
     for node_id in declared:
-        classname, test_name = _dotted_node_id(node_id)
-        matches = [
-            outcome
-            for outcome in outcomes
-            if outcome.node_id.split("::", 1)[0].endswith(classname)
-            and (
-                outcome.node_id.split("::", 1)[1] == test_name
-                or outcome.node_id.split("::", 1)[1].startswith(f"{test_name}[")
-            )
-        ]
-        if not matches:
+        classname, name = _dotted_node_id(node_id)
+        statuses = index.get(f"{classname}::{name}")
+        if statuses is None:
             raise ReadinessGateError(
-                f"operational scenario {scenario!r} has no result for {node_id!r}; "
-                "the verifier was not collected or was renamed"
+                f"{scenario}: declared verifier {node_id!r} has no result in the report"
             )
-        if not all(item.passed for item in matches):
-            passed = False
-    return passed
+        if any(status != _STATUS_PASSED for status in statuses):
+            satisfied = False
+    return satisfied
 
 
-def pilot_evidence_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Extract the repeated-benchmark evidence fields from a caller-pilot report."""
-    if payload.get("schema_version") != CALLER_PILOT_RESULT_SCHEMA:
+def _distribution_artifacts(distribution_dir: Path) -> tuple[tuple[Path, ...], bool]:
+    """Return the built distributions and whether both a wheel and an sdist are present."""
+    if not distribution_dir.is_dir():
         raise ReadinessGateError(
-            "caller pilot report does not declare schema "
-            f"{CALLER_PILOT_RESULT_SCHEMA!r}"
+            f"distribution directory is unavailable: {distribution_dir}"
         )
-    report = _field(payload, "caller_pilot", "caller pilot report")
-    if not isinstance(report, Mapping):
-        raise ReadinessGateError("caller pilot report payload must be an object")
-    static = _field(report, "static_variant", "caller pilot report")
-    exploratory = _field(report, "exploratory_variant", "caller pilot report")
-    if not isinstance(static, Mapping) or not isinstance(exploratory, Mapping):
-        raise ReadinessGateError("caller pilot variants must be objects")
+    wheels = tuple(sorted(distribution_dir.glob("*.whl")))
+    sdists = tuple(sorted(distribution_dir.glob("*.tar.gz")))
+    return wheels + sdists, bool(wheels) and bool(sdists)
+
+
+def lint_violation_count(path: Path) -> int:
+    """Return the number of ``ruff check --output-format json`` violations in a lint report.
+
+    An empty array is a clean run. A report that is not an array cannot establish cleanliness, so
+    it is an input error rather than a failure.
+    """
+    if not path.is_file():
+        raise ReadinessGateError(f"required readiness artifact lint-report is unavailable: {path}")
+    try:
+        payload = loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        raise ReadinessGateError(f"lint report is not valid JSON: {path}") from error
+    if not isinstance(payload, list):
+        raise ReadinessGateError(
+            "lint report must be the JSON array produced by ruff --output-format json"
+        )
+    return len(payload)
+
+
+def self_scan_verdict(path: Path) -> tuple[str, int, int]:
+    """Return ``(outcome, blocking_count, error_control_count)`` from a scan ``report.json``."""
+    payload = _load_json("self-scan report", path)
+    scan = payload.get("scan")
+    if not isinstance(scan, Mapping):
+        raise ReadinessGateError("self-scan report does not contain a scan object")
+    decision = scan.get("decision")
+    if not isinstance(decision, Mapping):
+        raise ReadinessGateError("self-scan report does not contain a scan decision")
+    outcome = decision.get("outcome")
+    if not isinstance(outcome, str) or not outcome:
+        raise ReadinessGateError("self-scan report decision has no outcome")
+    blocking = decision.get("blocking_fingerprints") or []
+    errors = decision.get("error_control_ids") or []
+    if not isinstance(blocking, list) or not isinstance(errors, list):
+        raise ReadinessGateError(
+            "self-scan report blocking_fingerprints and error_control_ids must be arrays"
+        )
+    return outcome, len(blocking), len(errors)
+
+
+def _optional_float(source: Mapping[str, Any], key: str) -> float | None:
+    value = source.get(key)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
+
+
+def _optional_text(source: Mapping[str, Any], key: str) -> str | None:
+    value = source.get(key)
+    return value if isinstance(value, str) and value else None
+
+
+def _optional_reason_codes(source: Mapping[str, Any]) -> tuple[str, ...]:
+    codes = source.get("reason_codes")
+    if not isinstance(codes, list):
+        return ()
+    return tuple(str(item) for item in codes)
+
+
+def pilot_diagnostic(path: Path | None) -> dict[str, Any]:
+    """Read the repeated-benchmark result as informational model-evaluation evidence.
+
+    A malformed report is reported as unsupplied rather than raised: model-evaluation evidence
+    must never be able to block a software release, and refusing to release because a *diagnostic*
+    is malformed would reintroduce exactly the coupling this split removes.
+    """
+    empty = {
+        "pilot_supplied": False,
+        "pilot_decision": None,
+        "pilot_reason_codes": (),
+        "exploration_required_recall_lift": None,
+        "false_positive_trap_rate_delta": None,
+        "static_sufficient_recall_delta": None,
+        "exploratory_prediction_stability": None,
+    }
+    if path is None or not path.is_file():
+        return empty
+    try:
+        payload = loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return empty
+    if not isinstance(payload, Mapping):
+        return empty
+    pilot = payload.get("caller_pilot")
+    if not isinstance(pilot, Mapping):
+        return empty
+    exploratory = pilot.get("exploratory_variant")
+    exploratory = exploratory if isinstance(exploratory, Mapping) else {}
     return {
-        "pilot_decision": _field(report, "decision", "caller pilot report"),
-        "static_run_count": _field(static, "run_count", "caller pilot static variant"),
-        "exploratory_run_count": _field(
-            exploratory, "run_count", "caller pilot exploratory variant"
+        "pilot_supplied": True,
+        "pilot_decision": _optional_text(pilot, "decision"),
+        "pilot_reason_codes": _optional_reason_codes(pilot),
+        "exploration_required_recall_lift": _optional_float(
+            pilot, "exploration_required_recall_lift"
         ),
-        "exploration_required_recall_lift": _field(
-            report, "exploration_required_recall_lift", "caller pilot report"
+        "false_positive_trap_rate_delta": _optional_float(
+            pilot, "false_positive_trap_rate_delta"
         ),
-        "exploration_attributable_tp": _field(
-            exploratory, "exploration_attributable_tp", "caller pilot exploratory variant"
+        "static_sufficient_recall_delta": _optional_float(
+            pilot, "static_sufficient_recall_delta"
         ),
-        "exploration_attributable_fp": _field(
-            exploratory, "exploration_attributable_fp", "caller pilot exploratory variant"
-        ),
-        "false_positive_trap_rate_delta": _field(
-            report, "false_positive_trap_rate_delta", "caller pilot report"
-        ),
-        "static_sufficient_recall_delta": _field(
-            report, "static_sufficient_recall_delta", "caller pilot report"
-        ),
-        "exploratory_supported_claim_rate": _field(
-            exploratory, "supported_claim_rate", "caller pilot exploratory variant"
-        ),
-        "exploratory_citation_correct_rate": _field(
-            exploratory, "citation_correct_rate", "caller pilot exploratory variant"
-        ),
-        "exploratory_prediction_claim_stability": _field(
-            exploratory, "prediction_stability", "caller pilot exploratory variant"
-        ),
-        "exploratory_exact_prediction_stability": _field(
-            exploratory, "exact_prediction_stability", "caller pilot exploratory variant"
-        ),
-        "exploratory_mean_latency_ms": _field(
-            exploratory, "mean_latency_ms", "caller pilot exploratory variant"
-        ),
-        "exploratory_mean_cost_microusd": _field(
-            exploratory, "mean_cost_microusd", "caller pilot exploratory variant"
+        "exploratory_prediction_stability": _optional_float(
+            exploratory, "prediction_stability"
         ),
     }
 
 
-def real_world_evidence_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Extract the independent-validation evidence fields from a §3 report."""
-    if payload.get("schema_version") != REAL_WORLD_VALIDATION_SCHEMA:
-        raise ReadinessGateError(
-            "real-world report does not declare schema "
-            f"{REAL_WORLD_VALIDATION_SCHEMA!r}"
-        )
-    report = _field(payload, "real_world_validation", "real-world report")
-    if not isinstance(report, Mapping):
-        raise ReadinessGateError("real-world report payload must be an object")
-    where = "real-world report"
-    reason_codes = _field(report, "reason_codes", where)
-    if not isinstance(reason_codes, list):
-        raise ReadinessGateError("real-world reason_codes must be a list")
-    result = RealWorldValidationResult(
-        name=str(_field(report, "name", where)),
-        decision=str(_field(report, "decision", where)),
-        reason_codes=tuple(str(item) for item in reason_codes),
-        repository_count=int(_field(report, "repository_count", where)),
-        known_defects=int(_field(report, "known_defects", where)),
-        detected_defects=int(_field(report, "detected_defects", where)),
-        recall=float(_field(report, "recall", where)),
-        exploration_attributable_tp=int(_field(report, "exploration_attributable_tp", where)),
-        exploration_attributable_fp=int(_field(report, "exploration_attributable_fp", where)),
-        static_false_positive_rate=float(_field(report, "static_false_positive_rate", where)),
-        exploratory_false_positive_rate=float(
-            _field(report, "exploratory_false_positive_rate", where)
-        ),
-        blinded=bool(_field(report, "blinded", where)),
-        independent=bool(_field(report, "independent", where)),
-    )
-    return real_world_readiness_evidence(result)
+def real_world_diagnostic(path: Path | None) -> dict[str, Any]:
+    """Read the independent §3 result, or say precisely why it is unavailable.
+
+    ``real-world-validation.yml`` validates the pinned corpus and cannot measure recall, because no
+    producer for paired static/exploratory run records exists in this repository. Recognising that
+    shape keeps the report honest instead of presenting a corpus definition as a §3 pass.
+    """
+    absent = {
+        "real_world_state": REAL_WORLD_STATE_ABSENT,
+        "real_world_repositories": None,
+        "real_world_known_defects": None,
+        "real_world_recall": None,
+        "real_world_decision": None,
+        "real_world_reason_codes": (),
+    }
+    if path is None or not path.is_file():
+        return absent
+    try:
+        payload = loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return absent
+    if not isinstance(payload, Mapping):
+        return absent
+
+    report = payload.get("real_world_validation")
+    if isinstance(report, Mapping):
+        repositories = report.get("repository_count")
+        known = report.get("known_defects")
+        return {
+            "real_world_state": REAL_WORLD_STATE_MEASURED,
+            "real_world_repositories": repositories if isinstance(repositories, int) else None,
+            "real_world_known_defects": known if isinstance(known, int) else None,
+            "real_world_recall": _optional_float(report, "recall"),
+            "real_world_decision": _optional_text(report, "decision"),
+            "real_world_reason_codes": _optional_reason_codes(report),
+        }
+
+    repositories = payload.get("repositories")
+    if isinstance(repositories, list):
+        known = payload.get("known_defects")
+        return {
+            "real_world_state": REAL_WORLD_STATE_DEFINITION_ONLY,
+            "real_world_repositories": len(repositories),
+            "real_world_known_defects": known if isinstance(known, int) else None,
+            "real_world_recall": None,
+            "real_world_decision": None,
+            "real_world_reason_codes": (),
+        }
+    return absent
 
 
 def evaluate_release_gate(inputs: GateInputs) -> ReleaseGateResult:
-    """Assemble readiness evidence from CI artifacts and evaluate the frozen criteria."""
+    """Assemble software-release evidence from CI artifacts and decide whether to release."""
     artifacts = (
-        _digest("caller-pilot.json", inputs.pilot_report),
-        _digest("real-world-validation.json", inputs.real_world_report),
+        _digest("full-suite-junit.xml", inputs.full_suite_report),
+        _digest("lint-report.json", inputs.lint_report),
+        _digest("self-scan-report.json", inputs.self_scan_report),
         _digest("operational-junit.xml", inputs.operational_report),
         _digest("assurance-junit.xml", inputs.assurance_report),
         _digest("smoke-junit.xml", inputs.smoke_report),
-        _digest("full-suite-junit.xml", inputs.full_suite_report),
     )
 
-    pilot = pilot_evidence_fields(_load_json("caller-pilot.json", inputs.pilot_report))
-    real_world = real_world_evidence_fields(
-        _load_json("real-world-validation.json", inputs.real_world_report)
+    full_outcomes = parse_junit_outcomes(inputs.full_suite_report)
+    if not full_outcomes:
+        raise ReadinessGateError("full-suite JUnit report contains no test cases")
+    # Skips are tolerated here: the deterministic suite legitimately skips capability-probed tests.
+    # Only genuine failures and errors make deterministic CI not green.
+    deterministic_ci_passed = not any(
+        outcome.status == _STATUS_FAILED for outcome in full_outcomes
+    )
+
+    lint_passed = lint_violation_count(inputs.lint_report) == 0
+
+    scan_outcome, blocking_findings, scan_errors = self_scan_verdict(inputs.self_scan_report)
+    self_scan_passed = (
+        scan_outcome == SELF_SCAN_PASSING_OUTCOME and blocking_findings == 0 and scan_errors == 0
+    )
+
+    distribution_paths, distribution_built = _distribution_artifacts(inputs.distribution_dir)
+    artifacts = artifacts + tuple(
+        ArtifactDigest(
+            name=path.name,
+            sha256=sha256(path.read_bytes()).hexdigest(),
+            relative_path=path.name,
+        )
+        for path in distribution_paths
     )
 
     operational_outcomes = parse_junit_outcomes(inputs.operational_report)
@@ -374,6 +549,7 @@ def evaluate_release_gate(inputs: GateInputs) -> ReleaseGateResult:
         flag: resolve_scenario(declared, operational_outcomes, scenario=flag)
         for flag, declared in OPERATIONAL_SCENARIO_TESTS.items()
     }
+    passed_scenarios = sum(1 for value in scenarios.values() if value)
 
     assurance_outcomes = parse_junit_outcomes(inputs.assurance_report)
     assurance_passed = resolve_scenario(
@@ -385,29 +561,44 @@ def evaluate_release_gate(inputs: GateInputs) -> ReleaseGateResult:
         CLEAN_INSTALL_SMOKE_TESTS, smoke_outcomes, scenario="clean_install_smoke_passed"
     )
 
-    full_outcomes = parse_junit_outcomes(inputs.full_suite_report)
-    if not full_outcomes:
-        raise ReadinessGateError("full-suite JUnit report contains no test cases")
-    # Skips are tolerated here: the deterministic suite legitimately skips capability-probed
-    # tests. Only genuine failures and errors make deterministic CI not green.
-    deterministic_ci_passed = not any(
-        outcome.status == _STATUS_FAILED for outcome in full_outcomes
+    criteria = {
+        "deterministic_ci_passed": deterministic_ci_passed,
+        "lint_passed": lint_passed,
+        "self_scan_passed": self_scan_passed,
+        "distribution_built": distribution_built,
+        "assurance_workflow_passed": assurance_passed,
+        "clean_install_smoke_passed": smoke_passed,
+        "operational_fault_coverage_complete": (
+            passed_scenarios == len(OPERATIONAL_SCENARIO_TESTS)
+        ),
+    }
+    reason_codes = tuple(
+        code
+        for satisfied, code in (
+            (deterministic_ci_passed, DETERMINISTIC_CI_NOT_GREEN),
+            (lint_passed, LINT_NOT_CLEAN),
+            (self_scan_passed, SELF_SCAN_NOT_PASS),
+            (distribution_built, DISTRIBUTION_NOT_BUILT),
+            (assurance_passed, FULL_ASSURANCE_WORKFLOW_NOT_PROVEN),
+            (smoke_passed, CLEAN_INSTALL_SMOKE_NOT_GREEN),
+            (passed_scenarios == len(OPERATIONAL_SCENARIO_TESTS), OPERATIONAL_FAULT_COVERAGE_INCOMPLETE),
+        )
+        if not satisfied
+    )
+    software = SoftwareAssessment(
+        decision="READY" if not reason_codes else "NOT_READY",
+        reason_codes=reason_codes,
+        criteria=criteria,
     )
 
-    evidence = ProductionReadinessEvidence(
-        **pilot,
-        fault_scenarios_required=len(OPERATIONAL_SCENARIO_TESTS),
-        fault_scenarios_passed=sum(1 for value in scenarios.values() if value),
-        **scenarios,
-        **real_world,
-        assurance_workflow_passed=assurance_passed,
-        deterministic_ci_passed=deterministic_ci_passed,
-        clean_install_smoke_passed=smoke_passed,
-        retained_evidence_digest_count=len(artifacts),
+    diagnostic = ModelEvaluationDiagnostic(
+        **pilot_diagnostic(inputs.pilot_report),
+        **real_world_diagnostic(inputs.real_world_report),
     )
-    passed_scenarios = sum(1 for value in scenarios.values() if value)
+
     return ReleaseGateResult(
-        readiness=evaluate_production_readiness(evidence),
+        software=software,
+        model_evaluation=diagnostic,
         artifacts=artifacts,
         operational_scenarios=scenarios,
         fault_scenarios_required=len(OPERATIONAL_SCENARIO_TESTS),
@@ -415,17 +606,47 @@ def evaluate_release_gate(inputs: GateInputs) -> ReleaseGateResult:
     )
 
 
+def _format_optional(value: object, *, suffix: str = "") -> str:
+    if value is None:
+        return "not supplied"
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, float):
+        return f"{value:.4f}{suffix}"
+    return f"{value}{suffix}"
+
+
 def render_release_gate_json(result: ReleaseGateResult) -> str:
+    diagnostic = result.model_evaluation
     payload = {
         "schema_version": result.schema_version,
         "release_gate": {
             "authority": result.authority,
             "decision": result.decision,
+            "gate_effect": result.gate_effect,
+            "software_criteria": dict(sorted(result.software.criteria.items())),
+            "software_reason_codes": list(result.software.reason_codes),
             "fault_scenarios_passed": result.fault_scenarios_passed,
             "fault_scenarios_required": result.fault_scenarios_required,
-            "gate_effect": result.gate_effect,
             "operational_scenarios": dict(sorted(result.operational_scenarios.items())),
-            "reason_codes": list(result.readiness.reason_codes),
+            "model_evaluation": {
+                "blocking": diagnostic.blocking,
+                "pilot_supplied": diagnostic.pilot_supplied,
+                "pilot_decision": diagnostic.pilot_decision,
+                "pilot_reason_codes": list(diagnostic.pilot_reason_codes),
+                "exploration_required_recall_lift": diagnostic.exploration_required_recall_lift,
+                "false_positive_trap_rate_delta": diagnostic.false_positive_trap_rate_delta,
+                "static_sufficient_recall_delta": diagnostic.static_sufficient_recall_delta,
+                "exploratory_prediction_stability": (
+                    diagnostic.exploratory_prediction_stability
+                ),
+                "real_world_state": diagnostic.real_world_state,
+                "real_world_repositories": diagnostic.real_world_repositories,
+                "real_world_known_defects": diagnostic.real_world_known_defects,
+                "real_world_recall": diagnostic.real_world_recall,
+                "real_world_decision": diagnostic.real_world_decision,
+                "real_world_reason_codes": list(diagnostic.real_world_reason_codes),
+            },
             "retained_artifacts": [
                 {
                     "name": item.name,
@@ -440,34 +661,75 @@ def render_release_gate_json(result: ReleaseGateResult) -> str:
 
 
 def render_release_gate_markdown(result: ReleaseGateResult) -> str:
+    diagnostic = result.model_evaluation
     lines = [
-        "# Preflight Release Readiness Gate",
+        "# Preflight Software Release Gate",
         "",
         f"- Decision: **{result.decision}**",
         f"- Authority: `{result.authority}` / gate effect `{result.gate_effect}`",
-        (
-            "- Operational scenarios: "
-            f"**{result.fault_scenarios_passed} / {result.fault_scenarios_required}**"
-        ),
+        f"- Operational scenarios: **{result.fault_scenarios_passed} / {result.fault_scenarios_required}**",
         f"- Retained evidence artifacts: **{len(result.artifacts)}**",
         "",
-        "## Operational scenarios",
+        "## Software criteria (blocking)",
         "",
     ]
+    for name, satisfied in sorted(result.software.criteria.items()):
+        lines.append(f"- `{name}`: {'passed' if satisfied else 'FAILED'}")
+    lines.extend(["", "## Operational scenarios", ""])
     for name, passed in sorted(result.operational_scenarios.items()):
         lines.append(f"- `{name}`: {'passed' if passed else 'FAILED'}")
-    lines.extend(["", "## Retained evidence", ""])
+    lines.extend(
+        [
+            "",
+            "## Model evaluation (informational — does not block this release)",
+            "",
+            (
+                "- Repeated benchmark: "
+                + (
+                    f"`{diagnostic.pilot_decision}`"
+                    if diagnostic.pilot_supplied
+                    else "not supplied"
+                )
+            ),
+            "- Exploration-required recall lift: "
+            + _format_optional(diagnostic.exploration_required_recall_lift),
+            "- False-positive-trap rate delta: "
+            + _format_optional(diagnostic.false_positive_trap_rate_delta),
+            "- Static-sufficient recall delta: "
+            + _format_optional(diagnostic.static_sufficient_recall_delta),
+            "- Exploratory prediction stability: "
+            + _format_optional(diagnostic.exploratory_prediction_stability),
+            f"- Independent §3 evidence: `{diagnostic.real_world_state}`",
+            "- Independent §3 recall: " + _format_optional(diagnostic.real_world_recall),
+            (
+                "> These criteria (docs/PRODUCTION_READINESS_CRITERIA.md §1 and §3) measure an "
+                "external model, not this software. They retain `gate_effect=NONE` and are "
+                "evaluated by the Evaluation Lab workflows."
+            ),
+            "",
+            "## Retained evidence",
+            "",
+        ]
+    )
     for item in result.artifacts:
         lines.append(f"- `{item.name}` sha256 `{item.sha256}`")
     lines.extend(
         [
             "",
-            "## Readiness result",
+            "## Software reasons",
             "",
-            render_production_readiness_markdown(result.readiness).rstrip(),
+        ]
+    )
+    if result.software.reason_codes:
+        lines.extend(f"- `{reason}`" for reason in result.software.reason_codes)
+    else:
+        lines.append("- none")
+    lines.extend(
+        [
             "",
-            "> A pass means the frozen production-readiness criteria were satisfied by CI-produced",
-            "> evidence. It does not grant AI findings release authority.",
+            "> A pass means the deterministic software criteria were satisfied by CI-produced",
+            "> evidence. It does not assert that the advisory or model-evaluation planes are",
+            "> mature, and it does not grant AI findings release authority.",
             "",
         ]
     )
@@ -478,26 +740,32 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="before-deploy-readiness-gate",
         description=(
-            "Fail closed unless the frozen production-readiness criteria are satisfied by "
-            "CI-produced artifacts."
+            "Fail closed unless the deterministic software release criteria are satisfied by "
+            "CI-produced artifacts. Model-evaluation evidence is reported, never blocking."
         ),
     )
-    parser.add_argument("--pilot-report", type=Path, required=True)
-    parser.add_argument("--real-world-report", type=Path, required=True)
+    parser.add_argument("--full-suite-report", type=Path, required=True)
+    parser.add_argument("--lint-report", type=Path, required=True)
+    parser.add_argument("--self-scan-report", type=Path, required=True)
     parser.add_argument("--operational-report", type=Path, required=True)
     parser.add_argument("--assurance-report", type=Path, required=True)
     parser.add_argument("--smoke-report", type=Path, required=True)
-    parser.add_argument("--full-suite-report", type=Path, required=True)
+    parser.add_argument("--distribution-dir", type=Path, required=True)
+    parser.add_argument("--pilot-report", type=Path, default=None)
+    parser.add_argument("--real-world-report", type=Path, default=None)
     parser.add_argument("--output-dir", type=Path, default=None)
     arguments = parser.parse_args(argv)
 
     inputs = GateInputs(
-        pilot_report=arguments.pilot_report,
-        real_world_report=arguments.real_world_report,
+        full_suite_report=arguments.full_suite_report,
+        lint_report=arguments.lint_report,
+        self_scan_report=arguments.self_scan_report,
         operational_report=arguments.operational_report,
         assurance_report=arguments.assurance_report,
         smoke_report=arguments.smoke_report,
-        full_suite_report=arguments.full_suite_report,
+        distribution_dir=arguments.distribution_dir,
+        pilot_report=arguments.pilot_report,
+        real_world_report=arguments.real_world_report,
     )
     try:
         result = evaluate_release_gate(inputs)
@@ -516,9 +784,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             markdown_report, encoding="utf-8"
         )
     print(markdown_report, end="")
-    if result.decision != "READY":
+    if not result.software.ready:
         print(
-            "release blocked: " + ", ".join(result.readiness.reason_codes),
+            "release blocked: " + ", ".join(result.software.reason_codes),
             file=sys.stderr,
         )
         return 1
@@ -531,16 +799,29 @@ if __name__ == "__main__":
 
 __all__ = [
     "ArtifactDigest",
-    "GateInputs",
+    "ASSURANCE_WORKFLOW_TESTS",
     "CaseOutcome",
+    "CLEAN_INSTALL_SMOKE_TESTS",
+    "GateInputs",
+    "ModelEvaluationDiagnostic",
+    "OPERATIONAL_SCENARIO_TESTS",
+    "REAL_WORLD_STATE_ABSENT",
+    "REAL_WORLD_STATE_DEFINITION_ONLY",
+    "REAL_WORLD_STATE_MEASURED",
     "ReadinessGateError",
     "ReleaseGateResult",
+    "SOFTWARE_GATE_AUTHORITY",
+    "SOFTWARE_GATE_EFFECT",
+    "SOFTWARE_GATE_SCHEMA",
+    "SoftwareAssessment",
     "evaluate_release_gate",
+    "lint_violation_count",
     "main",
     "parse_junit_outcomes",
-    "pilot_evidence_fields",
-    "real_world_evidence_fields",
+    "pilot_diagnostic",
+    "real_world_diagnostic",
     "render_release_gate_json",
     "render_release_gate_markdown",
     "resolve_scenario",
+    "self_scan_verdict",
 ]
