@@ -5,11 +5,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from before_deploy.advisory import AdvisoryImport, advisory_error_import
+from before_deploy.advisory_execution import (
+    MODEL_IDENTITY_UNATTESTED,
+    AdvisoryExecutionBudget,
+    AdvisoryExecutionDescriptor,
+    AdvisoryExecutionParameter,
+    AdvisoryModelIdentity,
+)
 from before_deploy.advisory_provider import (
     AdvisoryProviderIdentity,
     AdvisoryProviderRequest,
 )
 from before_deploy.ocr_advisory import (
+    OCR_MANIFEST_SCHEMA,
+    OCR_PREVIEW_TIMEOUT_SECONDS,
     OCR_SOURCE,
     OCR_SOURCE_FORMAT,
     OcrAdvisoryOptions,
@@ -32,6 +41,42 @@ class OcrAdvisoryProvider:
             input_name="ocr",
             source=OCR_SOURCE,
             source_format=OCR_SOURCE_FORMAT,
+        )
+
+    def execution_descriptor(self, request: AdvisoryProviderRequest) -> AdvisoryExecutionDescriptor:
+        """Declare redaction-safe OCR execution metadata without inventing model identity."""
+        return AdvisoryExecutionDescriptor(
+            implementation="open-code-review-cli",
+            implementation_version=None,
+            model=AdvisoryModelIdentity(
+                status=MODEL_IDENTITY_UNATTESTED,
+                reason=(
+                    "The current OCR JSON contract does not attest the configured LLM provider/model"
+                ),
+            ),
+            configuration=(
+                AdvisoryExecutionParameter(name="adapter_contract", value="before-deploy-ocr-v1"),
+                AdvisoryExecutionParameter(name="audience", value="agent"),
+                AdvisoryExecutionParameter(name="format", value="json"),
+                AdvisoryExecutionParameter(name="manifest_schema", value=OCR_MANIFEST_SCHEMA),
+            ),
+            budgets=(
+                AdvisoryExecutionBudget(
+                    name="max_output_bytes",
+                    limit=self.max_output_bytes,
+                    unit="bytes",
+                ),
+                AdvisoryExecutionBudget(
+                    name="preview_timeout_seconds",
+                    limit=min(self.timeout_seconds, OCR_PREVIEW_TIMEOUT_SECONDS),
+                    unit="seconds",
+                ),
+                AdvisoryExecutionBudget(
+                    name="review_timeout_seconds",
+                    limit=self.timeout_seconds,
+                    unit="seconds",
+                ),
+            ),
         )
 
     def review(self, request: AdvisoryProviderRequest) -> AdvisoryImport:

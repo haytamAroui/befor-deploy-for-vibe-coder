@@ -35,7 +35,10 @@ def _repository(tmp_path: Path) -> Path:
     return repository
 
 
-def test_ocr_provider_maps_generic_request_to_existing_adapter(tmp_path: Path, monkeypatch):
+def test_ocr_provider_maps_generic_request_to_existing_adapter_and_attests_runtime(
+    tmp_path: Path,
+    monkeypatch,
+):
     repository = _repository(tmp_path)
     captured = {}
 
@@ -75,6 +78,19 @@ def test_ocr_provider_maps_generic_request_to_existing_adapter(tmp_path: Path, m
     assert result.source_format == OCR_SOURCE_FORMAT
     assert result.scope_status == "MATCHED"
     assert "context_sha256=" in (result.scope_message or "")
+    assert result.execution is not None
+    assert result.execution.provider_id == "ocr"
+    assert result.execution.implementation == "open-code-review-cli"
+    assert result.execution.implementation_version is None
+    assert result.execution.model.status == "UNATTESTED"
+    assert result.execution.model.provider is None
+    assert result.execution.model.model is None
+    assert result.execution.result_status == "COMPLETED"
+    assert result.execution.gate_effect == "NONE"
+    budgets = {item.name: (item.limit, item.unit) for item in result.execution.budgets}
+    assert budgets["review_timeout_seconds"] == (45, "seconds")
+    assert budgets["preview_timeout_seconds"] == (45, "seconds")
+    assert budgets["max_output_bytes"] == (123_456, "bytes")
 
 
 def test_ocr_provider_refuses_to_run_when_context_budget_omits_native_scope(
@@ -108,12 +124,24 @@ def test_ocr_provider_refuses_to_run_when_context_budget_omits_native_scope(
     assert result.findings == ()
     assert result.scope_status == "CONTEXT_LIMITED"
     assert "could not be proven equal" in (result.scope_message or "")
+    assert result.execution is not None
+    assert result.execution.result_status == "ERROR"
+    assert result.execution.gate_effect == "NONE"
 
 
-def test_ocr_provider_identity_is_stable():
-    identity = OcrAdvisoryProvider().identity
+def test_ocr_provider_identity_and_descriptor_are_explicit():
+    provider = OcrAdvisoryProvider(timeout_seconds=120, max_output_bytes=500_000)
+    identity = provider.identity
+    descriptor = provider.execution_descriptor(AdvisoryProviderRequest(repository=Path(".")))
 
     assert identity.provider_id == "ocr"
     assert identity.input_name == "ocr"
     assert identity.source == "open-code-review"
     assert identity.source_format == "ocr-json"
+    assert descriptor.implementation == "open-code-review-cli"
+    assert descriptor.implementation_version is None
+    assert descriptor.model.status == "UNATTESTED"
+    assert "does not attest" in (descriptor.model.reason or "")
+    configuration = {item.name: item.value for item in descriptor.configuration}
+    assert configuration["audience"] == "agent"
+    assert configuration["format"] == "json"
