@@ -1,58 +1,280 @@
-# Before Deploy for Vibe Coder
+# Before Deploy
 
-**Before Deploy for Vibe Coder** is a deterministic pre-deployment security gate for multi-language repositories. It profiles bounded repository evidence, selects compatible controls, normalizes results, applies a versioned policy, and emits redacted reports for developers and CI systems.
+### Security confidence for AI-built software — without giving AI the release key.
 
-> **The deterministic policy engine is the only release authority.** AI assistance is intentionally outside the gate: it may later explain a redacted finding or propose a patch, but it may not approve a release, change policy, access secrets, execute commands, or merge code.
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Authority](https://img.shields.io/badge/Release%20Authority-Deterministic-black.svg)](docs/RELEASE_DISPOSITION.md)
+[![AI](https://img.shields.io/badge/AI-Advisory%20Only-purple.svg)](docs/ADVISORY_REVIEW_PLANE.md)
 
-## What it does today
+**Before Deploy** combines broad AI-assisted code review with deterministic security controls, evidence lineage, explicit human approval, verification history, and a final release decision that AI cannot override.
 
-The current release is a local and CI-ready Python CLI with deterministic adaptive project profiling. It supports self-contained native controls and a small set of opt-in isolated external adapters, including a staged Trivy configuration adapter for Dockerfile/Containerfile variants and Terraform `.tf` files. It records control health as well as findings, so an unavailable required scanner is an explicit `ERROR`, never a pass.
+> **AI can discover. Humans can approve. Only deterministic evidence can release.**
 
-| Area | Current capability |
+Before Deploy is designed for teams shipping quickly with AI-generated or AI-assisted code who still want a review and release process they can inspect, reproduce, and trust.
+
+---
+
+## Why Before Deploy
+
+Modern AI reviewers are good at exploring code, connecting context, and proposing fixes. They are not a good place to put final release authority.
+
+Before Deploy separates those responsibilities on purpose:
+
+| Plane | What it does | Release authority |
+|---|---|---|
+| **AI discovery & reasoning** | Review, investigate, explain, challenge evidence, propose remediation | **None** |
+| **Human governance** | Approve a specific proposal and confirm exact patch materialization | **Explicit workflow authority, not release authority** |
+| **Deterministic assurance** | Scan, validate evidence, verify exact remediation, preserve history | **Deterministic evidence** |
+| **Release disposition** | Evaluate policy + current verification + current workspace | **Final authority** |
+
+The result is a security workflow that can use powerful AI reasoning without turning probabilistic output into an unreviewable deployment gate.
+
+---
+
+## What Before Deploy does today
+
+Before Deploy has grown from a deterministic scanner into a full assurance platform.
+
+| Capability | What you get |
 |---|---|
-| **Repository evidence** | Deterministic inventory, repository digest, policy digest, Git revision when available, explicit scope limitations, and bounded repository/requirements evidence signals. Requirements evidence v0.4.0 includes diagnostic authorization/access-control, external-URL-retrieval, and database-usage phrase families. |
-| **Adaptive planning** | Local profile plus strict packaged capability and security-domain/control catalogs. The versioned `SecurityAnalysisPlan` records approved compatible controls, explicitly policy-configured adapters, the reviewed non-executable contract behind every selected implementation, catalog/policy provenance, coverage expectations, exclusions, and traceable evidence. |
-| **Native controls** | High-confidence secret patterns, selected Python SQL interpolation including one direct local assignment flow plus a separately opt-in single local-name alias flow, FastAPI static mutating-route authentication declarations plus dynamic-route review states, Python debug/CORS patterns, Next.js public-environment, session-cookie, static-CORS, and separate module-level and named-inline Server Action local-guard-marker checks, an opt-in Laravel root Composer lockfile presence check, an opt-in conventional Rust binary Cargo lockfile presence check, an opt-in conventional Rails Gemfile lockfile presence check, an opt-in direct Docker Compose privileged-service configuration check, GitHub Actions hardening, dependency lockfile presence, an exact offline Go vulnerability snapshot check, and a release SBOM check. |
-| **External adapters** | Optional Gitleaks directory scan, Python Semgrep local-rule scan, Go Gosec static analysis, Python dependency-vulnerability evidence, offline provenance verification, and a staged Trivy Dockerfile/Containerfile/Terraform configuration scan; each has bounded execution and redacted normalization. |
-| **Policy** | Versioned YAML profiles, explicit block/waiver/warn dispositions, tightly scoped expiry-bound waivers, and fail-closed control errors. |
-| **Reports** | Versioned JSON, Markdown, and SARIF 2.1.0 writers containing normalized findings, control health, adaptive profile, policy/catalog-bound security analysis plan, a non-executable domain/control taxonomy, and diagnostic coverage audit. A multi-contract domain is `COVERED` only when every compatible contract is policy-selected and completes. |
-| **CI behavior** | Machine-readable exit codes, a least-privilege frozen-`uv` CI gate, and a manual pinned external-scanner calibration workflow. |
+| **Deterministic security gate** | Adaptive repository profiling, bounded controls, policy evaluation, waivers, explicit control health, fail-closed errors, JSON/Markdown/SARIF output |
+| **Unified advisory review** | Deterministic findings and optional AI/third-party findings in one review artifact, with advisory findings structurally forced to `gate_effect=NONE` |
+| **Deterministic review scope** | Workspace, range, and commit preview with explicit included/excluded files before advisory execution |
+| **Provider isolation** | Provider-neutral advisory runtime, deterministic context selection, execution provenance, output normalization, bounded budgets, and failure isolation |
+| **Evidence Graph** | Content-addressed lineage connecting repository state, controls, findings, policy, advisory context, provider execution, raw/normalized artifacts, and claims |
+| **Correlation & corroboration** | Deterministic location correlation, exact advisory deduplication, repeated-claim provenance, and diagnostic corroboration without confidence inflation |
+| **Inspect / investigate / explain** | Persisted evidence inspection, bounded investigation context, and citation-required advisory explanations |
+| **Evidence Challenge** | Structured `SUPPORTED`, `INSUFFICIENT`, `CONTRADICTED`, and `UNRESOLVED` challenge outcomes over bounded evidence |
+| **Assurance cases** | Traceable advisory assurance graphs that preserve initial vs expanded evidence and challenge relationships |
+| **Remediation workflow** | Evidence-cited proposals, explicit human approval, content-addressed patch artifacts, controlled patch materialization, and regression evidence |
+| **Verification** | Deterministic verification of exact approved remediation against declared verification goals |
+| **Immutable history** | Linear verification history with explicit supersession instead of “best result wins” |
+| **Release disposition** | Final `READY`, `HOLD`, `BLOCK`, or `ERROR` from deterministic policy evidence, current verification, exact materialization, and current workspace state |
+| **Benchmarks** | Labeled review benchmark, comparative static-vs-exploratory evaluation, caller-context experiments, repeated-run stability, latency/token/cost provenance |
+| **Developer integrations** | CLI, Python platform API, bounded MCP server, Claude Code client, and repo-scoped Codex skill |
 
-## What it does not do
+---
 
-Before Deploy is **not** a compliance-certification service, a penetration-test replacement, a guarantee that a deployed system is secure, or an autonomous deployment tool. A green result means that the selected controls completed against the declared repository scope; it does not prove absence of vulnerabilities, operational misconfiguration, or regulatory compliance.
+## The core architecture
 
-The tool now provides a **foundation** for Python dependency vulnerability evidence, offline GitHub artifact-attestation verification through a separate release profile, deterministic requirements-document evidence, isolated static Trivy configuration evidence for selected Dockerfile/Containerfile and Terraform files, one opt-in Laravel Composer lockfile-presence control, one opt-in conventional Rust binary Cargo lockfile-presence control, and one opt-in conventional Rails Gemfile lockfile-presence control, and one opt-in direct Docker Compose privileged-service configuration check. It does not make external tools a standard protected-branch release gate, scan container images, broad Docker Compose configuration, Kubernetes, Helm, CloudFormation, Terraform plans or tfvars, scan non-Python package ecosystems for known vulnerabilities, validate Composer, Cargo, or Gemfile lockfiles, Laravel/Rust/Rails dependency security, or runtime cloud configuration, infer that declared requirements are implemented, calculate coverage percentages, generate signed attestations in this private repository without confirmed eligibility, or perform automatic remediation.
+```mermaid
+flowchart TD
+    Repo[Repository / Change] --> Scan[Deterministic Scan]
+    Repo --> Context[Bounded Advisory Context]
 
-## Adaptive project profiling
+    Context --> AI[AI / Advisory Providers]
+    AI --> Findings[Advisory Findings]
+    Scan --> Deterministic[Deterministic Findings]
 
-Every scan begins with a deterministic **Repository Evidence Collector** and **Adaptive Project Profiler**. They classify only bounded repository facts: file extensions, root manifests, lockfiles, fixed framework markers, selected infrastructure artifacts, and explicit requirements-document signals. Requirements evidence v0.4.0 recognizes bounded authorization/access-control, external-URL-retrieval, and database-usage phrase families in approved Markdown documents and records only a fixed signal ID/category, relative path, and first line. It does not retrieve, resolve, validate, or request URLs; inspect database schemas, queries, credentials, or data flows; or establish SSRF exposure or database security. A versioned **Security Analysis Plan** records the compatible approved controls and explicitly policy-configured adapters selected for that evidence; incompatible configured controls remain visible as `NOT_APPLICABLE` rather than being silently omitted.
+    Findings --> Graph[Evidence Graph]
+    Deterministic --> Graph
+    Graph --> Investigate[Inspect / Investigate / Explain]
+    Investigate --> Challenge[Evidence Challenge / Assurance Case]
+    Challenge --> Proposal[Remediation Proposal]
 
-| Detected technology | Current adaptive behavior |
-|---|---|
-| **Python / FastAPI** | Enables existing Python AST, configuration, FastAPI-route, dependency, and release-evidence capabilities where the selected policy includes them. Python SQL detection covers direct interpolation and one local straight-line variable assignment into an autonomous `execute`/`executemany` call. The separate opt-in alias contract adds exactly one direct local name-to-name alias before that sink; it does not trace alias chains, branches, calls, imports, objects, annotations, or interprocedural flow. Dynamic FastAPI paths, `api_route` methods, or a direct module-top-level `APIRouter(prefix=...)` assignment with a non-literal prefix used by that same direct router name emit `REVIEW_REQUIRED` execution metadata only; they are not findings and do not change the gate. No prefix value, effective path, alias, factory, registration, or runtime behavior is inferred. |
-| **JavaScript / TypeScript / Next.js** | Retains generic controls, GitHub Actions checks, and lockfile evidence; when Next.js is detected, adds direct public-env, explicit session-cookie, static credentialed-CORS, a module-level Server Action direct-mutation/local-guard-marker check, and a separate opt-in check for named async functions nested in a lexical block with inline `use server`. The inline check excludes arrow actions, module-level/exported actions, and directives after executable code. `middleware`/`proxy` presence is emitted only as a structural execution fact, never as authorization evidence. |
-| **Go** | Adds root-module `go.sum` presence when dependencies are declared, direct `tls.Config{InsecureSkipVerify: true}` detection, and an opt-in comparison of exact direct `go.mod` versions against two packaged reviewed offline vulnerability boundaries. The optional Gosec adapter supplies bounded static-analysis evidence only when the explicit external-adapters policy selects a preinstalled binary. |
-| **Rust / Cargo** | A separate opt-in policy selects `SEC-RUST-CARGO-LOCK-001` only for root `Cargo.toml` with a direct non-empty `dependencies` table plus conventional `src/main.rs`; it reports a missing root `Cargo.lock`. It does not parse Cargo values or lock contents, infer workspaces/libraries/custom targets, evaluate vulnerabilities, or run Cargo, rustc, or Rust code. |
-| **Ruby / Rails** | A separate opt-in policy selects `SEC-RUBY-RAILS-GEMFILE-LOCK-001` only for a root unindented literal `gem 'rails'` or `gem "rails"` declaration plus conventional `config/application.rb`; it reports a missing root `Gemfile.lock`. It does not parse Gemfile values or lock contents, infer indented/dynamic declarations, libraries, groups, or nested projects, evaluate vulnerabilities, or run Ruby, Bundler, or Rails. |
-| **Docker Compose** | A separate opt-in policy selects `SEC-COMPOSE-PRIVILEGED-001` only for a direct root Compose service mapping with an unquoted lowercase `privileged: true` scalar. It does not inspect dynamic/reused YAML, other Compose settings, services at runtime, images, containers, host policy, or execute Docker or Compose. |
-| **Dockerfile / Containerfile / Terraform** | The separate Trivy profile scans only inventory-included Dockerfile/Containerfile variants and Terraform `.tf` files after copying them to an isolated temporary stage. Its own adapter scans no container image, Compose, tfvars, plan, module, cloud state, runtime configuration, or generated/excluded artifact. |
-| **PHP / Laravel** | Retains generic controls for PHP. A separate opt-in policy selects `SEC-PHP-LARAVEL-COMPOSER-LOCK-001` only for a root `composer.json` JSON `require` object with the exact `laravel/framework` key and a root `artisan` file; it reports a missing root `composer.lock`. It does not parse lock contents, values/constraints, `require-dev`, transitive dependencies, vulnerabilities, configuration, or runtime behavior, and it never runs PHP, Composer, or Artisan. |
-| **Java, Kotlin, C#** | Retains generic secrets/CI/provenance controls and reports an explicit language-specific coverage gap. |
-| **Mixed-language repositories** | Detects each recognized language independently, retains compatible controls, and exposes all coverage gaps in JSON, Markdown, and SARIF reports. |
+    Proposal --> Human[Explicit Human Approval]
+    Human --> Patch[Content-addressed Patch]
+    Patch --> Materialize[Controlled Materialization]
+    Materialize --> Verify[Deterministic Verification]
+    Verify --> History[Immutable Verification History]
 
-These deterministic components are **not an AI release authority**. They cannot mutate policy, create waivers, suppress findings, execute project code, deploy, merge, or access values beyond the bounded repository scan scope. The packaged capability registry is non-executable: its strict manifests cannot carry commands, URLs, executable paths, arbitrary scanner arguments, or policy overrides. Documentation signals create coverage expectations only; they never prove implementation or affect `PASS`, `BLOCK`, `WAIVER_REQUIRED`, or `ERROR`. A future advisory AI may read normalized redacted reports, but it will remain read-only and cannot change the gate decision.
+    Scan --> Policy[PolicyDecision]
+    Policy --> Release[Deterministic Release Disposition]
+    History --> Release
+    Materialize --> Release
+    Repo --> Release
 
-For the detection catalog, control-selection rules, and advisory boundary, see [`docs/ADAPTIVE_PROJECT_PROFILING.md`](docs/ADAPTIVE_PROJECT_PROFILING.md). The Go reference pack, its adapter isolation, and its explicit exclusions are documented in [`docs/GO_REFERENCE_PACK.md`](docs/GO_REFERENCE_PACK.md); the offline dependency-vulnerability snapshot contract is in [`docs/GO_VULNERABILITY_SNAPSHOT.md`](docs/GO_VULNERABILITY_SNAPSHOT.md). The isolated Trivy configuration adapter, staging boundary, normalized schema, and fail-closed behavior are documented in [`docs/TRIVY_CONFIG_ADAPTER.md`](docs/TRIVY_CONFIG_ADAPTER.md). The Next.js module-level Server Action/proxy boundary is in [`docs/NEXTJS_SERVER_ACTION_BOUNDARY.md`](docs/NEXTJS_SERVER_ACTION_BOUNDARY.md), and the separate inline Server Action boundary is in [`docs/NEXTJS_INLINE_SERVER_ACTION_BOUNDARY.md`](docs/NEXTJS_INLINE_SERVER_ACTION_BOUNDARY.md). The original Python local SQL-flow boundary is in [`docs/PYTHON_LOCAL_SQL_FLOW.md`](docs/PYTHON_LOCAL_SQL_FLOW.md), and the separate one-alias SQL boundary is in [`docs/PYTHON_SQL_SINGLE_ALIAS_FLOW.md`](docs/PYTHON_SQL_SINGLE_ALIAS_FLOW.md). The requirements-evidence signal contract is in [`docs/REQUIREMENTS_EVIDENCE.md`](docs/REQUIREMENTS_EVIDENCE.md). The FastAPI dynamic-route review boundary is in [`docs/FASTAPI_DYNAMIC_ROUTE_REVIEW.md`](docs/FASTAPI_DYNAMIC_ROUTE_REVIEW.md), and the PHP/Laravel Composer lockfile boundary is in [`docs/PHP_LARAVEL_COMPOSER_LOCK.md`](docs/PHP_LARAVEL_COMPOSER_LOCK.md). The Rust/Cargo lockfile boundary is in [`docs/RUST_CARGO_LOCK.md`](docs/RUST_CARGO_LOCK.md), and the Ruby/Rails Gemfile lockfile boundary is in [`docs/RUBY_RAILS_GEMFILE_LOCK.md`](docs/RUBY_RAILS_GEMFILE_LOCK.md). The Docker Compose privileged-service boundary is in [`docs/DOCKER_COMPOSE_PRIVILEGED.md`](docs/DOCKER_COMPOSE_PRIVILEGED.md). For planning and evidence, see [`docs/ADAPTIVE_PLANNING_FOUNDATION.md`](docs/ADAPTIVE_PLANNING_FOUNDATION.md).
- For the capability-registry schema, provenance, and coverage-state semantics, see [`docs/DECLARATIVE_CAPABILITY_REGISTRY.md`](docs/DECLARATIVE_CAPABILITY_REGISTRY.md). For the non-executable domain taxonomy, mapped controls, unavailable domains, and standards-reference boundary, see [`docs/SECURITY_DOMAIN_CONTROL_CATALOG.md`](docs/SECURITY_DOMAIN_CONTROL_CATALOG.md).
+    Release --> Ready[READY]
+    Release --> Hold[HOLD]
+    Release --> Block[BLOCK]
+    Release --> Error[ERROR]
+
+    AI -. never authorizes release .-> Release
+```
+
+### One invariant matters more than every feature above
+
+**AI output never becomes release authority.**
+
+Advisory providers can find a serious issue, explain it brilliantly, correlate with deterministic evidence, survive repeated runs, and receive a `SUPPORTED` challenge result — and the finding is still advisory.
+
+Only the deterministic release path can emit final release disposition.
+
+See [`docs/RELEASE_DISPOSITION.md`](docs/RELEASE_DISPOSITION.md) and [`docs/ADVISORY_REVIEW_PLANE.md`](docs/ADVISORY_REVIEW_PLANE.md).
+
+---
+
+## From “scan my code” to “prove this release”
+
+Before Deploy exposes a staged workflow instead of one opaque AI verdict.
+
+```text
+scan
+  ↓
+review
+  ↓
+inspect
+  ↓
+investigate
+  ↓
+explain
+  ↓
+propose
+  ↓
+approve        ← explicit human action
+  ↓
+fix            ← generates a scoped patch artifact
+  ↓
+regress        ← controlled materialization + regression evidence
+  ↓
+verify
+  ↓
+history
+  ↓
+release        ← only authoritative READY / HOLD / BLOCK / ERROR
+```
+
+Each stage carries forward validated provenance and content-addressed identities so later stages cannot silently detach from the evidence that justified them.
+
+---
+
+## Deterministic security coverage
+
+Before Deploy maintains a versioned capability registry and security-domain catalog. The catalog maps the project’s **21 foundational security domains** to real control contracts, while keeping depth and technology scope explicit rather than pretending every stack is equally covered.
+
+Current bounded coverage includes controls and/or profiles across:
+
+- **Python / FastAPI** — authentication/authorization markers, SSRF patterns, SQL injection shapes, command injection, JWT verification bypass, upload/file handling, input validation, CORS, session security, data integrity, sensitive logging, dependency and release evidence
+- **JavaScript / TypeScript / Next.js** — SSRF, Server Actions, public environment exposure, session/CORS patterns, route error disclosure, dependency/release evidence
+- **Java / Spring** — Spring Security permit-all, Actuator exposure, credentialed wildcard CORS, JPA native-query injection
+- **Go** — TLS misuse, lockfile/module evidence, bounded offline vulnerability snapshot checks, optional Gosec adapter
+- **PHP / Laravel**, **Rust / Cargo**, **Ruby / Rails** — bounded lockfile/dependency evidence profiles
+- **Docker / Terraform** — staged Trivy configuration evidence
+- **Docker Compose** — bounded privileged-service detection
+- **GitHub Actions / supply chain** — workflow hardening, lockfiles, SBOM/provenance/release-evidence controls
+
+External scanners remain isolated adapters with bounded execution and normalized output. A configured required scanner that fails becomes an explicit error — never a silent pass.
+
+Deep control documentation lives in [`docs/CONTROL_CATALOG.md`](docs/CONTROL_CATALOG.md), [`docs/SECURITY_DOMAIN_CONTROL_CATALOG.md`](docs/SECURITY_DOMAIN_CONTROL_CATALOG.md), and [`docs/ADAPTIVE_PROJECT_PROFILING.md`](docs/ADAPTIVE_PROJECT_PROFILING.md).
+
+---
+
+## AI review without AI authority
+
+The advisory plane is built for useful AI, not ceremonial AI.
+
+It supports:
+
+- deterministic changed-file preview before model execution;
+- reproducible bounded context with per-file hashes and aggregate byte budgets;
+- provider execution provenance and normalized output digests;
+- isolated OpenCodeReview-compatible review;
+- persistent review sessions with `NEW`, `PERSISTING`, and `ABSENT_CURRENT` lifecycle states;
+- bounded cross-file exploration experiments such as `find_callers`;
+- evidence dependency tracking so expanded-context claims must actually cite expanded evidence;
+- challenge and assurance-case layers that preserve disagreement instead of hiding it.
+
+Even provider errors stay gate-neutral. The deterministic policy result remains unchanged.
+
+Read more:
+
+- [`docs/ADVISORY_PROVIDER_RUNTIME.md`](docs/ADVISORY_PROVIDER_RUNTIME.md)
+- [`docs/ADVISORY_CONTEXT.md`](docs/ADVISORY_CONTEXT.md)
+- [`docs/ADVISORY_EXECUTION_PROVENANCE.md`](docs/ADVISORY_EXECUTION_PROVENANCE.md)
+- [`docs/EVIDENCE_GRAPH.md`](docs/EVIDENCE_GRAPH.md)
+- [`docs/REVIEW_SESSIONS.md`](docs/REVIEW_SESSIONS.md)
+
+---
+
+## Human-approved remediation, exact-byte verification
+
+Before Deploy does not turn an AI suggestion into a repository mutation by implication.
+
+The remediation path deliberately adds friction at the trust boundaries:
+
+1. AI may produce an **evidence-cited, non-executable remediation proposal**.
+2. A human must explicitly approve the exact `proposal_sha256`.
+3. The generated patch receives its own `patch_sha256` and remains `UNREVIEWED` / `NOT_APPLIED`.
+4. Materialization requires explicit confirmation of that exact patch digest and declared operator identity.
+5. Before Deploy verifies base hashes, target scope, symlink constraints, patch application, and post-write hashes.
+6. Regression evidence is bound to the exact materialization.
+7. Deterministic verification evaluates the exact remediation lineage.
+8. Verification history records explicit supersession.
+9. Release disposition checks the current workspace again before `READY` is possible.
+
+That means a stale scan, changed workspace, mismatched patch, newer failed verification, or policy block cannot be papered over by an AI summary.
+
+See [`docs/HUMAN_APPROVAL_PATCH.md`](docs/HUMAN_APPROVAL_PATCH.md), [`docs/REGRESSION_EVIDENCE.md`](docs/REGRESSION_EVIDENCE.md), [`docs/VERIFICATION.md`](docs/VERIFICATION.md), and [`docs/VERIFICATION_HISTORY.md`](docs/VERIFICATION_HISTORY.md).
+
+---
+
+## Benchmarked instead of hand-waved
+
+Before Deploy includes a diagnostic benchmark plane for evaluating advisory review quality without turning benchmark scores into release authority.
+
+The current benchmark stack includes:
+
+- versioned labeled-defect corpora;
+- deterministic TP / FP / FN / precision / recall / F1 scoring;
+- exact one-to-one matching rules;
+- repeated-run stability metrics;
+- context bytes, tool calls, latency, token usage, and cost provenance;
+- static-vs-exploratory comparative runs;
+- blinded caller-context pilot corpora;
+- a repeated GPT-5.6 Luna production-readiness workflow;
+- bounded retry handling, stable request IDs, and optional cumulative token/cost budgets for the production benchmark bridge;
+- a frozen engineering-readiness criteria document and deterministic readiness evaluator.
+
+**Benchmark and readiness outputs are diagnostic.** They do not grant an application release.
+
+See [`docs/REVIEW_BENCHMARK.md`](docs/REVIEW_BENCHMARK.md), [`docs/CALLER_PILOT_V2.md`](docs/CALLER_PILOT_V2.md), [`docs/PROVIDER_RESILIENCE.md`](docs/PROVIDER_RESILIENCE.md), and [`docs/PRODUCTION_READINESS_CRITERIA.md`](docs/PRODUCTION_READINESS_CRITERIA.md).
+
+---
+
+## Works with the tools developers already use
+
+### CLI
+
+The canonical interface is the `before-deploy` CLI.
+
+```bash
+uv run before-deploy --help
+```
+
+### MCP
+
+A bounded stdio MCP server exposes read/diagnostic/verification/release surfaces while deliberately **not** exposing human approval, patch generation, or workspace materialization tools.
+
+```bash
+uv run before-deploy-mcp
+```
+
+See [`docs/MCP_API_SURFACE.md`](docs/MCP_API_SURFACE.md).
+
+### Claude Code
+
+The repository includes a thin Claude Code client that delegates to the canonical CLI instead of reimplementing policy or release logic.
+
+See [`clients/claude-code/README.md`](clients/claude-code/README.md).
+
+### Codex
+
+The repository includes a repo-scoped explicit-use Codex skill under `.agents/skills/before-deploy-assure/` with the same trust boundaries.
+
+See [`docs/CODEX_THIN_CLIENT.md`](docs/CODEX_THIN_CLIENT.md).
+
+---
 
 ## Quick start
 
 ### Prerequisites
 
-Use a supported operating system with **Python 3.11 or later** and [uv](https://docs.astral.sh/uv/) installed. Git is optional but recommended because the scan manifest records the checked-out revision when it is available.
+- Python **3.11+**
+- [uv](https://docs.astral.sh/uv/)
+- Git recommended
 
-Clone the repository and create the locked development environment:
+### Install the locked development environment
 
 ```bash
 git clone https://github.com/haytamAroui/befor-deploy-for-vibe-coder.git
@@ -60,7 +282,7 @@ cd befor-deploy-for-vibe-coder
 uv sync --frozen --all-extras
 ```
 
-Run the default policy against the tool itself:
+### Run the deterministic gate
 
 ```bash
 uv run before-deploy scan . \
@@ -68,289 +290,134 @@ uv run before-deploy scan . \
   --output-dir reports/self-scan
 ```
 
-A successful run prints `Before Deploy: PASS` and writes the reports below. The `reports/` directory is ignored by Git, so the local evidence does not become an accidental source change.
-
-### Scan another repository
-
-From the **Before Deploy** repository root, point the CLI at the repository you want to evaluate. The policy lives in this repository and may reference its local Semgrep rule pack, so keep the policy path explicit.
+### Preview advisory review scope without sending code to a model
 
 ```bash
-TARGET_REPOSITORY="/absolute/path/to/my-service"
-
-uv run before-deploy scan "$TARGET_REPOSITORY" \
-  --policy rules/default-policy.yaml \
-  --output-dir /tmp/before-deploy-my-service
+uv run before-deploy review . --preview
 ```
 
-The default profile is self-contained: it does not require Gitleaks or Semgrep to be installed. Use it first to establish baseline behavior and resolve native findings.
+### Run a unified review
 
-## Installation and everyday use
+```bash
+uv run before-deploy review . \
+  --policy rules/default-policy.yaml \
+  --output-dir reports/review
+```
 
-The current supported installation model is to run the CLI from a checked-out, locked copy of this repository. This keeps the policy, native rule behavior, and local Semgrep rule pack reviewable in source control.
+Optional advisory providers/files can be added to the review path while the deterministic `PolicyDecision` remains the source of gate status.
 
-| Task | Command |
+### Explore the assurance workflow
+
+```bash
+uv run before-deploy inspect --help
+uv run before-deploy investigate --help
+uv run before-deploy explain --help
+uv run before-deploy propose --help
+uv run before-deploy approve --help
+uv run before-deploy fix --help
+uv run before-deploy regress --help
+uv run before-deploy verify --help
+uv run before-deploy history --help
+uv run before-deploy release --help
+```
+
+---
+
+## Outcomes you can automate
+
+### Deterministic policy
+
+| Status | Meaning |
 |---|---|
-| Create or refresh the reproducible environment | `uv sync --frozen --all-extras` |
-| Display available CLI commands | `uv run before-deploy --help` |
-| Display scan arguments | `uv run before-deploy scan --help` |
-| Run the standard security gate | `uv run before-deploy scan /path/to/repo --policy rules/default-policy.yaml --output-dir /tmp/before-deploy-output` |
-| Print JSON to standard output | Add `--format json` |
-| Print Markdown to standard output | Add `--format markdown` |
-| Print SARIF to standard output | Add `--format sarif` |
-| Limit the maximum scanned file size | Add `--max-file-bytes 500000` |
-| Load reviewed waivers | Add `--waivers /path/to/waivers.yaml` |
+| `PASS` | Declared deterministic policy passed for the evaluated scope |
+| `BLOCK` | A policy-blocking finding remains |
+| `WAIVER_REQUIRED` | Policy requires an explicit valid waiver |
+| `NOT_EVALUATED` | No configured control established a pass for the selected scope |
+| `ERROR` | Required evidence, tool execution, or input validation failed |
 
-All output formats are written even when a different primary format is printed to the terminal. The `--format` flag changes standard output only.
+### Final release disposition
 
-## Understanding scan outcomes and exit codes
+| Status | Meaning |
+|---|---|
+| `READY` | Declared deterministic policy, current verification, materialization, trust requirements, and current workspace snapshot satisfy release requirements |
+| `HOLD` | Release evidence is incomplete, stale, drifted, waived, or below configured trust requirements |
+| `BLOCK` | Deterministic policy or current verification blocks release |
+| `ERROR` | Authoritative release evaluation failed |
 
-The CLI returns a stable exit code suitable for CI branch protection.
+`READY` is intentionally bounded. It means the declared Before Deploy requirements are satisfied for the current workspace — not that the software is guaranteed vulnerability-free.
 
-| Outcome | Exit code | Meaning | Required action |
-|---|---:|---|---|
-| `PASS` | `0` | Applicable required controls completed, with no unwaived blocking result. | Promotion may continue under this gate. |
-| `NOT_EVALUATED` | `0` | No configured control applied to the selected scope. | Review the visible scope limitation; this is not a security pass. |
-| `BLOCK` | `10` | At least one applicable policy-blocking finding remains unwaived. | Remediate the issue, then scan again. |
-| `WAIVER_REQUIRED` | `11` | A policy-defined risk requires an explicit, unexpired waiver. | Obtain a narrowly scoped security waiver or remediate. |
-| `ERROR` | `20` | A required tool failed, inputs are invalid, a report is malformed, or required evidence is unavailable. | Fix the scan/tool configuration. Do not treat the result as clean. |
+---
 
-A command that blocks is expected to return a nonzero code. For example, this fixture is intentionally unsafe and should return `10`:
+## Evidence you can inspect
 
-```bash
-uv run before-deploy scan fixtures/vulnerable_fastapi_nextjs \
-  --policy rules/default-policy.yaml \
-  --output-dir /tmp/before-deploy-vulnerable
-```
-
-The secure fixture is expected to pass:
-
-```bash
-uv run before-deploy scan fixtures/secure_fastapi_nextjs \
-  --policy rules/default-policy.yaml \
-  --output-dir /tmp/before-deploy-secure
-```
-
-## Reports and evidence
-
-Every completed CLI scan writes three redacted artifacts to `--output-dir`. The report writers are part of the versioned package source and have been verified from a fresh repository checkout.
-
-| File | Intended use | Contents |
-|---|---|---|
-| `report.json` | Automation and future control-plane integrations. | Full normalized scan result, manifest, adaptive project profile, evidence identifiers, policy/catalog-bound security analysis plan including selected control-contract provenance, diagnostic coverage audit, control executions, policy decision, findings, and waivers. |
-| `report.md` | Pull-request and release review. | Gate rationale, adaptive technology profile, approved plan selections with implementation/policy/catalog provenance and selected contract scope/exclusions, coverage expectations/audit, explicit exclusions, execution status, grouped findings, remediation guidance, waiver list, and limitations. |
-| `report.sarif` | Code-scanning integrations. | SARIF 2.1.0-compatible rule/location information plus redacted profile, plan, and coverage-audit properties. |
-
-The scan manifest binds reports to the repository digest, policy digest, policy name, scan timestamps, bounded file count, and relevant Git revision. Before Deploy deliberately does **not** print raw secret values in its own normalized reports. If a secret detector reports a potential credential, rotate it through the relevant issuer and inspect access logs according to your incident procedure.
-
-## Policies
-
-Policies are human-reviewable YAML files under `rules/`. A policy explicitly selects controls, their required status, and their disposition. A tool that happens to be on `PATH` never affects a release unless the selected policy enables its control.
-
-| Profile | Use it when | Main behavior |
-|---|---|---|
-| `rules/default-policy.yaml` | Local development and baseline assessment. | Runs the validated native controls. It is the recommended starting profile. |
-| `rules/strict-ci-policy.yaml` | Protected-branch CI. | Runs the native pre-deployment controls with every configured control required and fail-closed error behavior. |
-| `rules/external-adapters-policy.yaml` | A team has installed and calibrated the pinned Gitleaks, Semgrep, and Gosec binaries. | Replaces bootstrap secret/SAST controls with required external adapters. Gosec is explicitly selected only for detected root Go modules; it remains `NOT_APPLICABLE` outside that scope. |
-| `rules/go-vulnerability-snapshot-policy.yaml` | A Go module has a reviewed need for the packaged snapshot’s exact advisory boundary. | Runs native Go module/TLS checks plus `SEC-GO-VULN-001`; no scanner, Go tool, network request, or target code execution occurs. |
-| `rules/trivy-config-policy.yaml` | A team has independently provisioned the pinned Trivy binary and wants the bounded configuration evidence. | Runs only `SEC-TRIVY-CONFIG-001`, which stages eligible Dockerfile/Containerfile and Terraform `.tf` files, uses fixed offline misconfiguration-only arguments, and fails closed on binary/version/report/staging errors. |
-| `rules/nextjs-inline-server-actions-policy.yaml` | A team wants the separate bounded review of named nested inline Server Actions. | Runs `SEC-NEXT-INLINE-ACTION-001` only for named nested async functions with inline `use server`, a direct `db`/`prisma` mutation, and no preceding local guard marker; arrow and module-level/exported actions are excluded. |
-| `rules/python-sql-single-alias-policy.yaml` | A team wants the separate bounded review of one direct local SQL alias. | Runs `SEC-SAST-SQL-ALIAS-001` only when an unsafe query name is copied once to a local name and then used in a standalone `execute`/`executemany` sink; alias chains, branches, calls, attributes, annotations, and wrapped sinks are excluded. |
-| `rules/php-laravel-composer-lock-policy.yaml` | A Laravel application needs evidence that its bounded root Composer form includes a lockfile. | Runs `SEC-PHP-LARAVEL-COMPOSER-LOCK-001` only for a root `composer.json` JSON `require` object declaring the exact `laravel/framework` key plus root `artisan`; a missing root `composer.lock` blocks. It does not run PHP, Composer, or Artisan, or validate package versions, lock contents, integrity, vulnerabilities, or runtime behavior. |
-| `rules/rust-cargo-lock-policy.yaml` | A conventional Rust binary application needs evidence that its bounded root Cargo form includes a lockfile. | Runs `SEC-RUST-CARGO-LOCK-001` only for a root `Cargo.toml` direct non-empty `dependencies` table plus `src/main.rs`; a missing root `Cargo.lock` blocks. It does not run Cargo, rustc, or Rust code, or validate values, lock contents, integrity, vulnerabilities, workspaces, libraries, custom targets, or runtime behavior. |
-| `rules/ruby-rails-gemfile-lock-policy.yaml` | A conventional Rails application needs evidence that its bounded root Gemfile form includes a lockfile. | Runs `SEC-RUBY-RAILS-GEMFILE-LOCK-001` only for a root unindented literal `gem 'rails'` or `gem "rails"` declaration plus `config/application.rb`; a missing root `Gemfile.lock` blocks. It does not run Ruby, Bundler, or Rails, or validate Gemfile values, lock contents, integrity, vulnerabilities, groups, libraries, dynamic declarations, or runtime behavior. |
-| `rules/docker-compose-privileged-policy.yaml` | A team wants direct static evidence of literal privileged Compose services. | Runs `SEC-COMPOSE-PRIVILEGED-001` only for supported root Compose filenames with a direct services mapping, direct service mapping, and unquoted lowercase `privileged: true` scalar. It does not run Docker or Compose, or inspect dynamic/reused YAML, images, commands, secrets, host policy, runtime behavior, or other Compose configuration. |
-| `rules/strict-policy.yaml` | Release-evidence experimentation. | Includes the SBOM presence control. It remains separate for teams that are not yet supplying signed artifacts. |
-| `rules/release-evidence-policy.yaml` | A release candidate with exported Python dependencies, an SBOM, a local artifact, and a downloaded GitHub attestation bundle. | Requires core controls plus pip-audit vulnerability evidence, SBOM presence, and offline signed-attestation verification. |
-
-A minimal policy has this shape:
-
-```yaml
-schema_version: 1
-profile: example
-public_fastapi_routes:
-  - path: /healthz
-    methods: [GET]
-controls:
-  SEC-SECRET-001:
-    required: true
-    disposition: BLOCK
-```
-
-Each control can use one of three finding dispositions: `BLOCK`, `WAIVER_REQUIRED`, or `WARN`. Required-control execution errors remain errors; a policy must never convert a scanner failure into a pass.
-
-### FastAPI public-route allowlist
-
-`SEC-API-001` requires a visible `Depends(...)` or `Security(...)` declaration for mutating FastAPI routes unless the exact route and method are in `public_fastapi_routes`. Keep this allowlist small, explicit, and reviewed. For example, a health endpoint may be public, but an unauthenticated mutating webhook should be justified by its own authentication and signature-validation control rather than silently allowlisted.
-
-### Using a waiver
-
-Waivers are intentionally narrow. A valid record must match the exact finding fingerprint, rule ID, and repository digest; it must also name an approver, justification, compensating controls, and future expiry. A changed source tree changes the repository digest and invalidates the waiver.
-
-First run the scan and obtain the finding fingerprint and repository digest from `report.json`. Then create a reviewed waiver file such as:
-
-```yaml
-schema_version: 1
-waivers:
-  - id: security-2026-001
-    finding_fingerprint: "exact-fingerprint-from-report"
-    rule_id: "SEC-DEP-001"
-    repository_digest: "exact-repository-digest-from-report"
-    approved_by: "security-owner@example.com"
-    justification: "A vendor patch is scheduled for the next approved release window."
-    compensating_controls: "The affected service is isolated and access is restricted."
-    expires_at: "2026-12-31T23:59:59Z"
-```
-
-Run the same scan with the waiver file:
-
-```bash
-uv run before-deploy scan /path/to/repository \
-  --policy rules/default-policy.yaml \
-  --waivers /path/to/waivers.yaml \
-  --output-dir /tmp/before-deploy-waived
-```
-
-Do not use waivers for missing binaries, invalid policy files, malformed scanner output, or any other control `ERROR`. Fix the execution problem instead.
-
-## Optional external scanner profile
-
-The external profile is opt-in because third-party scanner output must be calibrated before it becomes a release authority. It activates isolated adapters for **Gitleaks 8.30.1**, **Gosec v2.29.0** (only for detected root Go modules), and **Semgrep 1.175.0**.
-
-### Install and verify the scanners
-
-Install Gitleaks, Gosec, and Semgrep through your approved software-distribution process. Verify the executable path and version before using the profile. Do not install scanners from target repositories. For Semgrep, an isolated uv tool installation can be used:
-
-```bash
-uv tool install "semgrep==1.175.0"
-semgrep --version
-
-gitleaks version
-gosec --version
-```
-
-The policy declares expected versions for traceability. Your team should pin downloaded scanner artifacts or container digests through its own dependency-management process and ensure `gitleaks`, `gosec`, and `semgrep` are available on `PATH` in the CI runner. The Gosec adapter uses only fixed arguments, ignores inline suppressions, disables module-network resolution with `GOPROXY=off`, and uses read-only module behavior; missing local dependencies are an explicit `ERROR`, not a download attempt.
-
-### Run the external profile
-
-```bash
-uv run before-deploy scan /path/to/repository \
-  --policy rules/external-adapters-policy.yaml \
-  --output-dir /tmp/before-deploy-external
-```
-
-The adapters use fixed argument lists, a minimal child-process environment, temporary reports outside the scanned repository, bounded report size, and timeouts. They do not run target-supplied commands, enable Gosec AI-fix mode, enable Semgrep autofix, allow Semgrep local builds, use remote Semgrep registry rules, download Go modules, or retain raw Gitleaks secrets or Gosec source/details in Before Deploy reports.
-
-If either required binary is missing, times out, produces invalid JSON, or reports an internal scan error, the outcome is `ERROR` with exit code `20`. This is intentional fail-closed behavior.
-
-> Treat external scanner rules and configuration as security-sensitive source code. Review changes through pull requests, pin tool versions, and test rule changes against the secure and vulnerable fixtures before enabling them on protected branches.
-
-## Release-evidence verification
-
-The `release-evidence-policy.yaml` profile is intentionally **not** a general development scan. It is for a release-candidate directory that contains the declared artifact and a downloaded GitHub attestation bundle. It also requires the explicitly versioned `uv`, `pip-audit`, and `gh` executables on `PATH`.
-
-```bash
-uv run before-deploy scan /path/to/release-candidate \
-  --policy rules/release-evidence-policy.yaml \
-  --output-dir /tmp/before-deploy-release-evidence
-```
-
-The profile audits a locked Python dependency set, requires a CycloneDX SBOM, and verifies the local artifact against the expected GitHub repository and signer-workflow identity. Missing tools, a missing lock/SBOM/artifact/bundle, an unverifiable attestation, or malformed evidence returns `ERROR` with exit code `20`; this is expected fail-closed behavior. The detailed contract and threat boundary are in [`docs/DEPENDENCY_PROVENANCE_MILESTONE.md`](docs/DEPENDENCY_PROVENANCE_MILESTONE.md); the practical calibration, artifact-preparation, and conditional-attestation procedures are in [`docs/RELEASE_OPERATIONS.md`](docs/RELEASE_OPERATIONS.md).
-
-## Continuous integration
-
-The repository contains a hardened example workflow at `.github/workflows/ci.yml`. It uses read-only default permissions, a pinned Python setup action, a full-SHA-pinned uv setup action, `uv sync --frozen --all-extras`, linting, tests, a **strict-CI-policy** self-scan, and redacted report artifact retention.
-
-To adopt the same pattern in another repository, vendor or package Before Deploy through your approved release process, then use a protected-branch job that runs the CLI and preserves the exit code. The gate must run in CI; local hooks provide convenience but can be bypassed.
-
-```yaml
-permissions:
-  contents: read
-
-jobs:
-  security-gate:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Check out source
-        uses: actions/checkout@<full-verified-commit-sha>
-      - name: Run Before Deploy gate
-        run: >-
-          uv run before-deploy scan .
-          --policy /approved/path/default-policy.yaml
-          --output-dir reports
-```
-
-Pin every third-party action to a verified full commit SHA. Do not use `pull_request_target` for jobs that check out or execute pull-request-controlled code, and do not grant `write-all` permissions to a scan job.
-
-## Control coverage and limits
-
-| Control | Default profile | Evidence boundary |
-|---|---|---|
-| `SEC-SECRET-001` | Enabled | Narrow native patterns in bounded working-tree text files; no Git-history scan. |
-| `SEC-SAST-001` | Enabled | Python AST patterns for selected raw SQL interpolation directly into execute calls or through one local straight-line name assignment. It excludes branches, aliases, calls, imports, objects, closures, and interprocedural flow. |
-| `SEC-SAST-SQL-ALIAS-001` | `python-sql-single-alias-policy.yaml` only | One direct same-scope local name-to-name alias from an already unsafe query into a standalone `execute`/`executemany` sink. It excludes alias chains, branches, loops, calls, imports, attributes, subscripts, annotations, closures, wrapped sinks, parameter binding semantics, and runtime behavior. |
-| `SEC-API-001` | Enabled | Static FastAPI route decorators and visible `Depends`/`Security` declarations; not semantic proof of authorization. Dynamic paths, `api_route` methods, or the narrow direct top-level non-literal `APIRouter(prefix=...)` shape produce `REVIEW_REQUIRED` execution metadata only, never a finding or gate change. It does not resolve prefix values or derive effective paths. |
-| `SEC-API-AUTHZ-001` | `fastapi-authorization-policy.yaml` only | Literal mutating FastAPI routes with a direct authentication-shaped dependency but no fixed authorization marker. It does not prove roles, scopes, ownership, tenant isolation, dependency semantics, middleware, wrappers, or runtime enforcement. |
-| `SEC-DATA-INTEGRITY-001` | `python-data-integrity-policy.yaml` only | Direct literal `UPDATE` or `DELETE` passed to standalone `execute`/`executemany` without `WHERE`. It excludes formatted SQL, variables, aliases, ORM methods, migrations, schemas, transactions, SQL semantics, and runtime behavior. |
-| `SEC-API-INPUT-001` | `fastapi-input-validation-policy.yaml` only | Direct bare `dict`/`Any` parameters on literal mutating FastAPI route decorators. It does not infer body binding, model semantics, runtime validators, normalization, size limits, business constraints, dataflow, aliases, factories, or runtime behavior. |
-| `SEC-API-UPLOAD-001` | `fastapi-file-upload-policy.yaml` only | Direct `UploadFile.filename` passed to built-in `open` in a literal mutating FastAPI route. It does not infer sanitization, path resolution, storage behavior, archive safety, MIME validation, size limits, malware scanning, authorization, or runtime reachability. |
-| `SEC-CONFIG-001` | Enabled | Explicit debug declarations in Python and selected configuration files; not effective cloud runtime state. |
-| `SEC-CONFIG-002` | Enabled | Credentialed wildcard CORS patterns in common FastAPI/config forms. |
-| `SEC-NEXT-ENV-001` | Enabled when Next.js is detected | Direct `NEXT_PUBLIC_` references whose names clearly indicate a secret/private/session value; no computed-access analysis. |
-| `SEC-NEXT-COOKIE-001` | Enabled when Next.js is detected | Explicit unsafe options on statically named session/auth/token cookies; no custom-wrapper or missing-option inference. |
-| `SEC-NEXT-CORS-001` | Enabled when Next.js is detected | Static `next.config.*` header arrays combining wildcard origin and credentials; no middleware/proxy/runtime analysis. |
-| `SEC-NEXT-ACTION-001` | Enabled when Next.js is detected | Module-level `use server` exported async functions with a direct `db`/`prisma` mutation before any recognized local guard marker. It does not prove authorization, ownership, proxy/middleware coverage, imports, closures, aliases, or runtime dataflow. |
-| `SEC-NEXT-INLINE-ACTION-001` | `nextjs-inline-server-actions-policy.yaml` only | Named nested async functions whose first executable statement is inline `use server`, with a direct `db`/`prisma` mutation before a recognized local guard marker. It excludes arrow actions, module-level/exported actions, directives after executable code, aliases, helpers, page-level checks, proxy/middleware, and semantic authorization. |
-| `SEC-CICD-001` | Enabled when workflows are present | Selected GitHub Actions trigger, permission, and action-pin checks. |
-| `SEC-DEP-001` | Enabled | Supported Python/Node manifest and lockfile presence; not vulnerability analysis yet. |
-| `SEC-PHP-LARAVEL-COMPOSER-LOCK-001` | `php-laravel-composer-lock-policy.yaml` only | Root Laravel application shape with a JSON `composer.json` direct `require` object containing the exact `laravel/framework` key plus root `artisan`; blocks only when root `composer.lock` is absent. It does not parse lock contents, values/constraints, `require-dev`, transitive dependencies, integrity, vulnerabilities, or runtime behavior, and it never executes PHP, Composer, or Artisan. |
-| `SEC-RUST-CARGO-LOCK-001` | `rust-cargo-lock-policy.yaml` only | Root `Cargo.toml` direct non-empty `dependencies` table plus conventional `src/main.rs`; blocks only when root `Cargo.lock` is absent. It does not parse values or lock contents, infer libraries/workspaces/custom targets, validate integrity/vulnerabilities, or execute Cargo, rustc, or Rust code. |
-| `SEC-RUBY-RAILS-GEMFILE-LOCK-001` | `ruby-rails-gemfile-lock-policy.yaml` only | Root unindented literal `gem 'rails'` or `gem "rails"` declaration plus conventional `config/application.rb`; blocks only when root `Gemfile.lock` is absent. It does not parse values or lock contents, infer indented/dynamic declarations, groups, libraries, or nested projects, validate integrity/vulnerabilities, or execute Ruby, Bundler, or Rails. |
-| `SEC-COMPOSE-PRIVILEGED-001` | `docker-compose-privileged-policy.yaml` only | Supported root Compose file with a direct services mapping, direct service mapping, and unquoted lowercase `privileged: true` scalar. It does not interpret dynamic/reused YAML, inspect other settings, images, containers, host policy, or runtime behavior, or execute Docker or Compose. |
-| `SEC-GO-VULN-001` | `go-vulnerability-snapshot-policy.yaml` only | Exact direct root `go.mod` versions against two packaged reviewed advisory boundaries. It excludes indirect dependencies, reachability, `replace` directives, live-database freshness, remediation, and all network/tool execution. |
-| `SEC-SECRET-GITLEAKS-001` | External profile | Gitleaks directory-scan findings, normalized without the raw secret. |
-| `SEC-SAST-SEMGREP-001` | External profile | Checked-in local Semgrep rule findings, normalized without source excerpts. |
-| `SEC-TRIVY-CONFIG-001` | `trivy-config-policy.yaml` only | Preinstalled Trivy 0.74.0 configuration findings from an isolated staged copy of inventory-included Dockerfile/Containerfile variants and Terraform `.tf` files. It uses fixed offline misconfiguration-only arguments, neutralizes inline Trivy ignores, ignores target `.trivyignore`, and retains only rule ID, severity, artifact category, relative path, and line. |
-| `SEC-DEP-VULN-001` | Release-evidence profile | pip-audit JSON evidence against a declared Python lock/requirements input; it detects known advisories, not exploitability or non-Python packages. |
-| `SEC-RELEASE-001` | Strict and release-evidence profiles | Presence and basic parseability of a CycloneDX JSON SBOM; not provenance validation. |
-| `SEC-PROVENANCE-001` | Release-evidence profile | Offline `gh attestation verify` bundle verification with expected repository and signer workflow; it does not claim a generic SLSA level. |
-
-Read the detailed control boundary and false-positive process in [`docs/CONTROL_CATALOG.md`](docs/CONTROL_CATALOG.md). The versioned domain-to-control mapping and explicit unavailable-domain posture are in [`docs/SECURITY_DOMAIN_CONTROL_CATALOG.md`](docs/SECURITY_DOMAIN_CONTROL_CATALOG.md). The Trivy staging/normalization boundary is in [`docs/TRIVY_CONFIG_ADAPTER.md`](docs/TRIVY_CONFIG_ADAPTER.md), while its non-executing secure/vulnerable/ambiguous/suppression/unsupported calibration corpus and future air-gap approval procedure are in [`fixtures/trivy_config_calibration/README.md`](fixtures/trivy_config_calibration/README.md). The dependency and provenance evidence contract is in [`docs/DEPENDENCY_PROVENANCE_MILESTONE.md`](docs/DEPENDENCY_PROVENANCE_MILESTONE.md).
-
-## Repository structure
+Depending on the workflow, Before Deploy emits artifacts such as:
 
 ```text
-src/before_deploy/       # Deterministic kernel, adaptive profiler, controls, adapters, and report writers
-tests/                   # Unit, integration, fake-tool isolation, and profile-detection tests
-rules/                   # Versioned policy profiles and local Semgrep rules
-docs/                    # Architecture, capability contracts, release procedures, and control catalog
-fixtures/                # Secure/vulnerable application fixtures plus static Trivy calibration corpus; no fixture application code is executed
-.github/workflows/       # Hardened CI and manual external-scanner calibration
-scripts/                 # Deterministic release-artifact and SBOM preparation
-uv.lock                  # Reproducible development dependency lock
+report.json / report.md / report.sarif
+review.json / review.md
+review-session.json
+review-delta.json / review-delta.md
+inspection.json
+investigation-request.json / investigation.json
+explanation-request.json / explanation.json
+remediation-proposal.json
+human-approval.json
+patch.json
+patch-materialization.json
+regression-evidence.json
+verification.json
+verification-history.json
+release-disposition.json
 ```
 
-## Development and verification
+Artifacts are designed around bounded content, hashes, lineage, authority metadata, and explicit limitations rather than raw model reasoning or hidden release logic.
 
-Run the same checks used by repository CI:
+---
 
-```bash
-uv sync --frozen --all-extras
-uv run ruff check src tests scripts
-uv run pytest
-uv run before-deploy scan . \
-  --policy rules/default-policy.yaml \
-  --output-dir reports/self-scan
-```
+## What Before Deploy is not
 
-The fake-tool tests exercise Gitleaks/Semgrep/Gosec/Trivy normalization, secret redaction, fixed isolation flags, staged-input containment, target suppression neutralization, timeouts, missing binaries, malformed reports, version mismatches, and fail-closed paths without requiring live scanner binaries or real credentials. The checked-in Trivy calibration corpus adds secure, vulnerable, ambiguous, suppression, and unsupported static inputs; its tests verify scope and staging only, not a real scanner verdict.
+Before Deploy is not a penetration-test replacement, a compliance certification, or a proof that no vulnerability exists.
 
-## Security principles
+It also does not let an LLM:
 
-The project follows least privilege, isolated execution, explicit policy, fail-closed release behavior for required controls, immutable rule and tool versions, redacted evidence, bounded waivers, and developer-reviewed remediation. All repository content, scanner output, and future AI inputs are treated as untrusted data.
+- rewrite deterministic policy;
+- invent a waiver;
+- upgrade an advisory claim into a deterministic finding;
+- silently approve its own remediation;
+- materialize a patch without explicit confirmation;
+- fabricate regression evidence;
+- select an older “better” verification over the current one;
+- declare a release `READY` from model judgment.
 
-## Status and next steps
+Those boundaries are product features, not limitations to work around.
 
-The deterministic kernel, repository evidence collector, adaptive project profiler, strict declarative capability registry, non-executable security domain/control catalog, versioned security analysis planner, diagnostic coverage auditor, report writers, isolated external adapters, dependency/provenance evidence foundation, manual scanner calibration workflow, release-evidence preparation script, Next.js/TypeScript static controls including separate bounded module-level and named-inline Server Action local-guard-marker checks, bounded Python direct-local and separately opt-in one-alias SQL-flow extensions, FastAPI dynamic-route review metadata including a direct non-literal `APIRouter(prefix=...)` review state, one opt-in PHP/Laravel root Composer lockfile-presence control, one opt-in conventional Rust binary Cargo lockfile-presence control, one opt-in conventional Rails Gemfile lockfile-presence control, one opt-in direct Docker Compose privileged-service configuration control, the first bounded offline Go dependency-vulnerability snapshot, and one bounded staged Trivy configuration adapter are implemented and tested locally.
- A static secure/vulnerable/ambiguous/suppression/unsupported Trivy fixture corpus and air-gap calibration procedure are now also present, but no real Trivy calibration, network-isolation attestation, or protected-branch adoption has been performed. The domain catalog exposes twenty-one foundational security domains plus nine explicit extensions, while mapping only the controls actually implemented; unmapped domains remain visibly unavailable rather than silently treated as covered. It is not a compliance framework, a security score, or a certification. The Trivy adapter is separate from the default and strict-CI policies and does not establish container-image, runtime, cloud, or comprehensive IaC assurance. The next engineering priorities are human-reviewed air-gap calibration of this adapter, then further one-control-at-a-time language expansion; only later comes tightly bounded read-only AI assistance.
+---
 
-For the design rationale and phased roadmap, see [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) and [`docs/DEEP_ANALYSIS_AND_BUILD_BLUEPRINT.md`](docs/DEEP_ANALYSIS_AND_BUILD_BLUEPRINT.md).
+## Documentation map
+
+| Topic | Documentation |
+|---|---|
+| Deterministic controls & adaptive planning | [`CONTROL_CATALOG.md`](docs/CONTROL_CATALOG.md), [`ADAPTIVE_PROJECT_PROFILING.md`](docs/ADAPTIVE_PROJECT_PROFILING.md) |
+| Security-domain model | [`SECURITY_DOMAIN_CONTROL_CATALOG.md`](docs/SECURITY_DOMAIN_CONTROL_CATALOG.md), [`DOMAIN_ASSURANCE.md`](docs/DOMAIN_ASSURANCE.md) |
+| Unified AI review | [`ADVISORY_REVIEW_PLANE.md`](docs/ADVISORY_REVIEW_PLANE.md), [`ADVISORY_PROVIDER_RUNTIME.md`](docs/ADVISORY_PROVIDER_RUNTIME.md) |
+| Evidence lineage | [`EVIDENCE_GRAPH.md`](docs/EVIDENCE_GRAPH.md), [`EVIDENCE_CORRELATION.md`](docs/EVIDENCE_CORRELATION.md), [`EVIDENCE_CORROBORATION.md`](docs/EVIDENCE_CORROBORATION.md) |
+| Investigation & explanation | [`EVIDENCE_INSPECT.md`](docs/EVIDENCE_INSPECT.md), [`EVIDENCE_INVESTIGATION.md`](docs/EVIDENCE_INVESTIGATION.md), [`EVIDENCE_EXPLANATION.md`](docs/EVIDENCE_EXPLANATION.md) |
+| Challenge & assurance | [`EVIDENCE_CHALLENGE.md`](docs/EVIDENCE_CHALLENGE.md), [`ASSURANCE_CASE.md`](docs/ASSURANCE_CASE.md) |
+| Remediation & verification | [`REMEDIATION_PROPOSAL.md`](docs/REMEDIATION_PROPOSAL.md), [`HUMAN_APPROVAL_PATCH.md`](docs/HUMAN_APPROVAL_PATCH.md), [`VERIFICATION.md`](docs/VERIFICATION.md) |
+| Release authority | [`VERIFICATION_HISTORY.md`](docs/VERIFICATION_HISTORY.md), [`RELEASE_DISPOSITION.md`](docs/RELEASE_DISPOSITION.md) |
+| Benchmarking | [`REVIEW_BENCHMARK.md`](docs/REVIEW_BENCHMARK.md), [`CALLER_PILOT_V2.md`](docs/CALLER_PILOT_V2.md), [`PRODUCTION_READINESS_CRITERIA.md`](docs/PRODUCTION_READINESS_CRITERIA.md) |
+| Integrations | [`MCP_API_SURFACE.md`](docs/MCP_API_SURFACE.md), [`CLAUDE_THIN_CLIENT.md`](docs/CLAUDE_THIN_CLIENT.md), [`CODEX_THIN_CLIENT.md`](docs/CODEX_THIN_CLIENT.md) |
+
+---
+
+## Project status
+
+Before Deploy is actively developed. The deterministic authority boundary is the architectural constant; advisory engines, benchmarks, integrations, and control depth can evolve without changing who is allowed to decide a release.
+
+The production-readiness framework intentionally distinguishes **implemented capability** from **proven operational maturity**. See [`docs/PRODUCTION_READINESS_CRITERIA.md`](docs/PRODUCTION_READINESS_CRITERIA.md) for the current evidence requirements.
+
+---
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
