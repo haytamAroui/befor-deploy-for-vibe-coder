@@ -1,0 +1,9 @@
+- id: preflight
+  name: Preflight Security Gate
+  description: Deterministic pre-deployment security controls and release gate
+  entry: preflight scan . --policy rules/strict-ci-policy.yaml --output-dir reports
+  language: python
+  types: [text]
+  pass_filenames: false
+  always_run: true
+  additional_dependencies: ["PyYAML>=6.0,<7.0"]

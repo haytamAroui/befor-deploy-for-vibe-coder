@@ -4,17 +4,31 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "before-deploy"
-version = "0.1.0"
+version = "1.0.0"
 description = "Deterministic pre-deployment security controls with bounded AI assistance"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [
-  {name = "Before Deploy for Vibe Coder contributors"}
+  {name = "Preflight Contributors"}
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+  "Topic :: Software Development :: Quality Assurance",
 ]
 dependencies = [
   "PyYAML>=6.0,<7.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/haytamAroui/preflight"
+Repository = "https://github.com/haytamAroui/preflight.git"
+Issues = "https://github.com/haytamAroui/preflight/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -23,6 +37,8 @@ dev = [
 ]
 
 [project.scripts]
+preflight = "before_deploy.release_entrypoint:main"
+preflight-mcp = "before_deploy.mcp_server:main"
 before-deploy = "before_deploy.release_entrypoint:main"
 before-deploy-mcp = "before_deploy.mcp_server:main"
 before-deploy-benchmark-compare = "before_deploy.comparative_benchmark_cli:main"

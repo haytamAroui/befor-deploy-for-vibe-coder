@@ -21,41 +21,54 @@ Preflight is built for one question:
 
 ## Install and run
 
-> **Naming note:** the product and repository are now **Preflight**. The installed CLI currently remains `before-deploy` for compatibility with the existing package and automation surface.
+> **CLI note:** The CLI is available as `preflight` (recommended) and `before-deploy` (for backwards compatibility).
 
-### Prerequisites
+### Quickstart (GitHub Actions)
+
+Add Preflight to your CI pipeline:
+
+```yaml
+- name: Run Preflight Security Gate
+  uses: haytamAroui/preflight@v1
+  with:
+    policy: 'rules/strict-ci-policy.yaml'
+```
+
+### Quickstart (Pre-commit)
+
+Add Preflight to your `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/haytamAroui/preflight
+    rev: v1.0.0
+    hooks:
+      - id: preflight
+```
+
+### Local Installation
+
+#### Prerequisites
 
 You need:
 
 - **Python 3.11+**
 - **Git**
-- **uv** — https://docs.astral.sh/uv/
+- **uv** (recommended) or **pip**
 
-Check your environment:
-
-```bash
-python --version
-git --version
-uv --version
-```
-
-### Clone Preflight
+#### Clone & Run
 
 ```bash
 git clone https://github.com/haytamAroui/preflight.git
 cd preflight
-```
-
-### Install the locked environment
-
-```bash
 uv sync --frozen --all-extras
 ```
 
-### Confirm the CLI works
+Confirm the CLI works:
 
 ```bash
-uv run before-deploy --help
+uv run preflight --help
+# or: uv run before-deploy --help
 ```
 
 ### Run your first scan
