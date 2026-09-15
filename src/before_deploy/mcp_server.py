@@ -10,7 +10,7 @@ from before_deploy.platform_api import (
     PlatformApiResult,
 )
 
-MCP_SERVER_NAME = "before-deploy"
+MCP_SERVER_NAME = "preflight-mcp"
 MCP_CAPABILITIES_RESOURCE = "before-deploy://capabilities"
 MCP_SDK_REQUIREMENT = "mcp>=2,<3"
 
@@ -210,7 +210,7 @@ def main() -> int:
     try:
         server = build_mcp_server()
     except RuntimeError as error:
-        print(f"before-deploy-mcp: ERROR: {error}", file=sys.stderr)
+        print(f"preflight-mcp: ERROR: {error}", file=sys.stderr)
         return 2
     server.run(transport="stdio")
     return 0

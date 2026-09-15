@@ -56,19 +56,19 @@ The API envelope is transport metadata only. It does not carry a competing `auth
 
 ## MCP server
 
-`before-deploy-mcp` is a thin stdio server adapter. It uses the current official Model Context Protocol Python SDK v2 API (`MCPServer`) when that SDK is present in the runtime environment.
+`preflight-mcp` (aliased as `before-deploy-mcp`) is a thin stdio server adapter. It uses the current official Model Context Protocol Python SDK v2 API (`MCPServer`) when that SDK is present in the runtime environment.
 
-The core Before Deploy package deliberately does not depend on MCP. Install the SDK in the same environment when using the MCP adapter, for example:
+The core Preflight package deliberately does not depend on MCP. Install the SDK in the same environment when using the MCP adapter, for example:
 
 ```text
 pip install "mcp>=2,<3"
-before-deploy-mcp
+preflight-mcp
 ```
 
 or during repository development:
 
 ```text
-uv run --with "mcp>=2,<3" before-deploy-mcp
+uv run --with "mcp>=2,<3" preflight-mcp
 ```
 
 PR40 exposes stdio only. Network transports, authentication, remote multi-tenant execution, and hosted deployment are outside this increment.

@@ -351,7 +351,9 @@ Artifacts are designed around bounded content, hashes, lineage, authority metada
 Run the bounded stdio MCP server:
 
 ```bash
-uv run before-deploy-mcp
+uv run preflight-mcp
+# or using the backwards-compatible alias:
+# uv run before-deploy-mcp
 ```
 
 It exposes diagnostic, verification, and release surfaces while deliberately not exposing human approval, patch generation, or workspace materialization as autonomous tools.

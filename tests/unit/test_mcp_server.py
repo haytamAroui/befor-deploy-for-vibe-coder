@@ -68,6 +68,7 @@ def _server_and_api():
 def test_mcp_registers_only_bounded_non_governance_tools():
     server, _ = _server_and_api()
 
+    assert server.name == "preflight-mcp"
     assert set(server.tools) == {
         "before_deploy_inspect",
         "before_deploy_investigate",
@@ -168,7 +169,7 @@ def test_mcp_propose_never_infers_or_supplies_approval():
 
 
 def test_mcp_main_runs_stdio_only(monkeypatch):
-    server = FakeServer("before-deploy", instructions="test")
+    server = FakeServer("preflight-mcp", instructions="test")
     monkeypatch.setattr(mcp_server, "build_mcp_server", lambda: server)
 
     assert mcp_server.main() == 0
