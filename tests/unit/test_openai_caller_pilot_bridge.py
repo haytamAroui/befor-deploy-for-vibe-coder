@@ -113,10 +113,15 @@ def test_openai_bridge_uses_blinded_request_absolute_source_range_and_actual_usa
     assert schema["properties"]["action"]["enum"] == ["FINAL"]
     assert schema["properties"]["symbol"]["enum"] == [None]
     claim = schema["properties"]["claims"]["items"]["properties"]
-    assert claim["evidence_ids"]["items"]["enum"] == ["pilot-initial:C-2JCP"]
+    assert claim["evidence_id"]["enum"] == ["pilot-initial:C-2JCP"]
+    assert claim["secondary_evidence_id"]["enum"] == [None, "pilot-initial:C-2JCP"]
     assert claim["path"]["enum"] == [None, "helpers_b.py"]
     assert claim["start_line"]["enum"] == [None, 9, 10]
     assert claim["end_line"]["enum"] == [None, 9, 10]
+    serialized_schema = json.dumps(schema, sort_keys=True)
+    assert "minLength" not in serialized_schema
+    assert "minItems" not in serialized_schema
+    assert "uniqueItems" not in serialized_schema
 
     model_input = json.loads(payload["input"][1]["content"])
     assert model_input["review_protocol"] == "caller-location-v2"
@@ -138,7 +143,7 @@ def test_openai_bridge_exposes_find_callers_only_when_runner_allows_it(monkeypat
 
     turn = {
         "action": "FIND_CALLERS",
-        "call_id": "call-1",
+        "call_id": "ignored-by-adapter",
         "symbol": "target_url",
         "claims": [],
     }
@@ -151,12 +156,15 @@ def test_openai_bridge_exposes_find_callers_only_when_runner_allows_it(monkeypat
     result = module.invoke_openai(_request(exploratory=True))
 
     assert result["action"] == "FIND_CALLERS"
+    assert result["call_id"] == "call-1"
     assert result["symbol"] == "target_url"
+    assert result["claims"] == []
     schema = captured["payload"]["text"]["format"]["schema"]
     assert schema["properties"]["action"]["enum"] == ["FINAL", "FIND_CALLERS"]
     assert schema["properties"]["symbol"]["enum"] == [None, "target_url"]
     claim = schema["properties"]["claims"]["items"]["properties"]
-    assert claim["evidence_ids"]["items"]["enum"] == ["pilot-initial:C-2JCP"]
+    assert claim["evidence_id"]["enum"] == ["pilot-initial:C-2JCP"]
+    assert claim["secondary_evidence_id"]["enum"] == [None, "pilot-initial:C-2JCP"]
     assert claim["path"]["enum"] == [None, "helpers_b.py"]
     assert claim["start_line"]["enum"] == [None, 9, 10]
 
@@ -202,6 +210,56 @@ def test_response_constraints_add_only_visible_caller_evidence_locations():
     assert constraints["paths"] == ("callers_b.py", "helpers_b.py")
     assert constraints["lines"] == (9, 10, 18, 19, 20, 21, 22)
     assert constraints["tool_symbol"] == "target_url"
+
+
+def test_normalize_turn_converts_primary_secondary_evidence_and_location():
+    module = _module()
+    request = module._with_initial_source_ranges(_request(exploratory=True))
+    constraints = {
+        "evidence_ids": ("find-callers:abc123", "pilot-initial:C-2JCP"),
+        "paths": ("callers_b.py", "helpers_b.py"),
+        "lines": (9, 10, 18, 19, 20, 21, 22),
+        "tool_symbol": "target_url",
+    }
+    turn = {
+        "action": "FINAL",
+        "call_id": "ignored",
+        "symbol": "target_url",
+        "claims": [
+            {
+                "title": "  SSRF  ",
+                "message": "  Caller fetches an untrusted target.  ",
+                "category": "security",
+                "severity": "high",
+                "evidence_id": "find-callers:abc123",
+                "secondary_evidence_id": "pilot-initial:C-2JCP",
+                "path": "callers_b.py",
+                "start_line": 20,
+                "end_line": 19,
+                "confidence": "",
+            }
+        ],
+    }
+
+    normalized = module._normalize_turn(turn, request, constraints)
+    assert normalized == {
+        "action": "FINAL",
+        "call_id": None,
+        "symbol": None,
+        "claims": [
+            {
+                "title": "SSRF",
+                "message": "Caller fetches an untrusted target.",
+                "category": "security",
+                "severity": "high",
+                "evidence_ids": ["find-callers:abc123", "pilot-initial:C-2JCP"],
+                "path": "callers_b.py",
+                "start_line": 19,
+                "end_line": 20,
+                "confidence": None,
+            }
+        ],
+    }
 
 
 def test_openai_bridge_rejects_model_mismatch_before_network(monkeypatch):
