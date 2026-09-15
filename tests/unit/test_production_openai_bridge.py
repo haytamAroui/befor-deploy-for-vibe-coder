@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import sys
 import urllib.error
 from pathlib import Path
 
@@ -10,9 +11,11 @@ SCRIPT = Path("scripts/production_openai_caller_pilot_bridge.py")
 
 
 def _module():
-    spec = importlib.util.spec_from_file_location("production_openai_caller_pilot_bridge", SCRIPT)
+    name = "production_openai_caller_pilot_bridge"
+    spec = importlib.util.spec_from_file_location(name, SCRIPT)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -116,6 +119,14 @@ def test_cumulative_usage_ledger_records_luna_cost(tmp_path, monkeypatch):
         "output_tokens": 10,
         "responses": 1,
     }
+
+
+def test_luna_cost_uses_same_half_up_rounding_as_canonical_bridge():
+    module = _module()
+    # 1 uncached input token + 4 output tokens = 5.0 micro-USD exactly.
+    assert module._luna_cost_microusd(input_tokens=1, cached_tokens=0, output_tokens=4) == 5
+    # 1 cached input + 4 output = 4.82 -> 5.
+    assert module._luna_cost_microusd(input_tokens=1, cached_tokens=1, output_tokens=4) == 5
 
 
 def test_cumulative_budget_fails_closed_and_does_not_commit_overage(tmp_path, monkeypatch):
