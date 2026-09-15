@@ -9,18 +9,22 @@ import sys
 import urllib.error
 import urllib.request
 from decimal import Decimal, ROUND_HALF_UP
+from pathlib import Path
 from typing import Any, Mapping
 
 BRIDGE_REQUEST_SCHEMA = "before-deploy-caller-bridge-request-v1"
 BRIDGE_RESPONSE_SCHEMA = "before-deploy-caller-bridge-response-v1"
 DEFAULT_BASE_URL = "https://api.openai.com/v1"
-DEFAULT_MODEL = "gpt-5.6-sol"
+DEFAULT_MODEL = "gpt-5.6-luna"
 DEFAULT_REASONING_EFFORT = "medium"
 DEFAULT_TIMEOUT_SECONDS = 110
+DEFAULT_CASES_PATH = "fixtures/caller-pilot-v1/cases.json"
+PROTOCOL_REVISION = "caller-location-v2"
 
 _MODEL_PRICING_USD_PER_MTOK = {
     "gpt-5.6": (Decimal("4"), Decimal("0.4"), Decimal("20")),
     "gpt-5.6-sol": (Decimal("4"), Decimal("0.4"), Decimal("20")),
+    "gpt-5.6-luna": (Decimal("0.20"), Decimal("0.02"), Decimal("1.20")),
 }
 
 
@@ -58,6 +62,7 @@ def invoke_openai(request: Any) -> Mapping[str, object]:
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY is not configured")
 
+    blinded_request = _with_initial_source_ranges(request)
     payload = {
         "model": model,
         "input": [
@@ -68,13 +73,18 @@ def invoke_openai(request: Any) -> Mapping[str, object]:
                     "Use only evidence supplied in the user payload. Do not infer hidden repository "
                     "state, benchmark labels, expected defects, or evaluator intent. Report a claim "
                     "only when the supplied evidence concretely supports it. Cite evidence IDs exactly. "
-                    "For a caller-dependent issue, request FIND_CALLERS only when it is available and "
-                    "necessary. Return FINAL with an empty claims array when no concrete issue is supported."
+                    "Use absolute repository source locations from supplied evidence metadata. For an "
+                    "initial-context-only claim, locate the finding inside that initial source range. "
+                    "For a claim whose concrete impact requires caller evidence, locate the finding at "
+                    "the concrete caller operation or call site shown in the cited caller observation, "
+                    "not at the helper definition. For a caller-dependent issue, request FIND_CALLERS "
+                    "only when it is available and necessary. Return FINAL with an empty claims array "
+                    "when no concrete issue is supported."
                 ),
             },
             {
                 "role": "user",
-                "content": json.dumps(request, sort_keys=True, ensure_ascii=False),
+                "content": json.dumps(blinded_request, sort_keys=True, ensure_ascii=False),
             },
         ],
         "reasoning": {
@@ -131,6 +141,79 @@ def invoke_openai(request: Any) -> Mapping[str, object]:
     return result
 
 
+def _with_initial_source_ranges(request: Mapping[str, object]) -> Mapping[str, object]:
+    cases_path = Path(os.environ.get("CALLER_PILOT_CASES_PATH", DEFAULT_CASES_PATH))
+    try:
+        case_payload = json.loads(cases_path.read_text(encoding="utf-8"))
+    except OSError as error:
+        raise RuntimeError("caller pilot cases file is unavailable") from error
+    except ValueError as error:
+        raise RuntimeError("caller pilot cases file is invalid JSON") from error
+    pilot = case_payload.get("pilot") if isinstance(case_payload, Mapping) else None
+    raw_cases = pilot.get("cases") if isinstance(pilot, Mapping) else None
+    if not isinstance(raw_cases, list):
+        raise RuntimeError("caller pilot cases file has no cases array")
+
+    source_ranges: dict[str, tuple[str, int, int, str]] = {}
+    for raw in raw_cases:
+        if not isinstance(raw, Mapping):
+            continue
+        case_id = raw.get("id")
+        path = raw.get("initial_path")
+        start = raw.get("initial_start_line")
+        end = raw.get("initial_end_line")
+        symbol = raw.get("symbol")
+        if (
+            isinstance(case_id, str)
+            and case_id
+            and isinstance(path, str)
+            and path
+            and isinstance(start, int)
+            and not isinstance(start, bool)
+            and start > 0
+            and isinstance(end, int)
+            and not isinstance(end, bool)
+            and end >= start
+            and isinstance(symbol, str)
+            and symbol
+        ):
+            source_ranges[case_id] = (path, start, end, symbol)
+
+    enriched = json.loads(json.dumps(request, sort_keys=True, ensure_ascii=False))
+    if not isinstance(enriched, dict):
+        raise RuntimeError("caller bridge request cannot be normalized")
+    initial_context = enriched.get("initial_context")
+    if not isinstance(initial_context, list) or len(initial_context) != 1:
+        raise ValueError("caller pilot v2 requires exactly one initial evidence item")
+    item = initial_context[0]
+    if not isinstance(item, dict):
+        raise ValueError("caller pilot initial evidence must be an object")
+    evidence_id = item.get("evidence_id")
+    path = item.get("path")
+    if not isinstance(evidence_id, str) or not evidence_id.startswith("pilot-initial:"):
+        raise ValueError("caller pilot initial evidence ID is invalid")
+    case_id = evidence_id.removeprefix("pilot-initial:")
+    source = source_ranges.get(case_id)
+    if source is None:
+        raise ValueError("caller pilot initial evidence has no blinded source range")
+    expected_path, start, end, expected_symbol = source
+    if path != expected_path:
+        raise ValueError("caller pilot initial evidence path does not match blinded source range")
+
+    tools = enriched.get("tools")
+    if isinstance(tools, list) and tools:
+        first_tool = tools[0]
+        arguments = first_tool.get("arguments") if isinstance(first_tool, Mapping) else None
+        tool_symbol = arguments.get("symbol") if isinstance(arguments, Mapping) else None
+        if tool_symbol != expected_symbol:
+            raise ValueError("caller pilot tool symbol does not match blinded source range")
+
+    item["source_start_line"] = start
+    item["source_end_line"] = end
+    enriched["review_protocol"] = PROTOCOL_REVISION
+    return enriched
+
+
 def _response_schema(allowed_actions: tuple[str, ...]) -> Mapping[str, object]:
     return {
         "type": "object",
@@ -166,9 +249,18 @@ def _response_schema(allowed_actions: tuple[str, ...]) -> Mapping[str, object]:
                             "type": "array",
                             "items": {"type": "string"},
                         },
-                        "path": {"type": ["string", "null"]},
-                        "start_line": {"type": ["integer", "null"]},
-                        "end_line": {"type": ["integer", "null"]},
+                        "path": {
+                            "type": ["string", "null"],
+                            "description": "Repository-relative path where the concrete issue manifests.",
+                        },
+                        "start_line": {
+                            "type": ["integer", "null"],
+                            "description": "Absolute repository source line where the concrete issue manifests.",
+                        },
+                        "end_line": {
+                            "type": ["integer", "null"],
+                            "description": "Absolute repository source line where the concrete issue ends.",
+                        },
                         "confidence": {"type": ["string", "null"]},
                     },
                     "required": [
