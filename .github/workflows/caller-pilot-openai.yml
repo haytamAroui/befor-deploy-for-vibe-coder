@@ -28,7 +28,7 @@ jobs:
       - name: Detect external model credential
         id: credential
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPENAI_KEY || secrets.OPENAI_API_TOKEN || secrets.OPENAI_TOKEN || secrets.OPENAI_SECRET_KEY || secrets.OPENAI_API_SECRET || secrets.OPENAI }}
         shell: bash
         run: |
           if [[ -n "${OPENAI_API_KEY}" ]]; then
@@ -36,7 +36,7 @@ jobs:
             echo "External OpenAI credential detected; running blinded pilot with ${OPENAI_MODEL}." >> "${GITHUB_STEP_SUMMARY}"
           else
             echo "available=false" >> "${GITHUB_OUTPUT}"
-            echo "OPENAI_API_KEY is not configured; live pilot was not executed." >> "${GITHUB_STEP_SUMMARY}"
+            echo "No supported OpenAI Actions secret alias resolved; live pilot was not executed." >> "${GITHUB_STEP_SUMMARY}"
           fi
 
       - name: Check out source
@@ -72,7 +72,7 @@ jobs:
       - name: Run blinded static vs find_callers pilot
         if: steps.credential.outputs.available == 'true'
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPENAI_KEY || secrets.OPENAI_API_TOKEN || secrets.OPENAI_TOKEN || secrets.OPENAI_SECRET_KEY || secrets.OPENAI_API_SECRET || secrets.OPENAI }}
         run: >-
           uv run before-deploy-caller-pilot
           --cases fixtures/caller-pilot-v1/cases.json
