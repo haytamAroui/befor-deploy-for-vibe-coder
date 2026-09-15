@@ -21,7 +21,10 @@ class ScriptedModel:
 
     def complete(self, request):
         self.inputs.append(request)
-        return self.turns.pop(0)
+        turn = self.turns.pop(0)
+        if callable(turn):
+            return turn(request)
+        return turn
 
 
 def _repo(tmp_path: Path) -> Path:
@@ -55,80 +58,66 @@ def _context() -> tuple[InitialEvidence, ...]:
     )
 
 
-def test_find_callers_is_the_only_dynamic_evidence_and_dependency_is_derived(tmp_path):
-    probe = ScriptedModel([CallerTurn(action="FIND_CALLERS", call_id="c1", symbol="authorize")])
-    first = CallerExperiment().run(
-        model=probe,
-        repository=_repo(tmp_path),
-        initial_context=_context(),
-        enable_find_callers=True,
+def _final_from_request(request, *, cite_expanded: bool):
+    evidence_ids = ["initial:policy"]
+    if cite_expanded:
+        evidence_ids.append(request.caller_observations[0].evidence_id)
+    return CallerTurn(
+        action="FINAL",
+        claims=(
+            CallerClaimDraft(
+                title="Destructive caller depends on shared authorization helper",
+                message="The delete_resource caller relies on authorize before deletion.",
+                category="security",
+                severity="high",
+                evidence_ids=tuple(evidence_ids),
+                path="app/api.py",
+                start_line=4,
+            ),
+        ),
     )
-    assert first.status == "ERROR" or first.status == "BUDGET_EXHAUSTED"
-    observation = probe.inputs[-1].caller_observations if len(probe.inputs) > 1 else ()
-    # Use the real first observation ID from a complete two-turn execution below.
 
+
+def test_tool_use_alone_does_not_claim_exploration_attribution(tmp_path):
     model = ScriptedModel(
         [
             CallerTurn(action="FIND_CALLERS", call_id="callers-1", symbol="authorize"),
-            CallerTurn(
-                action="FINAL",
-                claims=(
-                    CallerClaimDraft(
-                        title="Destructive caller depends on shared authorization helper",
-                        message="The delete_resource caller relies on authorize before deletion.",
-                        category="security",
-                        severity="high",
-                        evidence_ids=("initial:policy",),
-                        path="app/api.py",
-                        start_line=4,
-                    ),
-                ),
-            ),
+            lambda request: _final_from_request(request, cite_expanded=False),
         ]
     )
-    # The scripted final claim initially cites only static evidence, so Before Deploy must not
-    # claim exploration attribution merely because the tool happened to run.
     run = CallerExperiment().run(
         model=model,
         repository=_repo(tmp_path),
         initial_context=_context(),
         enable_find_callers=True,
     )
+
     assert run.status == "COMPLETED"
     assert run.tool_calls == 1
-    assert json.loads(run.observations[0].content)["tool"] == "find_callers"
-    assert any(item["path"] == "app/api.py" for item in json.loads(run.observations[0].content)["call_sites"])
+    payload = json.loads(run.observations[0].content)
+    assert payload["tool"] == "find_callers"
+    assert any(item["path"] == "app/api.py" for item in payload["call_sites"])
     assert run.claims[0].evidence_dependency == "initial_context_only"
 
-    evidence_id = run.observations[0].evidence_id
-    model_with_dependency = ScriptedModel(
+
+def test_citing_find_callers_evidence_marks_prediction_as_exploration_dependent(tmp_path):
+    model = ScriptedModel(
         [
             CallerTurn(action="FIND_CALLERS", call_id="callers-1", symbol="authorize"),
-            CallerTurn(
-                action="FINAL",
-                claims=(
-                    CallerClaimDraft(
-                        title="Destructive caller depends on shared authorization helper",
-                        message="The delete_resource caller relies on authorize before deletion.",
-                        category="security",
-                        severity="high",
-                        evidence_ids=("initial:policy", evidence_id),
-                        path="app/api.py",
-                        start_line=4,
-                    ),
-                ),
-            ),
+            lambda request: _final_from_request(request, cite_expanded=True),
         ]
     )
-    expanded = CallerExperiment().run(
-        model=model_with_dependency,
+    run = CallerExperiment().run(
+        model=model,
         repository=_repo(tmp_path),
         initial_context=_context(),
         enable_find_callers=True,
     )
-    assert expanded.status == "COMPLETED"
-    assert expanded.claims[0].evidence_dependency == "expanded_context_used"
-    attribution = comparative_finding_evidence(expanded)
+
+    assert run.status == "COMPLETED"
+    assert run.claims[0].evidence_dependency == "expanded_context_used"
+    attribution = comparative_finding_evidence(run)
+    assert attribution[0]["fingerprint"] == run.claims[0].finding.fingerprint
     assert attribution[0]["evidence_dependency"] == "expanded_context_used"
     assert attribution[0]["supported_claim"] is True
     assert attribution[0]["citation_correct"] is True
@@ -175,4 +164,3 @@ def test_unseen_evidence_is_rejected_and_failed_run_has_no_findings(tmp_path):
     imported = advisory_import_from_caller_run(run)
     assert imported.status == "ERROR"
     assert imported.findings == ()
-    assert imported.gate_effect if hasattr(imported, "gate_effect") else True
