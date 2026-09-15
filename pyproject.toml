@@ -23,7 +23,7 @@ dev = [
 ]
 
 [project.scripts]
-before-deploy = "before_deploy.verification_entrypoint:main"
+before-deploy = "before_deploy.verification_history_entrypoint:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
