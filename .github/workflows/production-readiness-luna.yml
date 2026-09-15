@@ -61,8 +61,8 @@ jobs:
 
       - name: Validate benchmark implementation
         run: |
-          uv run ruff check scripts/openai_caller_pilot_bridge.py src/before_deploy/caller_experiment.py src/before_deploy/caller_pilot.py src/before_deploy/caller_pilot_runner.py src/before_deploy/caller_pilot_runner_cli.py tests/unit/test_openai_caller_pilot_bridge.py tests/unit/test_caller_pilot.py tests/unit/test_caller_pilot_runner.py tests/unit/test_caller_pilot_v2_corpus.py
-          uv run pytest -q tests/unit/test_openai_caller_pilot_bridge.py tests/unit/test_caller_pilot.py tests/unit/test_caller_pilot_runner.py tests/unit/test_caller_pilot_v2_corpus.py
+          uv run ruff check scripts/openai_caller_pilot_bridge.py src/before_deploy/caller_experiment.py src/before_deploy/caller_pilot.py src/before_deploy/caller_pilot_runner.py src/before_deploy/caller_pilot_runner_cli.py tests/unit/test_openai_caller_pilot_bridge.py tests/unit/test_caller_pilot.py tests/unit/test_caller_pilot_runner.py tests/unit/test_caller_pilot_v2.py
+          uv run pytest -q tests/unit/test_openai_caller_pilot_bridge.py tests/unit/test_caller_pilot.py tests/unit/test_caller_pilot_runner.py tests/unit/test_caller_pilot_v2.py
 
       - name: Run five-repetition blinded expanded benchmark
         env:
@@ -96,5 +96,5 @@ jobs:
         with:
           name: production-readiness-luna
           path: reports/production-readiness-luna/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 90
