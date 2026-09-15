@@ -8,7 +8,15 @@ on:
 
 permissions:
   contents: write
+  actions: read
   id-token: write
+
+env:
+  READINESS_WORKFLOW: production-readiness-luna.yml
+  READINESS_BRANCH: prod/readiness-luna
+  READINESS_ARTIFACT: production-readiness-luna
+  # Evidence older than this is refused even when its commit is an ancestor of the release.
+  READINESS_MAX_AGE_DAYS: '30'
 
 jobs:
   build-and-release:
@@ -33,14 +41,124 @@ jobs:
       - name: Synchronize locked development environment
         run: uv sync --frozen --all-extras
 
-      - name: Run verification test suite
-        run: uv run pytest
+      # Evidence steps below are allowed to fail without stopping the job: the readiness gate is
+      # the single deciding step, and it must be able to report *why* something is missing.
+      - name: Produce deterministic full-suite evidence
+        continue-on-error: true
+        run: |
+          mkdir -p reports/release-gate
+          uv run pytest --junitxml=reports/release-gate/full-suite-junit.xml
 
-      - name: Run deterministic self-scan
-        run: uv run before-deploy scan . --policy rules/strict-ci-policy.yaml --output-dir reports
+      - name: Produce operational scenario evidence
+        continue-on-error: true
+        run: |
+          uv run pytest --junitxml=reports/release-gate/operational-junit.xml \
+            tests/unit/test_production_openai_bridge.py \
+            tests/unit/test_caller_bridge_failure_modes.py \
+            tests/unit/test_external_adapters.py \
+            tests/unit/test_trivy_config_adapter.py \
+            tests/unit/test_evidence_graph.py \
+            tests/unit/test_advisory_provider.py
+
+      - name: Produce assurance workflow evidence
+        continue-on-error: true
+        run: |
+          uv run pytest --junitxml=reports/release-gate/assurance-junit.xml \
+            tests/integration/test_scan_fixtures.py \
+            tests/integration/test_nextjs_fixture_scans.py
 
       - name: Build distributions
         run: uv build
+
+      - name: Produce clean-install smoke evidence
+        continue-on-error: true
+        run: |
+          uv venv --python 3.11 .release-smoke
+          uv pip install --python .release-smoke dist/*.whl
+          PREFLIGHT_CLEAN_INSTALL=1 \
+          PATH="${PWD}/.release-smoke/bin:${PATH}" \
+            uv run pytest --junitxml=reports/release-gate/smoke-junit.xml \
+              tests/integration/test_clean_install_smoke.py
+
+      - name: Resolve retained readiness evidence run
+        id: readiness
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${READINESS_WORKFLOW}/runs"
+          payload=$(curl -sf -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${api}?status=success&branch=${READINESS_BRANCH}&per_page=5")
+
+          run_id=$(echo "${payload}" | jq -r '[.workflow_runs[]] | sort_by(.created_at) | reverse | .[0].id // empty')
+          run_sha=$(echo "${payload}" | jq -r '[.workflow_runs[]] | sort_by(.created_at) | reverse | .[0].head_sha // empty')
+          created=$(echo "${payload}" | jq -r '[.workflow_runs[]] | sort_by(.created_at) | reverse | .[0].created_at // empty')
+
+          if [[ -z "${run_id}" || -z "${run_sha}" ]]; then
+            echo "No successful ${READINESS_WORKFLOW} run exists on branch ${READINESS_BRANCH}." >&2
+            echo "Readiness evidence must be produced by CI before a release can be gated." >&2
+            exit 1
+          fi
+
+          # The evidence must describe an ancestor of the commit being released.
+          git fetch --no-tags origin "${READINESS_BRANCH}:refs/remotes/origin/${READINESS_BRANCH}" || true
+          if ! git merge-base --is-ancestor "${run_sha}" HEAD; then
+            echo "Readiness evidence commit ${run_sha} is not an ancestor of ${GITHUB_SHA}." >&2
+            exit 1
+          fi
+
+          age_days=$(( ( $(date -u +%s) - $(date -u -d "${created}" +%s) ) / 86400 ))
+          if (( age_days > READINESS_MAX_AGE_DAYS )); then
+            echo "Readiness evidence is ${age_days} days old; limit is ${READINESS_MAX_AGE_DAYS}." >&2
+            exit 1
+          fi
+
+          echo "Using readiness run ${run_id} at ${run_sha} (${age_days}d old)."
+          echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
+
+      - name: Download retained readiness evidence
+        if: steps.readiness.outputs.run_id != ''
+        uses: actions/download-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: ${{ env.READINESS_ARTIFACT }}
+          run-id: ${{ steps.readiness.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: readiness-evidence
+
+      # The independent real-world validation report is produced by its own run; absent evidence
+      # makes the gate fail closed rather than pass by default.
+      - name: Download independent real-world validation evidence
+        continue-on-error: true
+        uses: actions/download-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: real-world-validation
+          path: readiness-evidence
+
+      - name: Enforce production readiness before release
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/release-gate
+          uv run before-deploy-readiness-gate \
+            --pilot-report readiness-evidence/caller-pilot.json \
+            --real-world-report readiness-evidence/real-world-validation.json \
+            --operational-report reports/release-gate/operational-junit.xml \
+            --assurance-report reports/release-gate/assurance-junit.xml \
+            --smoke-report reports/release-gate/smoke-junit.xml \
+            --full-suite-report reports/release-gate/full-suite-junit.xml \
+            --output-dir reports/release-gate
+
+      - name: Retain release-gate evidence
+        if: always()
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: release-gate
+          path: reports/release-gate/
+          if-no-files-found: warn
+          retention-days: 90
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@c95fe1489396fe8a9ec87453c603a5a024e4173a # v2.2.1

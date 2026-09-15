@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "before-deploy"
-version = "1.0.0"
+version = "0.1.0"
 description = "Deterministic pre-deployment security controls with bounded AI assistance"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -44,6 +44,7 @@ before-deploy-mcp = "before_deploy.mcp_server:main"
 before-deploy-benchmark-compare = "before_deploy.comparative_benchmark_cli:main"
 before-deploy-caller-pilot = "before_deploy.caller_pilot_runner_cli:main"
 before-deploy-real-world-validation = "before_deploy.real_world_validation_cli:main"
+before-deploy-readiness-gate = "before_deploy.readiness_gate:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
