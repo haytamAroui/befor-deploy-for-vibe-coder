@@ -37,10 +37,22 @@ from before_deploy.evidence_investigation import (
     render_evidence_investigation_request_terminal,
     render_evidence_investigation_terminal,
 )
+from before_deploy.remediation_proposal import (
+    DEFAULT_MAX_REMEDIATION_RESPONSE_BYTES,
+    build_remediation_proposal_request,
+    load_remediation_proposal_response,
+    render_remediation_proposal_json,
+    render_remediation_proposal_markdown,
+    render_remediation_proposal_request_json,
+    render_remediation_proposal_request_markdown,
+    render_remediation_proposal_request_terminal,
+    render_remediation_proposal_terminal,
+)
 
 INSPECT_INPUT_ERROR_EXIT = 2
 INVESTIGATE_INPUT_ERROR_EXIT = 2
 EXPLAIN_INPUT_ERROR_EXIT = 2
+PROPOSE_INPUT_ERROR_EXIT = 2
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -52,6 +64,8 @@ def main(argv: list[str] | None = None) -> int:
         return _investigate(args[1:])
     if args and args[0] == "explain":
         return _explain(args[1:])
+    if args and args[0] == "propose":
+        return _propose(args[1:])
     if args in (["-h"], ["--help"]):
         print(_top_level_help(), end="")
         return 0
@@ -66,6 +80,7 @@ def _top_level_help() -> str:
         + "  inspect             inspect one finding in a persisted review.json without rerunning providers or policy\n"
         + "  investigate         build bounded investigation context and optionally import a structured advisory response\n"
         + "  explain             build cited explanation context and optionally import a structured advisory explanation\n"
+        + "  propose             build a cited non-executable remediation proposal from a validated explanation\n"
     )
 
 
@@ -181,11 +196,7 @@ def _explain(argv: list[str]) -> int:
                 investigation_request,
                 max_bytes=args.max_investigation_response_bytes,
             )
-        request = build_evidence_explanation_request(
-            inspection,
-            investigation_request,
-            investigation,
-        )
+        request = build_evidence_explanation_request(inspection, investigation_request, investigation)
         request_reports = {
             "json": render_evidence_explanation_request_json(request),
             "markdown": render_evidence_explanation_request_markdown(request),
@@ -203,16 +214,8 @@ def _explain(argv: list[str]) -> int:
                 print(render_evidence_explanation_request_terminal(request), end="")
                 print(f"Explanation request: {output_dir / 'explanation-request.json'}, {output_dir / 'explanation-request.md'}")
             return 0
-        result = load_evidence_explanation_response(
-            args.response_file,
-            request,
-            investigation_request,
-            max_bytes=args.max_response_bytes,
-        )
-        reports = {
-            "json": render_evidence_explanation_json(result),
-            "markdown": render_evidence_explanation_markdown(result),
-        }
+        result = load_evidence_explanation_response(args.response_file, request, investigation_request, max_bytes=args.max_response_bytes)
+        reports = {"json": render_evidence_explanation_json(result), "markdown": render_evidence_explanation_markdown(result)}
         (output_dir / "explanation.json").write_text(reports["json"], encoding="utf-8")
         (output_dir / "explanation.md").write_text(reports["markdown"], encoding="utf-8")
         if args.format == "json":
@@ -226,6 +229,100 @@ def _explain(argv: list[str]) -> int:
     except (OSError, ValueError) as error:
         print(f"before-deploy explain: ERROR: {error}", file=sys.stderr)
         return EXPLAIN_INPUT_ERROR_EXIT
+
+
+def _propose(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="before-deploy propose",
+        description=(
+            "Build a non-executable remediation proposal request from a validated explanation and "
+            "optionally import a strict proposal response. Proposals never mutate code or approve patches."
+        ),
+    )
+    parser.add_argument("review_json", type=Path, help="persisted review.json produced by before-deploy review")
+    parser.add_argument("selector", help="exact finding node ID, exact finding fingerprint, or advisory finding ID")
+    parser.add_argument("--explanation-response-file", type=Path, required=True, help="required before-deploy-explanation-v1 response")
+    parser.add_argument("--investigation-response-file", type=Path, help="investigation response used when the explanation was built with investigation context")
+    parser.add_argument("--response-file", type=Path, help="optional before-deploy-remediation-proposal-v1 JSON response")
+    parser.add_argument("--max-investigation-response-bytes", type=int, default=DEFAULT_MAX_INVESTIGATION_RESPONSE_BYTES)
+    parser.add_argument("--max-explanation-response-bytes", type=int, default=DEFAULT_MAX_EXPLANATION_RESPONSE_BYTES)
+    parser.add_argument("--max-response-bytes", type=int, default=DEFAULT_MAX_REMEDIATION_RESPONSE_BYTES)
+    parser.add_argument("--output-dir", type=Path, default=Path("reports/propose"), help="directory for remediation proposal request/result artifacts")
+    parser.add_argument("--format", choices=("terminal", "json", "markdown"), default="terminal", help="format printed to stdout; proposal artifacts are still written")
+    args = parser.parse_args(argv)
+    try:
+        artifact = load_review_evidence(args.review_json)
+        inspection = build_evidence_inspection(artifact, args.selector)
+        investigation_request = build_evidence_investigation_request(inspection)
+        investigation = None
+        if args.investigation_response_file is not None:
+            investigation = load_evidence_investigation_response(
+                args.investigation_response_file,
+                investigation_request,
+                max_bytes=args.max_investigation_response_bytes,
+            )
+        explanation_request = build_evidence_explanation_request(
+            inspection,
+            investigation_request,
+            investigation,
+        )
+        explanation = load_evidence_explanation_response(
+            args.explanation_response_file,
+            explanation_request,
+            investigation_request,
+            max_bytes=args.max_explanation_response_bytes,
+        )
+        request = build_remediation_proposal_request(
+            explanation_request,
+            explanation,
+            investigation_request,
+        )
+        request_reports = {
+            "json": render_remediation_proposal_request_json(request),
+            "markdown": render_remediation_proposal_request_markdown(request),
+        }
+        output_dir = args.output_dir.resolve()
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "remediation-proposal-request.json").write_text(request_reports["json"], encoding="utf-8")
+        (output_dir / "remediation-proposal-request.md").write_text(request_reports["markdown"], encoding="utf-8")
+        if args.response_file is None:
+            if args.format == "json":
+                print(request_reports["json"], end="")
+            elif args.format == "markdown":
+                print(request_reports["markdown"], end="")
+            else:
+                print(render_remediation_proposal_request_terminal(request), end="")
+                print(
+                    f"Remediation proposal request: {output_dir / 'remediation-proposal-request.json'}, "
+                    f"{output_dir / 'remediation-proposal-request.md'}"
+                )
+            return 0
+        result = load_remediation_proposal_response(
+            args.response_file,
+            request,
+            investigation_request,
+            max_bytes=args.max_response_bytes,
+        )
+        reports = {
+            "json": render_remediation_proposal_json(result),
+            "markdown": render_remediation_proposal_markdown(result),
+        }
+        (output_dir / "remediation-proposal.json").write_text(reports["json"], encoding="utf-8")
+        (output_dir / "remediation-proposal.md").write_text(reports["markdown"], encoding="utf-8")
+        if args.format == "json":
+            print(reports["json"], end="")
+        elif args.format == "markdown":
+            print(reports["markdown"], end="")
+        else:
+            print(render_remediation_proposal_terminal(result), end="")
+            print(
+                f"Remediation proposal reports: {output_dir / 'remediation-proposal.json'}, "
+                f"{output_dir / 'remediation-proposal.md'}"
+            )
+        return 0
+    except (OSError, ValueError) as error:
+        print(f"before-deploy propose: ERROR: {error}", file=sys.stderr)
+        return PROPOSE_INPUT_ERROR_EXIT
 
 
 if __name__ == "__main__":
