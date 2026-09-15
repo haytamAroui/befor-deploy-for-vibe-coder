@@ -5,7 +5,7 @@
   "labeling_rules": "docs/REAL_WORLD_VALIDATION.md",
   "source_snapshot": {
     "repository": "pallets/werkzeug",
-    "commit": "0000000000000000000000000000000000000000"
+    "commit": "52b7ae3287e2cb28d8039d73f4b6e2e35505e459"
   },
   "files": [
     {
