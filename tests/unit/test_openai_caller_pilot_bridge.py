@@ -109,7 +109,14 @@ def test_openai_bridge_uses_blinded_request_absolute_source_range_and_actual_usa
     assert payload["store"] is False
     assert payload["reasoning"]["effort"] == "medium"
     assert payload["text"]["format"]["strict"] is True
-    assert payload["text"]["format"]["schema"]["properties"]["action"]["enum"] == ["FINAL"]
+    schema = payload["text"]["format"]["schema"]
+    assert schema["properties"]["action"]["enum"] == ["FINAL"]
+    assert schema["properties"]["symbol"]["enum"] == [None]
+    claim = schema["properties"]["claims"]["items"]["properties"]
+    assert claim["evidence_ids"]["items"]["enum"] == ["pilot-initial:C-2JCP"]
+    assert claim["path"]["enum"] == [None, "helpers_b.py"]
+    assert claim["start_line"]["enum"] == [None, 9, 10]
+    assert claim["end_line"]["enum"] == [None, 9, 10]
 
     model_input = json.loads(payload["input"][1]["content"])
     assert model_input["review_protocol"] == "caller-location-v2"
@@ -145,10 +152,56 @@ def test_openai_bridge_exposes_find_callers_only_when_runner_allows_it(monkeypat
 
     assert result["action"] == "FIND_CALLERS"
     assert result["symbol"] == "target_url"
-    assert captured["payload"]["text"]["format"]["schema"]["properties"]["action"]["enum"] == [
-        "FINAL",
-        "FIND_CALLERS",
+    schema = captured["payload"]["text"]["format"]["schema"]
+    assert schema["properties"]["action"]["enum"] == ["FINAL", "FIND_CALLERS"]
+    assert schema["properties"]["symbol"]["enum"] == [None, "target_url"]
+    claim = schema["properties"]["claims"]["items"]["properties"]
+    assert claim["evidence_ids"]["items"]["enum"] == ["pilot-initial:C-2JCP"]
+    assert claim["path"]["enum"] == [None, "helpers_b.py"]
+    assert claim["start_line"]["enum"] == [None, 9, 10]
+
+
+def test_response_constraints_add_only_visible_caller_evidence_locations():
+    module = _module()
+    request = module._with_initial_source_ranges(_request(exploratory=True))
+    request["caller_observations"] = [
+        {
+            "call_id": "call-1",
+            "symbol": "target_url",
+            "evidence_id": "find-callers:abc123",
+            "content_sha256": "hash",
+            "content": json.dumps(
+                {
+                    "tool": "find_callers",
+                    "symbol": "target_url",
+                    "call_sites": [
+                        {
+                            "path": "callers_b.py",
+                            "line": 20,
+                            "snippet_start_line": 18,
+                            "snippet_end_line": 22,
+                            "snippet": [
+                                {"line": 18, "text": ""},
+                                {"line": 19, "text": "def proxy(request):"},
+                                {"line": 20, "text": "    return httpx.get(target_url(request))"},
+                                {"line": 21, "text": ""},
+                                {"line": 22, "text": ""},
+                            ],
+                        }
+                    ],
+                }
+            ),
+        }
     ]
+
+    constraints = module._response_constraints(request)
+    assert constraints["evidence_ids"] == (
+        "find-callers:abc123",
+        "pilot-initial:C-2JCP",
+    )
+    assert constraints["paths"] == ("callers_b.py", "helpers_b.py")
+    assert constraints["lines"] == (9, 10, 18, 19, 20, 21, 22)
+    assert constraints["tool_symbol"] == "target_url"
 
 
 def test_openai_bridge_rejects_model_mismatch_before_network(monkeypatch):
