@@ -16,7 +16,7 @@ def _write(path: Path, payload) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
 
 
-def test_checked_in_pilot_has_balanced_hypothesis_classes_and_exact_initial_context():
+def test_checked_in_pilot_has_balanced_hypothesis_classes_and_blinded_initial_context():
     cases_path = Path("fixtures/caller-pilot-v1/cases.json")
     definition = load_pilot_definition(cases_path)
     counts = {
@@ -28,11 +28,19 @@ def test_checked_in_pilot_has_balanced_hypothesis_classes_and_exact_initial_cont
         EXPLORATION_REQUIRED: 4,
         FALSE_POSITIVE_TRAP: 4,
     }
-    repository, case, evidence = prepare_initial_evidence(cases_path, "EXP-C")
+    repository, case, evidence = prepare_initial_evidence(cases_path, "C-2JCP")
     assert repository.name == "repo"
-    assert case.symbol == "target_url_exp_c"
-    assert evidence.path == "exploration_helpers.py"
-    assert evidence.content == 'def target_url_exp_c(request):\n    return request.query["url"]\n'
+    assert case.symbol == "target_url"
+    assert evidence.path == "helpers_b.py"
+    assert evidence.content == 'def target_url(request):\n    return request.query["url"]\n'
+
+    leaked_terms = ("static", "exploration", "exp_", "trap", "false-positive")
+    for item in definition.cases:
+        _, prepared, prepared_evidence = prepare_initial_evidence(cases_path, item.case_id)
+        exposed_identity = " ".join(
+            (prepared.case_id, prepared.symbol, prepared_evidence.evidence_id, prepared_evidence.path)
+        ).lower()
+        assert not any(term in exposed_identity for term in leaked_terms)
 
 
 def _fixture(tmp_path: Path, *, trap_fp: bool) -> tuple[Path, Path, Path]:
