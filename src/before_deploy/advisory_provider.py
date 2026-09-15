@@ -12,6 +12,13 @@ from before_deploy.advisory import (
     AdvisoryImport,
     advisory_error_import,
 )
+from before_deploy.advisory_context import (
+    DEFAULT_MAX_CONTEXT_BYTES,
+    AdvisoryContext,
+    build_advisory_context,
+    context_summary,
+    validate_advisory_context,
+)
 
 
 @dataclass(frozen=True)
@@ -26,13 +33,15 @@ class AdvisoryProviderIdentity:
 
 @dataclass(frozen=True)
 class AdvisoryProviderRequest:
-    """Provider-independent repository review request."""
+    """Provider-independent repository review request with deterministic context bounds."""
 
     repository: Path
     max_file_bytes: int = 1_000_000
+    max_context_bytes: int = DEFAULT_MAX_CONTEXT_BYTES
     from_ref: str | None = None
     to_ref: str | None = None
     commit: str | None = None
+    context: AdvisoryContext | None = None
 
 
 class AdvisoryProvider(Protocol):
@@ -48,7 +57,7 @@ def execute_advisory_provider(
     provider: AdvisoryProvider,
     request: AdvisoryProviderRequest,
 ) -> AdvisoryImport:
-    """Execute one provider and structurally force its result to remain advisory-only."""
+    """Execute one provider only after deterministic context validation."""
     identity = provider.identity
     identity_error = _validate_identity(identity)
     if identity_error is not None:
@@ -63,8 +72,27 @@ def execute_advisory_provider(
     if request_error is not None:
         return _provider_error(identity, request_error)
 
+    resolved_request = replace(request, repository=request.repository.resolve())
     try:
-        imported = provider.review(replace(request, repository=request.repository.resolve()))
+        context = resolved_request.context or build_advisory_context(
+            resolved_request.repository,
+            max_file_bytes=resolved_request.max_file_bytes,
+            max_context_bytes=resolved_request.max_context_bytes,
+            from_ref=resolved_request.from_ref,
+            to_ref=resolved_request.to_ref,
+            commit=resolved_request.commit,
+        )
+        validate_advisory_context(context)
+        _validate_context_binding(resolved_request, context)
+        resolved_request = replace(resolved_request, context=context)
+    except (OSError, ValueError) as error:
+        return _provider_error(
+            identity,
+            f"Advisory context preparation failed: {type(error).__name__}",
+        )
+
+    try:
+        imported = provider.review(resolved_request)
     except Exception as error:
         return _provider_error(
             identity,
@@ -113,12 +141,15 @@ def execute_advisory_provider(
         )
         for finding in imported.findings
     )
+    summary = context_summary(context)
+    scope_message = f"{imported.scope_message}; {summary}" if imported.scope_message else summary
     return replace(
         imported,
         input_name=identity.input_name,
         source=identity.source,
         source_format=identity.source_format,
         findings=findings,
+        scope_message=scope_message,
     )
 
 
@@ -133,11 +164,27 @@ def _validate_identity(identity: AdvisoryProviderIdentity) -> str | None:
 def _validate_request(request: AdvisoryProviderRequest) -> str | None:
     if request.max_file_bytes <= 0:
         return "Advisory provider max_file_bytes must be greater than zero"
+    if request.max_context_bytes <= 0:
+        return "Advisory provider max_context_bytes must be greater than zero"
     if bool(request.from_ref) != bool(request.to_ref):
         return "Advisory provider --from and --to must be supplied together"
     if request.commit and (request.from_ref or request.to_ref):
         return "Advisory provider commit mode cannot be combined with --from/--to"
     return None
+
+
+def _validate_context_binding(request: AdvisoryProviderRequest, context: AdvisoryContext) -> None:
+    manifest = context.manifest
+    if context.repository.resolve() != request.repository.resolve():
+        raise ValueError("Advisory context repository does not match provider request")
+    if manifest.max_file_bytes != request.max_file_bytes:
+        raise ValueError("Advisory context max_file_bytes does not match provider request")
+    if manifest.max_context_bytes != request.max_context_bytes:
+        raise ValueError("Advisory context max_context_bytes does not match provider request")
+    if manifest.from_ref != request.from_ref or manifest.to_ref != request.to_ref:
+        raise ValueError("Advisory context branch range does not match provider request")
+    if manifest.commit != request.commit:
+        raise ValueError("Advisory context commit does not match provider request")
 
 
 def _provider_error(
