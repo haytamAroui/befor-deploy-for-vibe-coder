@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "benchmark": {
+    "name": "before-deploy-caller-pilot-v2",
+    "defects": [
+      {"id":"D-01","path":"helpers_a.py","start_line":2,"end_line":2,"category":"security","severity":"high"},
+      {"id":"D-02","path":"helpers_a.py","start_line":6,"end_line":6,"category":"security","severity":"high"},
+      {"id":"D-03","path":"helpers_a.py","start_line":10,"end_line":10,"category":"security","severity":"high"},
+      {"id":"D-04","path":"helpers_a.py","start_line":14,"end_line":14,"category":"security","severity":"high"},
+      {"id":"D-05","path":"callers_b.py","start_line":11,"end_line":12,"category":"security","severity":"high"},
+      {"id":"D-06","path":"callers_b.py","start_line":16,"end_line":16,"category":"security","severity":"high"},
+      {"id":"D-07","path":"callers_b.py","start_line":20,"end_line":20,"category":"security","severity":"high"},
+      {"id":"D-08","path":"callers_b.py","start_line":24,"end_line":24,"category":"bug","severity":"high"},
+      {"id":"D-09","path":"helpers_d.py","start_line":2,"end_line":2,"category":"security","severity":"high"},
+      {"id":"D-10","path":"helpers_d.py","start_line":6,"end_line":6,"category":"security","severity":"high"},
+      {"id":"D-11","path":"helpers_d.py","start_line":10,"end_line":10,"category":"bug","severity":"high"},
+      {"id":"D-12","path":"helpers_d.py","start_line":14,"end_line":14,"category":"security","severity":"high"},
+      {"id":"D-13","path":"callers_e.py","start_line":10,"end_line":10,"category":"security","severity":"high"},
+      {"id":"D-14","path":"callers_e.py","start_line":13,"end_line":13,"category":"security","severity":"high"},
+      {"id":"D-15","path":"callers_e.py","start_line":16,"end_line":16,"category":"security","severity":"high"},
+      {"id":"D-16","path":"callers_e.py","start_line":19,"end_line":19,"category":"security","severity":"high"}
+    ]
+  }
+}
