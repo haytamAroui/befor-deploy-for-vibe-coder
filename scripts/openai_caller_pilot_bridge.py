@@ -63,6 +63,7 @@ def invoke_openai(request: Any) -> Mapping[str, object]:
         raise RuntimeError("OPENAI_API_KEY is not configured")
 
     blinded_request = _with_initial_source_ranges(request)
+    constraints = _response_constraints(blinded_request)
     payload = {
         "model": model,
         "input": [
@@ -98,7 +99,7 @@ def invoke_openai(request: Any) -> Mapping[str, object]:
                 "type": "json_schema",
                 "name": "before_deploy_caller_pilot_turn",
                 "strict": True,
-                "schema": _response_schema(tuple(allowed_actions)),
+                "schema": _response_schema(tuple(allowed_actions), **constraints),
             }
         },
         "max_output_tokens": _positive_env_int("OPENAI_MAX_OUTPUT_TOKENS", 4000),
@@ -214,20 +215,112 @@ def _with_initial_source_ranges(request: Mapping[str, object]) -> Mapping[str, o
     return enriched
 
 
-def _response_schema(allowed_actions: tuple[str, ...]) -> Mapping[str, object]:
+def _response_constraints(request: Mapping[str, object]) -> Mapping[str, object]:
+    evidence_ids: set[str] = set()
+    paths: set[str] = set()
+    lines: set[int] = set()
+
+    initial_context = request.get("initial_context")
+    if isinstance(initial_context, list):
+        for raw in initial_context:
+            if not isinstance(raw, Mapping):
+                continue
+            evidence_id = raw.get("evidence_id")
+            path = raw.get("path")
+            start = raw.get("source_start_line")
+            end = raw.get("source_end_line")
+            if isinstance(evidence_id, str) and evidence_id:
+                evidence_ids.add(evidence_id)
+            if isinstance(path, str) and path:
+                paths.add(path)
+            if (
+                isinstance(start, int)
+                and not isinstance(start, bool)
+                and isinstance(end, int)
+                and not isinstance(end, bool)
+                and 0 < start <= end
+            ):
+                lines.update(range(start, end + 1))
+
+    observations = request.get("caller_observations")
+    if isinstance(observations, list):
+        for raw in observations:
+            if not isinstance(raw, Mapping):
+                continue
+            evidence_id = raw.get("evidence_id")
+            if isinstance(evidence_id, str) and evidence_id:
+                evidence_ids.add(evidence_id)
+            content = raw.get("content")
+            if not isinstance(content, str):
+                continue
+            try:
+                payload = json.loads(content)
+            except ValueError:
+                continue
+            call_sites = payload.get("call_sites") if isinstance(payload, Mapping) else None
+            if not isinstance(call_sites, list):
+                continue
+            for site in call_sites:
+                if not isinstance(site, Mapping):
+                    continue
+                path = site.get("path")
+                if isinstance(path, str) and path:
+                    paths.add(path)
+                snippet = site.get("snippet")
+                if isinstance(snippet, list):
+                    for snippet_line in snippet:
+                        if not isinstance(snippet_line, Mapping):
+                            continue
+                        line = snippet_line.get("line")
+                        if isinstance(line, int) and not isinstance(line, bool) and line > 0:
+                            lines.add(line)
+                line = site.get("line")
+                if isinstance(line, int) and not isinstance(line, bool) and line > 0:
+                    lines.add(line)
+
+    tool_symbol: str | None = None
+    tools = request.get("tools")
+    if isinstance(tools, list) and tools:
+        first_tool = tools[0]
+        arguments = first_tool.get("arguments") if isinstance(first_tool, Mapping) else None
+        symbol = arguments.get("symbol") if isinstance(arguments, Mapping) else None
+        if isinstance(symbol, str) and symbol:
+            tool_symbol = symbol
+
+    if not evidence_ids or not paths or not lines:
+        raise ValueError("caller pilot response constraints require visible evidence locations")
+    return {
+        "evidence_ids": tuple(sorted(evidence_ids)),
+        "paths": tuple(sorted(paths)),
+        "lines": tuple(sorted(lines)),
+        "tool_symbol": tool_symbol,
+    }
+
+
+def _response_schema(
+    allowed_actions: tuple[str, ...],
+    *,
+    evidence_ids: tuple[str, ...],
+    paths: tuple[str, ...],
+    lines: tuple[int, ...],
+    tool_symbol: str | None,
+) -> Mapping[str, object]:
+    symbol_values: list[object] = [None]
+    if tool_symbol is not None:
+        symbol_values.append(tool_symbol)
     return {
         "type": "object",
         "properties": {
             "action": {"type": "string", "enum": list(allowed_actions)},
-            "call_id": {"type": ["string", "null"]},
-            "symbol": {"type": ["string", "null"]},
+            "call_id": {"type": ["string", "null"], "minLength": 1},
+            "symbol": {"enum": symbol_values},
             "claims": {
                 "type": "array",
                 "items": {
                     "type": "object",
                     "properties": {
-                        "title": {"type": "string"},
-                        "message": {"type": "string"},
+                        "title": {"type": "string", "minLength": 1},
+                        "message": {"type": "string", "minLength": 1},
                         "category": {
                             "type": "string",
                             "enum": [
@@ -247,21 +340,23 @@ def _response_schema(allowed_actions: tuple[str, ...]) -> Mapping[str, object]:
                         },
                         "evidence_ids": {
                             "type": "array",
-                            "items": {"type": "string"},
+                            "minItems": 1,
+                            "uniqueItems": True,
+                            "items": {"type": "string", "enum": list(evidence_ids)},
                         },
                         "path": {
-                            "type": ["string", "null"],
+                            "enum": [None, *paths],
                             "description": "Repository-relative path where the concrete issue manifests.",
                         },
                         "start_line": {
-                            "type": ["integer", "null"],
+                            "enum": [None, *lines],
                             "description": "Absolute repository source line where the concrete issue manifests.",
                         },
                         "end_line": {
-                            "type": ["integer", "null"],
+                            "enum": [None, *lines],
                             "description": "Absolute repository source line where the concrete issue ends.",
                         },
-                        "confidence": {"type": ["string", "null"]},
+                        "confidence": {"type": ["string", "null"], "minLength": 1},
                     },
                     "required": [
                         "title",
