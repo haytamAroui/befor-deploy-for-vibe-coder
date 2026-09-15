@@ -15,6 +15,7 @@ import time
 import urllib.error
 import uuid
 from dataclasses import dataclass
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
@@ -23,6 +24,9 @@ DEFAULT_MAX_ATTEMPTS = 3
 DEFAULT_RETRY_BASE_DELAY_MS = 250
 DEFAULT_RETRY_MAX_DELAY_MS = 2_000
 _RETRYABLE_HTTP = {408, 409, 429, 500, 502, 503, 504}
+_LUNA_INPUT_RATE = Decimal("0.20")
+_LUNA_CACHED_INPUT_RATE = Decimal("0.02")
+_LUNA_OUTPUT_RATE = Decimal("1.20")
 
 
 @dataclass(frozen=True)
@@ -205,12 +209,14 @@ def _record_usage(budget: UsageBudget, raw: bytes) -> None:
     if cached_tokens > input_tokens:
         raise RuntimeError("cached input tokens exceed input tokens")
 
-    # Keep cost accounting aligned with the canonical Luna experiment bridge.
     model = os.environ.get("OPENAI_MODEL", "gpt-5.6-luna").strip() or "gpt-5.6-luna"
     if model != "gpt-5.6-luna":
         raise RuntimeError("production caller bridge budget supports only gpt-5.6-luna")
-    uncached = input_tokens - cached_tokens
-    cost_microusd = round(uncached * 0.20 + cached_tokens * 0.02 + output_tokens * 1.20)
+    cost_microusd = _luna_cost_microusd(
+        input_tokens=input_tokens,
+        cached_tokens=cached_tokens,
+        output_tokens=output_tokens,
+    )
 
     totals = _read_ledger(budget.ledger_path)
     updated = {
@@ -221,6 +227,18 @@ def _record_usage(budget: UsageBudget, raw: bytes) -> None:
     }
     _assert_budget(updated, budget, allow_equal=True)
     _write_ledger(budget.ledger_path, updated)
+
+
+def _luna_cost_microusd(*, input_tokens: int, cached_tokens: int, output_tokens: int) -> int:
+    if cached_tokens > input_tokens:
+        raise RuntimeError("cached input tokens exceed input tokens")
+    uncached = input_tokens - cached_tokens
+    value = (
+        Decimal(uncached) * _LUNA_INPUT_RATE
+        + Decimal(cached_tokens) * _LUNA_CACHED_INPUT_RATE
+        + Decimal(output_tokens) * _LUNA_OUTPUT_RATE
+    )
+    return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
 def _assert_budget(totals: Mapping[str, int], budget: UsageBudget, *, allow_equal: bool) -> None:
