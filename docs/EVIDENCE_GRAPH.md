@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Evidence Graph v1 is the canonical typed lineage model that connects what Before Deploy observed, what deterministic controls executed, what they found, what policy decided, and what advisory providers produced.
+Evidence Graph v1 is the canonical typed lineage model connecting what Before Deploy observed, what deterministic controls executed, what they found, what policy decided, and what advisory providers produced.
 
 It exists so later `inspect`, `investigate`, `explain`, remediation, verification, and release workflows can operate on explicit provenance instead of reconstructing relationships from prose.
 
@@ -21,34 +21,32 @@ Evidence Graph v1 follows five rules:
 
 1. **Typed nodes, not one mutable finding record.** Repository snapshots, observations, control executions, deterministic findings, waivers, policy decisions, advisory contexts, advisory executions, raw artifacts, normalized outputs, and advisory findings are separate node types.
 2. **Content-addressed identity.** Every node ID is derived from the canonical immutable node payload. If a payload changes, its node ID changes.
-3. **Explicit edges only.** V1 creates a relationship only when current data establishes that lineage directly. It does not infer semantic equivalence.
-4. **Authority is preserved, never upgraded by graph position.** Advisory nodes remain advisory even when connected to deterministic nodes in later graph versions.
+3. **Explicit lineage edges only.** The base graph creates a relationship only when current data establishes that lineage directly.
+4. **Authority is preserved, never upgraded by graph position.** Advisory nodes remain advisory regardless of downstream correlation.
 5. **The graph digest binds the complete node/edge set.** Node or edge tampering invalidates `graph_sha256`.
 
 ## Node types
-
-V1 defines these node types:
 
 | Node type | Meaning | Authority |
 | --- | --- | --- |
 | `REPOSITORY_SNAPSHOT` | Redaction-safe identity of the deterministic scan input | `DETERMINISTIC_INPUT` |
 | `POLICY_INPUT` | Policy name and exact policy digest | `DETERMINISTIC_POLICY_INPUT` |
-| `OBSERVATION` | Existing deterministic `EvidenceSignal` from repository/requirement/infrastructure evidence | `DETERMINISTIC_EVIDENCE` |
+| `OBSERVATION` | Existing deterministic `EvidenceSignal` | `DETERMINISTIC_EVIDENCE` |
 | `CONTROL_EXECUTION` | One deterministic control execution | `DETERMINISTIC_EXECUTION` |
 | `DETERMINISTIC_FINDING` | One normalized deterministic finding | `DETERMINISTIC_FINDING` |
 | `WAIVER` | One narrowly scoped reviewed waiver | `DETERMINISTIC_WAIVER` |
 | `POLICY_DECISION` | The deterministic release decision | `RELEASE_AUTHORITY` |
-| `ADVISORY_CONTEXT` | PR24 deterministic context identity consumed by a provider | `ADVISORY_CONTEXT` |
-| `ADVISORY_EXECUTION` | PR25 provider execution attestation | `ADVISORY_EXECUTION` |
+| `ADVISORY_CONTEXT` | Deterministic context identity consumed by a provider | `ADVISORY_CONTEXT` |
+| `ADVISORY_EXECUTION` | Provider execution attestation | `ADVISORY_EXECUTION` |
 | `RAW_ADVISORY_ARTIFACT` | Content-free identity of raw provider JSON | `ADVISORY_ARTIFACT` |
 | `NORMALIZED_ADVISORY_OUTPUT` | Content-addressed normalized advisory-source result | `ADVISORY_ARTIFACT` |
 | `ADVISORY_FINDING` | One normalized AI/third-party finding | `ADVISORY` |
 
 Repository-local absolute paths are deliberately not copied into the graph. Source locations remain repository-relative.
 
-## Edge types
+## Base edge types
 
-V1 reserves these directed relations:
+Evidence Graph v1 uses these directed lineage relations:
 
 ```text
 DERIVED_FROM
@@ -57,8 +55,6 @@ PRODUCED_BY
 SUPPORTS
 APPLIES_TO
 ```
-
-Current builder behavior is deliberately conservative.
 
 Examples:
 
@@ -76,7 +72,7 @@ NORMALIZED_ADVISORY_OUTPUT --DERIVED_FROM--> RAW_ADVISORY_ARTIFACT
 ADVISORY_FINDING --DERIVED_FROM--> NORMALIZED_ADVISORY_OUTPUT
 ```
 
-A deterministic finding is linked to a control execution only when `rule_id` and `rule_version` exactly match that execution's `control_id` and `control_version`. V1 does not guess producers from titles, paths, or semantic similarity.
+A deterministic finding is linked to a control execution only when `rule_id` and `rule_version` exactly match that execution's `control_id` and `control_version`.
 
 ## Content-addressed identity
 
@@ -96,23 +92,19 @@ The node digest is SHA-256 over canonical JSON containing the node type, authori
 <lowercase-node-type>:<payload_sha256>
 ```
 
-This makes node identity immutable by construction. Editing a title, execution timestamp, location, provider identity, configuration digest, or any other semantic field without recomputing the identity is detected by validation.
-
-The graph itself stores `graph_sha256`, computed over the sorted node set and sorted edge set plus schema/authority metadata.
+The graph stores `graph_sha256`, computed over the sorted node set and sorted edge set plus schema/authority metadata.
 
 ## Deterministic authority boundary
 
 The graph does not convert a finding into a policy effect.
 
-`DETERMINISTIC_FINDING` nodes contain the finding's normalized detector result and policy-assigned disposition when present, but release authority remains represented separately by the `POLICY_DECISION` node.
-
-This preserves the architecture:
+`DETERMINISTIC_FINDING` nodes contain the normalized detector result and policy-assigned disposition when present, but release authority remains represented separately by `POLICY_DECISION`.
 
 ```text
 finding -> policy evaluation -> PolicyDecision
 ```
 
-rather than treating `gate_effect` as an intrinsic property of a finding.
+`gate_effect` is therefore not treated as an intrinsic property of a finding.
 
 ## Advisory lineage
 
@@ -138,15 +130,28 @@ Advisory context, execution, and finding nodes are validated as gate-neutral. Th
 
 For provider executions where no trustworthy raw artifact exists, `NORMALIZED_ADVISORY_OUTPUT` may be linked directly to `ADVISORY_EXECUTION` using `PRODUCED_BY`.
 
-For imported advisory files without a live provider execution, raw and normalized artifact nodes still preserve file-to-finding lineage without inventing an execution.
+For imported advisory files without a live provider execution, raw and normalized artifact nodes preserve file-to-finding lineage without inventing an execution.
 
-## Correlation is intentionally not in v1
+## PR27 correlation overlay
 
-Before Deploy already has a narrow location-overlap review correlation. Evidence Graph v1 deliberately does **not** convert that into a `CORRELATES_WITH` edge.
+PR27 deliberately does **not** mutate the base lineage graph schema to pretend location overlap is lineage.
 
-PR27 owns correlation and deduplication semantics. That increment can add explicit correlation nodes/edges only after defining identity, evidence strength, and deduplication rules. Two findings appearing on the same line are not automatically the same claim.
+Instead it creates a deterministic overlay bound to the exact `graph_sha256`.
 
-Likewise, PR28 will define corroboration without upgrading authority.
+That overlay uses stable graph node IDs and emits diagnostic records shaped as:
+
+```text
+ADVISORY_FINDING --CORRELATES_WITH--> DETERMINISTIC_FINDING
+basis = LOCATION_OVERLAP
+authority = CORRELATION_DIAGNOSTIC
+gate_effect = NONE
+```
+
+`CORRELATES_WITH` therefore means only that repository-relative line ranges overlap. It does not mean the two findings are semantically identical, mutually validating, or release-authoritative.
+
+PR27 also creates an exact advisory deduplication view keyed only by the normalized advisory fingerprint. It never collapses different fingerprints merely because wording, severity, category, or source location look similar.
+
+See [EVIDENCE_CORRELATION.md](EVIDENCE_CORRELATION.md) for the full contract.
 
 ## Validation
 
@@ -159,17 +164,19 @@ Likewise, PR28 will define corroboration without upgrading authority.
 - node IDs that do not match their content digest;
 - release authority on any node type other than `POLICY_DECISION`;
 - advisory context/execution/finding gate effects other than `NONE`;
-- unsupported relations;
+- unsupported base-graph relations;
 - duplicate or unsorted edges;
 - dangling edge endpoints;
 - self-edges;
 - graph digest mismatch.
 
+Correlation overlay validation is separate and additionally checks graph binding, endpoint types, overlap coordinates, exact-fingerprint dedup groups, stable canonical IDs, and diagnostic-only authority.
+
 ## Redaction boundary
 
 The graph may contain already-normalized deterministic/advisory finding text because those are existing redaction-safe report objects. It does not copy:
 
-- repository-local absolute path;
+- repository-local absolute paths;
 - raw source files;
 - provider chain-of-thought;
 - provider stdout/stderr;
@@ -178,17 +185,20 @@ The graph may contain already-normalized deterministic/advisory finding text bec
 
 Raw advisory data is represented by hash, size, media type, and schema only.
 
-## PR26 boundary
+The PR27 correlation overlay adds only graph node IDs, repository-relative overlap coordinates, exact advisory fingerprints, occurrence counts, and content digests.
 
-PR26 adds the graph schema, builder, validators, and renderers. It does not add:
+## Current boundary
 
-- semantic correlation or deduplication;
-- corroboration scoring;
-- an AI-generated graph edge;
+PR26 provides typed lineage identity. PR27 adds deterministic location correlation and exact advisory deduplication on top of those identities.
+
+Neither increment adds:
+
+- semantic similarity or embeddings;
+- LLM-generated correlation;
+- corroboration or confidence promotion;
 - investigation or explanation commands;
-- remediation proposals;
-- patching;
-- verification/release disposition;
+- remediation or patching;
+- verification or release disposition;
 - any new release-policy behavior.
 
-The next increment is PR27: deterministic correlation/deduplication on top of stable graph identities. PR28 then adds corroboration semantics without authority upgrades.
+PR28 is the next increment: corroboration semantics that strengthen evidence interpretation without upgrading advisory authority.
